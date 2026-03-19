@@ -3,256 +3,704 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stealth Escape</title>
+    <title>Хоррор: Тёмная комната</title>
     <style>
-        body { margin: 0; background: #111; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        canvas { display: block; margin: 0 auto; background: #000; }
-        .ui-panel {
-            position: absolute; bottom: 20px; left: 20px; right: 20px;
-            display: flex; justify-content: space-between; align-items: flex-end;
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #111;
+            color: white;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0a;
+            touch-action: none;
+        }
+        #ui-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px black;
+        }
+        .stat-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(2px);
+            width: fit-content;
+            border: 1px solid #444;
+        }
+        .stat-label {
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 60px;
+        }
+        .bar-bg {
+            width: 150px;
+            height: 16px;
+            background: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #555;
+        }
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.1s;
+        }
+        .battery-fill { background: #ffaa00; }
+        .noise-fill { background: #ff4444; }
+        #key-indicator {
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(2px);
+            width: fit-content;
+            border: 1px solid #444;
+            font-size: 16px;
+        }
+        .key-found { color: #ffd700; }
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 20px;
             pointer-events: none;
         }
-        .btn {
-            width: 80px; height: 80px; background: rgba(255,255,255,0.1);
-            border: 2px solid #fff; border-radius: 50%; color: #fff;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; pointer-events: auto; user-select: none;
+        #joystick-area {
+            width: 120px;
+            height: 120px;
+            background: rgba(50,50,50,0.7);
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 2px solid #777;
+            pointer-events: auto;
+            touch-action: none;
         }
-        .btn:active { background: rgba(255,255,255,0.4); }
-        .btn.active { background: #f00; }
-        #joystick-container { width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%; position: relative; pointer-events: auto; }
-        #joystick-stick { width: 50px; height: 50px; background: #fff; border-radius: 50%; position: absolute; top: 50px; left: 50px; }
-        #info { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        #crouch-btn {
+            width: 100px;
+            height: 60px;
+            background: rgba(80,80,80,0.8);
+            backdrop-filter: blur(4px);
+            border: 3px solid #aaa;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            pointer-events: auto;
+            touch-action: manipulation;
+            transition: all 0.1s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        #crouch-btn.active {
+            background: #2a6f2a;
+            border-color: #8bc34a;
+            transform: scale(0.95);
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            padding: 20px 30px;
+            border-radius: 20px;
+            font-size: 24px;
+            border: 2px solid #800;
+            color: #f88;
+            z-index: 30;
+            display: none;
+            text-align: center;
+            pointer-events: none;
+        }
+        @media (max-width: 600px) {
+            .bar-bg { width: 120px; }
+            #joystick-area { width: 100px; height: 100px; }
+            #crouch-btn { width: 80px; height: 50px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
-
-<div id="info">Уровень: <span id="lvl">1</span> | Статус: <span id="status">Норма</span></div>
-
-<div class="ui-panel">
-    <div id="joystick-container">
-        <div id="joystick-stick"></div>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        <div id="ui-overlay">
+            <div class="stat-bar">
+                <span class="stat-label">🔦 Фонарь</span>
+                <div class="bar-bg"><div id="battery-bar" class="bar-fill battery-fill" style="width:100%"></div></div>
+            </div>
+            <div class="stat-bar">
+                <span class="stat-label">📢 Шум</span>
+                <div class="bar-bg"><div id="noise-bar" class="bar-fill noise-fill" style="width:0%"></div></div>
+            </div>
+            <div id="key-indicator">🔑 Ключ: <span id="key-status">❌</span></div>
+        </div>
+        <div id="controls">
+            <div id="joystick-area"></div>
+            <div id="crouch-btn">ПРИСЕД</div>
+        </div>
+        <div id="message"></div>
     </div>
-    <div style="display: flex; gap: 10px;">
-        <div id="btn-run" class="btn">БЕГ</div>
-        <div id="btn-hide" class="btn">СКРЫТЬСЯ</div>
-    </div>
-</div>
 
-<canvas id="gameCanvas"></canvas>
-
-<script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const lvlDisplay = document.getElementById('lvl');
-const statusDisplay = document.getElementById('status');
-
-// Параметры игры
-let tileSize = 40;
-let maze = [];
-let player = { x: 0, y: 0, targetX: 0, targetY: 0, size: 20, isHidden: false, isRunning: false };
-let enemies = [];
-let exit = { x: 0, y: 0 };
-let currentLevelIndex = 0;
-let noiseRadius = 0;
-
-const levels = [
-    { cols: 11, rows: 11, enemies: 1, speed: 1.5 },
-    { cols: 15, rows: 15, enemies: 2, speed: 2.0 },
-    { cols: 19, rows: 19, enemies: 3, speed: 2.5 }
-];
-
-// Управление джойстиком
-let moveDir = { x: 0, y: 0 };
-const stick = document.getElementById('joystick-stick');
-const container = document.getElementById('joystick-container');
-
-// Инициализация уровня
-function initLevel(config) {
-    tileSize = Math.min(window.innerWidth / config.cols, (window.innerHeight - 200) / config.rows);
-    canvas.width = config.cols * tileSize;
-    canvas.height = config.rows * tileSize;
-    
-    // Генерация пустой карты с границами
-    maze = [];
-    for(let y=0; y<config.rows; y++){
-        maze[y] = [];
-        for(let x=0; x<config.cols; x++){
-            const isWall = x === 0 || y === 0 || x === config.cols-1 || y === config.rows-1 || (Math.random() < 0.2);
-            const isLocker = !isWall && Math.random() < 0.05;
-            maze[y][x] = isWall ? 1 : (isLocker ? 2 : 0);
-        }
-    }
-
-    // Игрок и выход
-    maze[1][1] = 0;
-    player.x = 1.5 * tileSize;
-    player.y = 1.5 * tileSize;
-    
-    exit = { x: config.cols - 2, y: config.rows - 2 };
-    maze[exit.y][exit.x] = 3;
-
-    // Враги
-    enemies = [];
-    for(let i=0; i<config.enemies; i++) {
-        enemies.push({
-            x: (config.cols - 2) * tileSize,
-            y: (config.rows - 2) * tileSize,
-            speed: config.speed,
-            dirX: Math.random() > 0.5 ? 1 : -1,
-            dirY: 0
-        });
-    }
-    lvlDisplay.innerText = currentLevelIndex + 1;
-}
-
-// Рендеринг
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Стены и укрытия
-    for(let y=0; y<maze.length; y++) {
-        for(let x=0; x<maze[y].length; x++) {
-            if(maze[y][x] === 1) ctx.fillStyle = '#444'; 
-            else if(maze[y][x] === 2) ctx.fillStyle = '#0f0';
-            else if(maze[y][x] === 3) ctx.fillStyle = '#ff0';
-            else ctx.fillStyle = '#111';
+    <!-- Подключаем библиотеку для джойстика -->
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.9.0/dist/nipplejs.min.js"></script>
+    <script>
+        (function() {
+            // --- Настройки игры ---
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
             
-            if(maze[y][x] !== 0) {
-                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            // Размеры комнаты (в условных единицах)
+            const ROOM_WIDTH = 1200;
+            const ROOM_HEIGHT = 800;
+            
+            // Игрок
+            let player = {
+                x: 200,
+                y: 200,
+                radius: 20,
+                speed: 5,
+                crouchSpeed: 4.5, // -10%
+                battery: 100,      // % заряда
+                noise: 0,          // текущий уровень шума 0-100
+                isCrouching: false,
+                hasKey: false
+            };
+            
+            // Враг (два глаза, движутся как одно целое)
+            let enemy = {
+                x: 600,
+                y: 400,
+                // два глаза будут смещены относительно центра
+                direction: { x: 1, y: 0.5 },
+                baseSpeed: 1.2,
+                speedMultiplier: 1.0
+            };
+            
+            // Объекты комнаты
+            let room = {
+                walls: [
+                    // границы комнаты
+                    { x: 0, y: 0, w: ROOM_WIDTH, h: 20 },                // верх
+                    { x: 0, y: ROOM_HEIGHT-20, w: ROOM_WIDTH, h: 20 },  // низ
+                    { x: 0, y: 0, w: 20, h: ROOM_HEIGHT },               // лево
+                    { x: ROOM_WIDTH-20, y: 0, w: 20, h: ROOM_HEIGHT },   // право
+                    // внутренние препятствия (примеры)
+                    { x: 300, y: 150, w: 40, h: 200 },
+                    { x: 700, y: 500, w: 150, h: 40 },
+                    { x: 500, y: 200, w: 40, h: 300 }
+                ],
+                boxes: [],        // будут сгенерированы
+                door: { x: 1100, y: 350, w: 50, h: 100, locked: true },
+                key: { x: 400, y: 600, w: 30, h: 30, collected: false }
+            };
+            
+            // Временные переменные
+            let lastUpdate = performance.now();
+            let moveVec = { x: 0, y: 0 }; // от джойстика
+            let joystick = null;
+            let gameOver = false;
+            let gameWin = false;
+            let messageEl = document.getElementById('message');
+            
+            // --- Инициализация комнаты: генерация ящиков и спавн ключа/двери ---
+            function generateRoom() {
+                // Количество ящиков 0-3
+                const boxCount = Math.floor(Math.random() * 4); // 0..3
+                room.boxes = [];
+                for (let i = 0; i < boxCount; i++) {
+                    let placed = false;
+                    let attempts = 0;
+                    while (!placed && attempts < 200) {
+                        let x = 50 + Math.random() * (ROOM_WIDTH - 150);
+                        let y = 50 + Math.random() * (ROOM_HEIGHT - 150);
+                        let box = { x, y, w: 40, h: 40, isOpen: false, hasBattery: Math.random() < 0.5 };
+                        // Проверка пересечения со стенами и другими объектами
+                        if (!collidesWithAny(box, room.walls) && 
+                            !collidesWithAny(box, room.boxes) &&
+                            !collidesWithCircle(box, { x: player.x, y: player.y, radius: player.radius }) &&
+                            !collidesWithCircle(box, { x: enemy.x, y: enemy.y, radius: 30 })) {
+                            room.boxes.push(box);
+                            placed = true;
+                        }
+                        attempts++;
+                    }
+                }
+                
+                // Размещаем ключ в случайном месте, не внутри препятствий
+                let keyPlaced = false;
+                let attempts = 0;
+                while (!keyPlaced && attempts < 500) {
+                    let x = 50 + Math.random() * (ROOM_WIDTH - 100);
+                    let y = 50 + Math.random() * (ROOM_HEIGHT - 100);
+                    let keyObj = { x, y, w: 30, h: 30 };
+                    if (!collidesWithAny(keyObj, room.walls) && 
+                        !collidesWithAny(keyObj, room.boxes) &&
+                        !collidesWithCircle(keyObj, { x: player.x, y: player.y, radius: player.radius }) &&
+                        !collidesWithCircle(keyObj, { x: enemy.x, y: enemy.y, radius: 30 })) {
+                        room.key.x = x;
+                        room.key.y = y;
+                        room.key.collected = false;
+                        keyPlaced = true;
+                    }
+                    attempts++;
+                }
+                
+                // Дверь всегда на правой стене
+                room.door = { x: ROOM_WIDTH - 70, y: 350, w: 50, h: 100, locked: true };
+                
+                // Враг появляется в центре или случайно
+                enemy.x = 600 + Math.random() * 200;
+                enemy.y = 400 + Math.random() * 200;
+                enemy.direction = { x: Math.random()*2-1, y: Math.random()*2-1 };
+                normalizeDirection(enemy.direction);
             }
-        }
-    }
-
-    // Шум
-    if (noiseRadius > 0) {
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, noiseRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-        ctx.stroke();
-    }
-
-    // Игрок
-    if(!player.isHidden) {
-        ctx.fillStyle = player.isRunning ? '#f80' : '#0cf';
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, player.size/2, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    // Враги
-    ctx.fillStyle = 'red';
-    enemies.forEach(e => {
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, player.size/2, 0, Math.PI*2);
-        ctx.fill();
-    });
-}
-
-function update() {
-    if(player.isHidden) return;
-
-    // Движение игрока
-    const speed = player.isRunning ? 4 : 2;
-    noiseRadius = player.isRunning ? 100 : (moveDir.x || moveDir.y ? 40 : 0);
-
-    let nextX = player.x + moveDir.x * speed;
-    let nextY = player.y + moveDir.y * speed;
-
-    // Столкновения со стенами
-    const gridX = Math.floor(nextX / tileSize);
-    const gridY = Math.floor(nextY / tileSize);
-
-    if (maze[gridY] && maze[gridY][gridX] !== 1) {
-        player.x = nextX;
-        player.y = nextY;
-    }
-
-    // Проверка выхода
-    if (gridX === exit.x && gridY === exit.y) {
-        currentLevelIndex++;
-        if(currentLevelIndex < levels.length) initLevel(levels[currentLevelIndex]);
-        else alert("Победа!");
-    }
-
-    // Логика врагов
-    enemies.forEach(e => {
-        // Простое движение
-        let nx = e.x + e.dirX * e.speed;
-        let ny = e.y + e.dirY * e.speed;
-        
-        let gx = Math.floor(nx / tileSize);
-        let gy = Math.floor(ny / tileSize);
-
-        if (maze[gy] && maze[gy][gx] === 1) {
-            e.dirX *= -1; e.dirY = (Math.random() - 0.5) * 2;
-        } else {
-            e.x = nx; e.y = ny;
-        }
-
-        // Поимка игрока
-        const dist = Math.hypot(player.x - e.x, player.y - e.y);
-        if (!player.isHidden && (dist < 25 || (dist < noiseRadius))) {
-            if(dist < 25) { 
-                alert("Вас поймали!"); 
-                initLevel(levels[currentLevelIndex]); 
-            } else {
-                // Враг идет на шум
-                e.x += (player.x - e.x) * 0.02;
-                e.y += (player.y - e.y) * 0.02;
+            
+            function collidesWithAny(obj, list) {
+                for (let item of list) {
+                    if (rectCollide(obj, item)) return true;
+                }
+                return false;
             }
-        }
-    });
-}
-
-// Управление тачем
-container.addEventListener('touchstart', e => handleStick(e));
-container.addEventListener('touchmove', e => handleStick(e));
-container.addEventListener('touchend', () => {
-    moveDir = { x: 0, y: 0 };
-    stick.style.transform = `translate(0px, 0px)`;
-});
-
-function handleStick(e) {
-    const rect = container.getBoundingClientRect();
-    const touch = e.touches[0];
-    const centerX = rect.left + rect.width/2;
-    const centerY = rect.top + rect.height/2;
-    const dx = touch.clientX - centerX;
-    const dy = touch.clientY - centerY;
-    const dist = Math.min(50, Math.hypot(dx, dy));
-    const angle = Math.atan2(dy, dx);
-    
-    moveDir.x = Math.cos(angle) * (dist / 50);
-    moveDir.y = Math.sin(angle) * (dist / 50);
-    
-    stick.style.transform = `translate(${moveDir.x * 50}px, ${moveDir.y * 50}px)`;
-}
-
-document.getElementById('btn-run').onclick = function() {
-    player.isRunning = !player.isRunning;
-    this.classList.toggle('active');
-};
-
-document.getElementById('btn-hide').onclick = function() {
-    const gx = Math.floor(player.x / tileSize);
-    const gy = Math.floor(player.y / tileSize);
-    if (maze[gy][gx] === 2) {
-        player.isHidden = !player.isHidden;
-        statusDisplay.innerText = player.isHidden ? "В укрытии" : "Норма";
-        this.classList.toggle('active');
-    }
-};
-
-function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-}
-
-initLevel(levels[0]);
-gameLoop();
-
-</script>
+            
+            function collidesWithCircle(obj, circle) {
+                let closestX = Math.max(obj.x, Math.min(circle.x, obj.x + obj.w));
+                let closestY = Math.max(obj.y, Math.min(circle.y, obj.y + obj.h));
+                let dx = circle.x - closestX;
+                let dy = circle.y - closestY;
+                return (dx * dx + dy * dy) < circle.radius * circle.radius;
+            }
+            
+            function rectCollide(r1, r2) {
+                return !(r2.x > r1.x + r1.w || r2.x + r2.w < r1.x ||
+                         r2.y > r1.y + r1.h || r2.y + r2.h < r1.y);
+            }
+            
+            function normalizeDirection(dir) {
+                let len = Math.hypot(dir.x, dir.y);
+                if (len > 0) {
+                    dir.x /= len;
+                    dir.y /= len;
+                }
+            }
+            
+            // --- Обработка столкновений игрока со стенами и ящиками (непроходимы) ---
+            function tryMovePlayer(newX, newY) {
+                let originalX = player.x;
+                let originalY = player.y;
+                player.x = newX;
+                player.y = newY;
+                
+                // Проверка столкновений со стенами
+                for (let wall of room.walls) {
+                    if (rectCollide({x: player.x - player.radius, y: player.y - player.radius, w: player.radius*2, h: player.radius*2}, wall)) {
+                        player.x = originalX;
+                        player.y = originalY;
+                        return false;
+                    }
+                }
+                // Проверка с закрытыми ящиками (открытые ящики становятся проходимыми?)
+                for (let box of room.boxes) {
+                    if (!box.isOpen) { // закрытые ящики - препятствие
+                        if (rectCollide({x: player.x - player.radius, y: player.y - player.radius, w: player.radius*2, h: player.radius*2}, box)) {
+                            player.x = originalX;
+                            player.y = originalY;
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+            
+            // --- Обновление игры ---
+            function update(dt) {
+                if (gameOver || gameWin) return;
+                
+                // 1. Движение игрока от джойстика
+                if (moveVec.x !== 0 || moveVec.y !== 0) {
+                    let currentSpeed = player.isCrouching ? player.crouchSpeed : player.speed;
+                    let newX = player.x + moveVec.x * currentSpeed * dt * 60; // компенсация dt (примерно)
+                    let newY = player.y + moveVec.y * currentSpeed * dt * 60;
+                    tryMovePlayer(newX, newY);
+                    
+                    // Шум от ходьбы (если не в приседе)
+                    if (!player.isCrouching) {
+                        player.noise = Math.min(100, player.noise + 0.8 * dt * 60);
+                    }
+                }
+                
+                // 2. Естественное затухание шума
+                player.noise = Math.max(0, player.noise - 0.3 * dt * 60);
+                
+                // 3. Разряд фонарика (медленно)
+                player.battery = Math.max(0, player.battery - 0.05 * dt * 60);
+                
+                // 4. Враг: ИИ блуждания + реакция на шум
+                // Поворачиваем случайно время от времени
+                if (Math.random() < 0.01 * dt * 60) {
+                    enemy.direction.x += (Math.random() - 0.5) * 0.5;
+                    enemy.direction.y += (Math.random() - 0.5) * 0.5;
+                    normalizeDirection(enemy.direction);
+                }
+                
+                // Множитель скорости от шума
+                let noiseFactor = player.noise / 100; // 0..1
+                if (player.noise >= 99.9) {
+                    enemy.speedMultiplier = 4.0;
+                } else {
+                    enemy.speedMultiplier = 1.0 + noiseFactor * 2; // максимум 3x при 100%? Нет: при 100% должно быть 3x, но в описании: макс увеличение = 3х, а при макс шуме 4х. Уточним: при заполнении шкалы (вероятно, не обязательно до 100%) скорость увеличивается до 3х, а при полной шкале - 4х. Т.е. при 100% шума множитель 4.0, а при каком-то пороге (например, 80%) уже 3.0. Реализуем: при 100% = 4, линейно от 0 до 100%: 1..4? Но сказано "когда шкала шума заполняется их скорость увеличивается (макс.увеличение = 3х), а если шкала заполнена на максимум то их скорость становится 4х". Это можно интерпретировать так: при увеличении шума до какого-то уровня (не обязательно 100%) скорость растет до 3х (например, при 80% уже 3х), а при полной (100%) скачок до 4х. Упростим: сделаем линейно 1..4, но это даст 4х при 100% что соответствует "на максимум 4х". Но тогда промежуточные значения будут давать меньше 3х при 75% (будет 2.5х). Можно сделать кусочно: до 80% линейно до 3х, затем резко 4х. Но для простоты оставим линейно до 4х при 100%, это проще.
+                enemy.speedMultiplier = 1.0 + (player.noise / 100) * 3; // 1..4
+                
+                // Двигаем врага
+                let enemySpeed = enemy.baseSpeed * enemy.speedMultiplier * dt * 60;
+                let newEnemyX = enemy.x + enemy.direction.x * enemySpeed;
+                let newEnemyY = enemy.y + enemy.direction.y * enemySpeed;
+                
+                // Простая проверка столкновений врага со стенами (отталкивание)
+                let enemyRadius = 25;
+                let proposedEnemy = { x: newEnemyX, y: newEnemyY };
+                let collide = false;
+                for (let wall of room.walls) {
+                    if (rectCollide({x: proposedEnemy.x - enemyRadius, y: proposedEnemy.y - enemyRadius, w: enemyRadius*2, h: enemyRadius*2}, wall)) {
+                        collide = true;
+                        break;
+                    }
+                }
+                if (!collide) {
+                    enemy.x = newEnemyX;
+                    enemy.y = newEnemyY;
+                } else {
+                    // меняем направление
+                    enemy.direction.x *= -1;
+                    enemy.direction.y *= -1;
+                }
+                
+                // Проверка касания врага и игрока (игра окончена)
+                let dx = enemy.x - player.x;
+                let dy = enemy.y - player.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist < player.radius + 25) {
+                    gameOver = true;
+                    showMessage('💀 Вас поймали...', true);
+                }
+                
+                // 5. Взаимодействие с ключом
+                if (!room.key.collected) {
+                    let keyRect = { x: room.key.x, y: room.key.y, w: room.key.w, h: room.key.h };
+                    let playerRect = { x: player.x - player.radius, y: player.y - player.radius, w: player.radius*2, h: player.radius*2 };
+                    if (rectCollide(playerRect, keyRect)) {
+                        room.key.collected = true;
+                        player.hasKey = true;
+                        room.door.locked = false; // дверь открыта
+                    }
+                }
+                
+                // 6. Переход в дверь
+                if (!room.door.locked && !gameWin) {
+                    let doorRect = { x: room.door.x, y: room.door.y, w: room.door.w, h: room.door.h };
+                    let playerRect = { x: player.x - player.radius, y: player.y - player.radius, w: player.radius*2, h: player.radius*2 };
+                    if (rectCollide(playerRect, doorRect)) {
+                        // переход в следующую комнату
+                        nextRoom();
+                    }
+                }
+                
+                // Обновление UI
+                updateUI();
+            }
+            
+            function nextRoom() {
+                // Сброс игрока в начальную позицию, но с сохранением батарей? Можно оставить как есть или сбросить? Логичнее оставить текущий заряд, но можно и сбросить. Оставим.
+                player.x = 200;
+                player.y = 200;
+                player.hasKey = false;
+                room.key.collected = false;
+                room.door.locked = true;
+                player.noise = 0;
+                // Генерация новой комнаты
+                generateRoom();
+            }
+            
+            function showMessage(text, isGameOver = false) {
+                messageEl.style.display = 'block';
+                messageEl.textContent = text;
+                if (isGameOver) {
+                    messageEl.style.background = 'rgba(100,0,0,0.9)';
+                    messageEl.style.color = '#fff';
+                    // Кнопка рестарта? Добавим позже
+                    setTimeout(() => {
+                        if (gameOver) {
+                            resetGame();
+                        }
+                    }, 2000);
+                }
+            }
+            
+            function resetGame() {
+                gameOver = false;
+                gameWin = false;
+                player = {
+                    x: 200, y: 200, radius: 20, speed: 5, crouchSpeed: 4.5,
+                    battery: 100, noise: 0, isCrouching: false, hasKey: false
+                };
+                enemy = { x: 600, y: 400, direction: { x: 1, y: 0.5 }, baseSpeed: 1.2, speedMultiplier: 1.0 };
+                generateRoom();
+                messageEl.style.display = 'none';
+                updateUI();
+            }
+            
+            // --- Обработка открытия ящиков по тапу ---
+            canvas.addEventListener('touchstart', handleCanvasTap);
+            canvas.addEventListener('mousedown', handleCanvasTap);
+            
+            function handleCanvasTap(e) {
+                e.preventDefault();
+                if (gameOver || gameWin) return;
+                
+                // Получаем координаты касания относительно canvas
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                let clientX, clientY;
+                if (e.touches) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                } else {
+                    clientX = e.clientX;
+                    clientY = e.clientY;
+                }
+                
+                let canvasX = (clientX - rect.left) * scaleX;
+                let canvasY = (clientY - rect.top) * scaleY;
+                
+                // Проверяем попадание в ящики
+                for (let box of room.boxes) {
+                    if (!box.isOpen && canvasX >= box.x && canvasX <= box.x + box.w && canvasY >= box.y && canvasY <= box.y + box.h) {
+                        // Открываем ящик
+                        box.isOpen = true;
+                        // Шум от открытия
+                        let noiseAdd = player.isCrouching ? 15 : 30;
+                        player.noise = Math.min(100, player.noise + noiseAdd);
+                        
+                        // Если внутри батарейка
+                        if (box.hasBattery) {
+                            player.battery = 100;
+                        }
+                        break;
+                    }
+                }
+            }
+            
+            // --- Отрисовка ---
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Определяем видимую область (освещение)
+                let viewRadius = player.battery > 0 ? 250 : 80;
+                if (player.isCrouching) viewRadius *= 1.1; // +10%
+                
+                // Рисуем комнату с эффектом тьмы: сначала всё затемняем, потом рисуем освещённое
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Сохраняем контекст и рисуем все объекты, ограничивая кругом освещения
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, viewRadius, 0, Math.PI * 2);
+                ctx.clip();
+                
+                // Фон комнаты (пол)
+                ctx.fillStyle = '#3a3a3a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Стены
+                ctx.fillStyle = '#555';
+                for (let wall of room.walls) {
+                    ctx.fillRect(wall.x, wall.y, wall.w, wall.h);
+                }
+                
+                // Ящики
+                for (let box of room.boxes) {
+                    ctx.fillStyle = box.isOpen ? '#6b4f3c' : '#8b5a2b';
+                    ctx.fillRect(box.x, box.y, box.w, box.h);
+                    // Если внутри батарейка и ящик открыт, показываем батарейку
+                    if (box.isOpen && box.hasBattery) {
+                        ctx.fillStyle = '#ffaa00';
+                        ctx.beginPath();
+                        ctx.arc(box.x + box.w/2, box.y + box.h/2, 8, 0, 2*Math.PI);
+                        ctx.fill();
+                    }
+                }
+                
+                // Дверь
+                ctx.fillStyle = room.door.locked ? '#8b0000' : '#2e8b57';
+                ctx.fillRect(room.door.x, room.door.y, room.door.w, room.door.h);
+                if (!room.door.locked) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '20px Arial';
+                    ctx.fillText('➡️', room.door.x + 10, room.door.y + 60);
+                }
+                
+                // Ключ
+                if (!room.key.collected) {
+                    ctx.fillStyle = '#ffd700';
+                    ctx.beginPath();
+                    ctx.arc(room.key.x + room.key.w/2, room.key.y + room.key.h/2, 15, 0, 2*Math.PI);
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.font = '20px Arial';
+                    ctx.fillText('🔑', room.key.x + 5, room.key.y + 25);
+                }
+                
+                // Враг (два глаза)
+                let eyeOffset = 20;
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(enemy.x - eyeOffset, enemy.y, 15, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(enemy.x + eyeOffset, enemy.y, 15, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(enemy.x - eyeOffset + (enemy.direction.x * 5), enemy.y + (enemy.direction.y * 5), 5, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(enemy.x + eyeOffset + (enemy.direction.x * 5), enemy.y + (enemy.direction.y * 5), 5, 0, 2*Math.PI);
+                ctx.fill();
+                
+                // Игрок
+                ctx.fillStyle = player.isCrouching ? '#44f' : '#00aaff';
+                ctx.beginPath();
+                ctx.arc(player.x, player.y, player.radius, 0, 2*Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.restore();
+                
+                // Рисуем границу тьмы (полупрозрачный круг)
+                let gradient = ctx.createRadialGradient(player.x, player.y, viewRadius*0.9, player.x, player.y, viewRadius);
+                gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                gradient.addColorStop(1, 'rgba(0,0,0,0.7)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            function updateUI() {
+                document.getElementById('battery-bar').style.width = player.battery + '%';
+                document.getElementById('noise-bar').style.width = player.noise + '%';
+                document.getElementById('key-status').innerHTML = player.hasKey ? '✅' : '❌';
+                document.getElementById('key-status').className = player.hasKey ? 'key-found' : '';
+                
+                // Кнопка приседа
+                const btn = document.getElementById('crouch-btn');
+                if (player.isCrouching) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+            
+            // --- Джойстик ---
+            function initJoystick() {
+                let area = document.getElementById('joystick-area');
+                joystick = nipplejs.create({
+                    zone: area,
+                    mode: 'static',
+                    position: { left: '50%', top: '50%' },
+                    color: 'white',
+                    size: 80,
+                    restOpacity: 0.5,
+                });
+                joystick.on('move', (evt, nipple) => {
+                    moveVec.x = nipple.vector.x;
+                    moveVec.y = nipple.vector.y;
+                    // Нормализация уже есть? Вектор от nipple уже нормализован? Проверим.
+                });
+                joystick.on('end', () => {
+                    moveVec.x = 0;
+                    moveVec.y = 0;
+                });
+            }
+            
+            // --- Присед по кнопке ---
+            document.getElementById('crouch-btn').addEventListener('click', () => {
+                player.isCrouching = !player.isCrouching;
+                updateUI();
+            });
+            document.getElementById('crouch-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                player.isCrouching = !player.isCrouching;
+                updateUI();
+            });
+            
+            // --- Анимация ---
+            function gameLoop(now) {
+                let dt = Math.min(50, now - lastUpdate) / 16.67; // примерно 60fps = 1
+                lastUpdate = now;
+                
+                update(dt);
+                draw();
+                
+                requestAnimationFrame(gameLoop);
+            }
+            
+            // --- Инициализация комнаты и запуск ---
+            function initGame() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                // Масштабируем координаты комнаты под размер экрана? Для простоты оставим фиксированные координаты комнаты, они не зависят от размера canvas.
+                // Но игрок может выходить за границы? Стены есть, поэтому ок.
+                generateRoom();
+                initJoystick();
+                lastUpdate = performance.now();
+                gameLoop();
+            }
+            
+            // Обработка изменения размера окна
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+            
+            initGame();
+        })();
+    </script>
 </body>
 </html>
