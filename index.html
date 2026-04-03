@@ -1,12 +1,9 @@
-Вот полный код веб-приложения для обмена сообщениями с авторизацией, чатом и настройками в стиле iOS/Telegram. Скопируйте его в файл .html и откройте в браузере.
-
-```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Чат — Обмен сообщениями</title>
+    <title>Simply</title>
     <style>
         * {
             margin: 0;
@@ -22,15 +19,16 @@
             --text-primary: #000000;
             --text-secondary: #5e5e66;
             --border-light: rgba(60, 60, 67, 0.08);
-            --nav-bg: rgba(255, 255, 255, 0.96);
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
             --message-bg: #e9e9ef;
             --own-message-border: #007aff;
-            --input-bg: #ffffff;
+            --input-bg: rgba(255, 255, 255, 0.9);
             --placeholder: #8e8e93;
-            --separator: #c6c6c8;
+            --separator: rgba(60, 60, 67, 0.08);
             --toggle-bg: #e5e5ea;
             --toggle-active: #34c759;
+            --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235e5e66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
         }
 
         /* Тёмная тема */
@@ -40,14 +38,15 @@
             --text-primary: #ffffff;
             --text-secondary: #8e8e93;
             --border-light: rgba(84, 84, 88, 0.2);
-            --nav-bg: rgba(28, 28, 30, 0.96);
+            --nav-bg: rgba(28, 28, 30, 0.85);
             --message-bg: #2c2c2e;
             --own-message-border: #0a84ff;
-            --input-bg: #1c1c1e;
+            --input-bg: rgba(28, 28, 30, 0.9);
             --placeholder: #636366;
-            --separator: #38383a;
+            --separator: rgba(84, 84, 88, 0.2);
             --toggle-bg: #2c2c2e;
             --toggle-active: #30d158;
+            --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
         }
 
         /* Ночная (ультратёмная) */
@@ -57,12 +56,15 @@
             --text-primary: #ededef;
             --text-secondary: #7c7c85;
             --border-light: rgba(99, 99, 102, 0.25);
-            --nav-bg: rgba(18, 18, 20, 0.98);
+            --nav-bg: rgba(18, 18, 20, 0.85);
             --message-bg: #1d1d1f;
             --own-message-border: #5e5ce0;
-            --input-bg: #121214;
+            --input-bg: rgba(18, 18, 20, 0.9);
             --placeholder: #5a5a62;
-            --separator: #2a2a2e;
+            --separator: rgba(99, 99, 102, 0.2);
+            --toggle-bg: #1d1d1f;
+            --toggle-active: #5e5ce0;
+            --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c7c85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
         }
 
         body {
@@ -94,8 +96,7 @@
             padding: 2rem 1.5rem;
             width: 100%;
             max-width: 340px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
-            backdrop-filter: blur(0px);
+            box-shadow: var(--shadow-sm);
             border: 1px solid var(--border-light);
         }
 
@@ -137,6 +138,7 @@
             font-weight: 590;
             margin-top: 0.8rem;
             cursor: pointer;
+            transition: 0.2s;
         }
 
         .error-text {
@@ -146,14 +148,18 @@
             font-size: 0.9rem;
         }
 
-        /* Навигация (табы) */
+        /* Навигация (табы) с анимированной плашкой */
         .nav-bar {
+            position: relative;
             background: var(--nav-bg);
             backdrop-filter: blur(20px);
             display: flex;
-            border-bottom: 0.5px solid var(--separator);
             padding: 0.5rem 1rem;
             gap: 1rem;
+            box-shadow: var(--shadow-sm);
+            border-radius: 2rem;
+            margin: 0.75rem 1rem;
+            z-index: 10;
         }
 
         .tab-btn {
@@ -165,13 +171,24 @@
             padding: 0.75rem 0;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s;
-            border-radius: 1rem;
+            transition: color 0.2s ease;
+            position: relative;
+            z-index: 2;
         }
 
         .tab-btn.active {
             color: #007aff;
-            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .floating-indicator {
+            position: absolute;
+            bottom: 0.4rem;
+            height: 2.5px;
+            background-color: #007aff;
+            border-radius: 2px;
+            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.2s ease;
+            width: 0;
+            left: 0;
         }
 
         /* Страницы (чат / настройки) */
@@ -190,7 +207,7 @@
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem 0.8rem;
+            padding: 1rem 1rem;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -213,10 +230,8 @@
             word-break: break-word;
         }
 
-        /* Обводка для сообщений текущего пользователя */
         .message-item.own-message .message-bubble {
             border-color: var(--own-message-border);
-            background: var(--message-bg);
         }
 
         .message-nick {
@@ -233,26 +248,34 @@
             color: var(--text-primary);
         }
 
-        /* Панель ввода (прилеплена к низу) */
+        /* Панель ввода — левитирующая, без прямоугольников */
         .input-bar {
             background: var(--nav-bg);
             backdrop-filter: blur(20px);
-            padding: 0.7rem 0.9rem;
-            border-top: 0.5px solid var(--separator);
+            padding: 0.7rem 1rem;
+            margin: 0.75rem 1rem 1rem 1rem;
+            border-radius: 2rem;
             display: flex;
             gap: 10px;
-            align-items: center;
+            align-items: flex-end;
+            box-shadow: var(--shadow-sm);
         }
 
-        .input-bar input {
+        .input-bar textarea {
             flex: 1;
             background: var(--input-bg);
             border: 1px solid var(--border-light);
             border-radius: 2rem;
-            padding: 0.8rem 1rem;
+            padding: 0.75rem 1rem;
             font-size: 1rem;
             color: var(--text-primary);
             outline: none;
+            resize: none;
+            overflow-y: hidden;
+            font-family: inherit;
+            line-height: 1.4;
+            max-height: 120px;
+            transition: height 0.1s ease;
         }
 
         .send-btn {
@@ -268,6 +291,8 @@
             align-items: center;
             justify-content: center;
             transition: 0.2s;
+            flex-shrink: 0;
+            margin-bottom: 2px;
         }
 
         /* Настройки */
@@ -296,34 +321,30 @@
             color: var(--text-secondary);
         }
 
-        input[type="text"].nick-input {
+        .nick-readonly {
             background: var(--input-bg);
-            border: 1px solid var(--border-light);
-            border-radius: 1rem;
             padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid var(--border-light);
+            font-size: 1rem;
             color: var(--text-primary);
             flex: 1;
-            font-size: 1rem;
         }
 
-        .save-nick-btn {
-            background: #007aff;
-            border: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 2rem;
-            color: white;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        /* Тема кнопки */
+        /* Кастомный select с адаптивной стрелкой */
         .theme-select {
-            background: var(--card-bg);
+            background-color: var(--card-bg);
             border: 1px solid var(--border-light);
             border-radius: 1rem;
-            padding: 0.5rem;
+            padding: 0.6rem 2rem 0.6rem 1rem;
             color: var(--text-primary);
             font-size: 0.9rem;
+            appearance: none;
+            background-image: var(--select-arrow);
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            background-size: 1.2rem;
+            cursor: pointer;
         }
 
         /* Toggle switch */
@@ -383,18 +404,6 @@
             opacity: 0.5;
         }
 
-        .logout-btn {
-            background: none;
-            border: 1px solid #ff3b30;
-            color: #ff3b30;
-            padding: 0.7rem;
-            border-radius: 1rem;
-            font-weight: 500;
-            margin-top: 1rem;
-            cursor: pointer;
-        }
-
-        /* Адаптив под клавиатуру (прокрутка) */
         .chat-messages {
             scrollbar-width: thin;
         }
@@ -405,7 +414,7 @@
 <!-- СТРАНИЦА АВТОРИЗАЦИИ -->
 <div id="authPage" class="auth-container">
     <div class="auth-card">
-        <div class="auth-title">Вход в чат</div>
+        <div class="auth-title">Simply</div>
         <div class="input-group">
             <input type="text" id="loginNick" placeholder="Ник" autocomplete="off">
         </div>
@@ -414,22 +423,22 @@
         </div>
         <button class="auth-btn" id="authBtn">Войти</button>
         <div id="authError" class="error-text"></div>
-        <div style="font-size: 0.75rem; text-align: center; margin-top: 1rem; color: var(--text-secondary);">Тестовый вход: ник <strong>demo</strong> / ключ <strong>demo</strong></div>
     </div>
 </div>
 
 <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (после авторизации) -->
 <div id="appPage" class="app-container" style="display: none;">
     <div class="nav-bar">
-        <button class="tab-btn active" data-tab="chat">Чат</button>
+        <button class="tab-btn" data-tab="chat">Чат</button>
         <button class="tab-btn" data-tab="settings">Настройки</button>
+        <div class="floating-indicator"></div>
     </div>
 
     <!-- Страница чата -->
     <div id="chatPage" class="page active-page">
         <div class="chat-messages" id="messagesContainer"></div>
         <div class="input-bar">
-            <input type="text" id="messageInput" placeholder="Сообщение..." autocomplete="off">
+            <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
             <button class="send-btn" id="sendBtn">➤</button>
         </div>
     </div>
@@ -437,11 +446,10 @@
     <!-- Страница настроек -->
     <div id="settingsPage" class="page">
         <div class="settings-container">
-            <!-- Ник пользователя -->
+            <!-- Ник пользователя (только для чтения) -->
             <div class="setting-row">
                 <span class="setting-label">Ваш ник</span>
-                <input type="text" id="settingsNick" class="nick-input" placeholder="Никнейм">
-                <button id="saveNickBtn" class="save-nick-btn">Сохранить</button>
+                <div id="displayNick" class="nick-readonly"></div>
             </div>
             <hr>
             <!-- Тема приложения -->
@@ -473,27 +481,29 @@
                     </div>
                 </div>
             </div>
-            <hr>
-            <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
-            <div style="height: 1rem;"></div>
         </div>
     </div>
 </div>
 
 <script>
-    // -------- ВАЛИДНЫЕ ДАННЫЕ ДЛЯ ВХОДА ----------
-    const VALID_NICK = "demo";
-    const VALID_KEY = "demo";
+    // -------- СПИСОК ПОЛЬЗОВАТЕЛЕЙ (НИК:КЛЮЧ) ----------
+    const validCredentials = [
+        { nick: "Ваниш", key: "Серафима1410" },
+        { nick: "Wezxqqs1x", key: "BlackPussy2009" },
+        { nick: "дамурчег", key: "дмрчг9307" },
+        { nick: "тест", key: "тест" },
+        { nick: "тест1", key: "тест1" }
+    ];
 
     // -------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
-    let currentUser = null;        // {nick: "demo"}
+    let currentUser = null;        // {nick: ...}
     let messages = [];              // [{id, nick, text, timestamp}]
 
     // Настройки приложения
     let appSettings = {
-        theme: "adaptive",         // adaptive, light, dark, night
-        systemFontEnabled: false,  // тумблер системный
-        fontSizeStep: 3,           // 0..6 (7 делений)
+        theme: "adaptive",
+        systemFontEnabled: false,
+        fontSizeStep: 3,
     };
 
     // DOM элементы
@@ -507,60 +517,57 @@
     const chatMessagesDiv = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
-    const settingsNick = document.getElementById('settingsNick');
-    const saveNickBtn = document.getElementById('saveNickBtn');
+    const displayNickSpan = document.getElementById('displayNick');
     const themeSelect = document.getElementById('themeSelect');
     const systemFontToggle = document.getElementById('systemFontToggle');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
     const fontSliderContainer = document.getElementById('fontSliderContainer');
-    const logoutBtn = document.getElementById('logoutBtn');
 
     // Табы
     const tabBtns = document.querySelectorAll('.tab-btn');
     const chatPageDiv = document.getElementById('chatPage');
     const settingsPageDiv = document.getElementById('settingsPage');
+    const floatingIndicator = document.querySelector('.floating-indicator');
 
     // ---------- Helper: сохранение данных в localStorage ----------
     function saveMessagesToStorage() {
-        localStorage.setItem('chat_messages', JSON.stringify(messages));
+        localStorage.setItem('simply_messages', JSON.stringify(messages));
     }
 
     function loadMessagesFromStorage() {
-        const stored = localStorage.getItem('chat_messages');
+        const stored = localStorage.getItem('simply_messages');
         if (stored) {
             try {
                 messages = JSON.parse(stored);
                 if (!Array.isArray(messages)) messages = [];
             } catch(e) { messages = []; }
-        } else {
-            // Стартовые приветственные сообщения для примера
+        }
+        if (!messages.length) {
+            // Приветственное сообщение от системы
             messages = [
-                { id: Date.now() + 1, nick: "Система", text: "Добро пожаловать в общий чат!", timestamp: Date.now() },
-                { id: Date.now() + 2, nick: "demo", text: "Привет всем!", timestamp: Date.now() }
+                { id: Date.now() + 1, nick: "Simply", text: "Добро пожаловать в общий чат!", timestamp: Date.now() }
             ];
             saveMessagesToStorage();
         }
     }
 
     function saveSettingsToStorage() {
-        localStorage.setItem('app_settings', JSON.stringify(appSettings));
+        localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
     function loadSettingsFromStorage() {
-        const stored = localStorage.getItem('app_settings');
+        const stored = localStorage.getItem('simply_settings');
         if (stored) {
             try {
                 const saved = JSON.parse(stored);
                 appSettings = { ...appSettings, ...saved };
             } catch(e) {}
         }
-        // применить настройки к интерфейсу
         applyTheme(appSettings.theme);
         applyFontSize(appSettings.systemFontEnabled, appSettings.fontSizeStep);
         systemFontToggle.checked = appSettings.systemFontEnabled;
         fontSizeSlider.value = appSettings.fontSizeStep;
         themeSelect.value = appSettings.theme;
-        // Показать/скрыть слайдер в зависимости от системного тумблера
         if (appSettings.systemFontEnabled) {
             fontSliderContainer.style.display = 'none';
         } else {
@@ -579,8 +586,6 @@
             } else {
                 body.classList.add('theme-light');
             }
-            // дополнительно для ночной нет, но можно сбросить.
-            body.style.backgroundColor = '';
         } else if (theme === 'light') {
             body.classList.add('theme-light');
         } else if (theme === 'dark') {
@@ -588,28 +593,26 @@
         } else if (theme === 'night') {
             body.classList.add('theme-night');
         }
-        // сохраняем выбранную тему в настройках
         appSettings.theme = theme;
         saveSettingsToStorage();
+        // Обновляем стиль select (стрелка обновится через CSS-переменную)
     }
 
-    // Размер текста: 7 делений от 0.75rem до 1.4rem
     function getFontSizeFromStep(step) {
         const sizes = [0.75, 0.85, 0.95, 1.05, 1.15, 1.25, 1.4];
         return sizes[step] || 1.05;
     }
 
     function applyFontSize(systemEnabled, step) {
-        const html = document.documentElement;
+        const root = document.documentElement;
         if (systemEnabled) {
-            html.style.fontSize = ''; // сброс, используем системный (16px обычно)
+            root.style.fontSize = '';
         } else {
             const fontSizeRem = getFontSizeFromStep(step);
-            html.style.fontSize = `${fontSizeRem}rem`;
+            root.style.fontSize = `${fontSizeRem}rem`;
         }
     }
 
-    // Переключение видимости слайдера в зависимости от тумблера
     function toggleFontSliderVisibility() {
         const isSystem = systemFontToggle.checked;
         if (isSystem) {
@@ -624,7 +627,7 @@
         saveSettingsToStorage();
     }
 
-    // Рендер сообщений в чате
+    // Рендер сообщений
     function renderMessages() {
         if (!chatMessagesDiv) return;
         chatMessagesDiv.innerHTML = '';
@@ -657,7 +660,6 @@
             msgDiv.appendChild(bubbleDiv);
             chatMessagesDiv.appendChild(msgDiv);
         });
-        // Прокрутка вниз
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
     }
 
@@ -674,79 +676,57 @@
         messages.push(newMsg);
         saveMessagesToStorage();
         renderMessages();
-        // авто-скролл
         setTimeout(() => {
             if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
         }, 30);
     }
 
-    // Отправка сообщения (кнопка или Enter)
+    // Отправка сообщения
     function sendMessageHandler() {
         const msg = messageInput.value;
         if (msg.trim()) {
             addMessage(msg);
             messageInput.value = '';
-            // Сохраняем фокус, но для мобильных клавиатура останется открытой
+            // Сброс высоты textarea
+            messageInput.style.height = 'auto';
             messageInput.focus();
         }
     }
 
-    // Инициализация чата после загрузки
+    // Автоматическое расширение textarea
+    function autoResizeTextarea() {
+        messageInput.style.height = 'auto';
+        let newHeight = Math.min(messageInput.scrollHeight, 120);
+        messageInput.style.height = newHeight + 'px';
+    }
+
+    // Инициализация чата
     function initChat() {
         loadMessagesFromStorage();
         renderMessages();
+        // Настройка авто-расширения
+        messageInput.addEventListener('input', autoResizeTextarea);
     }
 
-    // Обновить ник в настройках (отображаем текущий)
-    function updateSettingsNickUI() {
-        if (currentUser) settingsNick.value = currentUser.nick;
+    // Обновить отображение ника в настройках
+    function updateSettingsUI() {
+        if (currentUser) displayNickSpan.textContent = currentUser.nick;
     }
 
-    // Сохранить ник из настроек
-    function saveNickFromSettings() {
-        let newNick = settingsNick.value.trim();
-        if (newNick === "") {
-            alert("Ник не может быть пустым");
-            return;
-        }
-        if (currentUser) {
-            currentUser.nick = newNick;
-            localStorage.setItem('auth_user', JSON.stringify({ nick: currentUser.nick }));
-            // Обновляем отображение ника в настройках и перерисовываем чат (обводка изменится)
-            renderMessages();
-            updateSettingsNickUI();
-        }
-    }
-
-    // Выход из аккаунта
-    function logout() {
-        localStorage.removeItem('auth_user');
-        currentUser = null;
-        authPage.style.display = 'flex';
-        appPage.style.display = 'none';
-        // Очистка полей ввода
-        loginNick.value = '';
-        loginKey.value = '';
-        authError.innerText = '';
-        // Сброс активной вкладки
-        document.querySelector('.tab-btn.active')?.classList.remove('active');
-        document.querySelector('.tab-btn[data-tab="chat"]')?.classList.add('active');
-        chatPageDiv.classList.add('active-page');
-        settingsPageDiv.classList.remove('active-page');
-    }
-
-    // Проверка авторизации при загрузке
+    // Проверка авторизации
     function checkAutoLogin() {
-        const storedUser = localStorage.getItem('auth_user');
+        const storedUser = localStorage.getItem('simply_user');
         if (storedUser) {
             try {
                 const user = JSON.parse(storedUser);
                 if (user && user.nick) {
+                    // Проверка, что ник до сих пор существует в списке (необязательно, но для порядка)
                     currentUser = { nick: user.nick };
                     authPage.style.display = 'none';
                     appPage.style.display = 'flex';
                     initChat();
-                    updateSettingsNickUI();
+                    updateSettingsUI();
+                    updateFloatingIndicator('chat');
                     return true;
                 }
             } catch(e) {}
@@ -756,23 +736,35 @@
         return false;
     }
 
-    // Обработка авторизации (кнопка)
+    // Авторизация с проверкой по списку
     function performAuth() {
         const nick = loginNick.value.trim();
         const key = loginKey.value.trim();
-        if (nick === VALID_NICK && key === VALID_KEY) {
-            currentUser = { nick: nick };
-            localStorage.setItem('auth_user', JSON.stringify({ nick: nick }));
+        const found = validCredentials.find(cred => cred.nick === nick && cred.key === key);
+        if (found) {
+            currentUser = { nick: found.nick };
+            localStorage.setItem('simply_user', JSON.stringify({ nick: found.nick }));
             authError.innerText = '';
             authPage.style.display = 'none';
             appPage.style.display = 'flex';
             initChat();
-            updateSettingsNickUI();
-            // Переключить на чат
+            updateSettingsUI();
             setActiveTab('chat');
         } else {
             authError.innerText = 'Неизвестно';
         }
+    }
+
+    // Анимация плашки (индикатора) между табами
+    function updateFloatingIndicator(activeTabId) {
+        const activeBtn = document.querySelector(`.tab-btn[data-tab="${activeTabId}"]`);
+        if (!activeBtn || !floatingIndicator) return;
+        const parent = activeBtn.parentElement;
+        const btnRect = activeBtn.getBoundingClientRect();
+        const parentRect = parent.getBoundingClientRect();
+        const leftOffset = btnRect.left - parentRect.left;
+        floatingIndicator.style.width = `${btnRect.width}px`;
+        floatingIndicator.style.transform = `translateX(${leftOffset}px)`;
     }
 
     // Переключение между вкладками
@@ -780,13 +772,12 @@
         if (tabId === 'chat') {
             chatPageDiv.classList.add('active-page');
             settingsPageDiv.classList.remove('active-page');
-            renderMessages(); // обновляем при переключении (на случай смены ника)
+            renderMessages(); // обновляем сообщения
         } else if (tabId === 'settings') {
             chatPageDiv.classList.remove('active-page');
             settingsPageDiv.classList.add('active-page');
-            // актуализируем ник в настройках
-            if (currentUser) settingsNick.value = currentUser.nick;
-            // синхронизируем состояние UI настроек
+            if (currentUser) displayNickSpan.textContent = currentUser.nick;
+            // синхронизация UI настроек
             themeSelect.value = appSettings.theme;
             systemFontToggle.checked = appSettings.systemFontEnabled;
             fontSizeSlider.value = appSettings.fontSizeStep;
@@ -800,15 +791,14 @@
                 btn.classList.remove('active');
             }
         });
+        updateFloatingIndicator(tabId);
     }
 
-    // Обработка изменения темы
+    // Обработчики настроек
     function onThemeChange(e) {
-        const newTheme = e.target.value;
-        applyTheme(newTheme);
+        applyTheme(e.target.value);
     }
 
-    // Обработка изменения ползунка
     function onFontSliderChange(e) {
         const step = parseInt(e.target.value, 10);
         appSettings.fontSizeStep = step;
@@ -818,43 +808,35 @@
         saveSettingsToStorage();
     }
 
-    // Обработка тумблера системного шрифта
     function onSystemFontToggle() {
-        const isChecked = systemFontToggle.checked;
-        appSettings.systemFontEnabled = isChecked;
-        if (isChecked) {
-            applyFontSize(true, appSettings.fontSizeStep);
-            fontSliderContainer.style.display = 'none';
-        } else {
-            applyFontSize(false, appSettings.fontSizeStep);
-            fontSliderContainer.style.display = 'block';
-        }
-        saveSettingsToStorage();
+        toggleFontSliderVisibility();
     }
 
-    // -------- ИНИЦИАЛИЗАЦИЯ ВСЕГО ПРИЛОЖЕНИЯ ----------
+    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     function initApp() {
         loadSettingsFromStorage();
         const isAuth = checkAutoLogin();
         if (!isAuth) {
-            // если не авторизован, ждём ручного входа
+            // ожидаем ручной вход
         } else {
-            // подгружаем настройки после автологина (тема и шрифт уже применены в loadSettingsFromStorage)
-            // но возможен ререндер чата
             renderMessages();
         }
 
-        // события
         authBtn.addEventListener('click', performAuth);
         loginNick.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
         loginKey.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
         sendBtn.addEventListener('click', sendMessageHandler);
-        messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); sendMessageHandler(); } });
-        saveNickBtn.addEventListener('click', saveNickFromSettings);
-        logoutBtn.addEventListener('click', logout);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessageHandler();
+            }
+        });
+
         themeSelect.addEventListener('change', onThemeChange);
         fontSizeSlider.addEventListener('input', onFontSliderChange);
         systemFontToggle.addEventListener('change', onSystemFontToggle);
+
         // Табы
         tabBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -864,17 +846,26 @@
             });
         });
 
-        // Для мобильной клавиатуры: при фокусе на input, прокручиваем контейнер сообщений вниз (необязательно, но комфортно)
+        // При фокусе на textarea, прокрутка вниз
         messageInput.addEventListener('focus', () => {
             setTimeout(() => {
                 if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
                 messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 100);
         });
+
+        // Инициализируем позицию индикатора после загрузки
+        window.addEventListener('resize', () => {
+            const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
+            if (activeTab) updateFloatingIndicator(activeTab);
+        });
+        setTimeout(() => {
+            const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab') || 'chat';
+            updateFloatingIndicator(activeTab);
+        }, 50);
     }
 
     initApp();
 </script>
 </body>
 </html>
-```
