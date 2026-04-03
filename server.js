@@ -72,6 +72,14 @@ app.post('/verify', async (req, res) => {
   else res.json({ success: false });
 });
 
+app.post('/logout', async (req, res) => {
+  const { token } = req.body;
+  if (token) {
+    await pool.query('UPDATE users SET token = NULL WHERE token = $1', [token]);
+  }
+  res.json({ success: true });
+});
+
 app.get('/messages', async (req, res) => {
   const result = await pool.query('SELECT id, nick, text, created_at FROM messages ORDER BY created_at ASC LIMIT 200');
   res.json(result.rows);
