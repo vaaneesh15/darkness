@@ -1,846 +1,880 @@
+Вот полный код веб-приложения для обмена сообщениями с авторизацией, чатом и настройками в стиле iOS/Telegram. Скопируйте его в файл .html и откройте в браузере.
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Камни ужаса</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Чат — Обмен сообщениями</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Courier New', monospace; touch-action: none; background: black; }
-        /* VHS фильтр */
-        .vhs-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 20; mix-blend-mode: overlay;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
-        .scanlines {
-            position: absolute; width: 100%; height: 100%;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0px, rgba(0,0,0,0.4) 2px, transparent 2px, transparent 6px);
-            animation: scanlinesMove 6s linear infinite;
+
+        /* Базовые переменные (светлая тема по умолчанию) */
+        :root {
+            --bg-page: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #5e5e66;
+            --border-light: rgba(60, 60, 67, 0.08);
+            --nav-bg: rgba(255, 255, 255, 0.96);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --message-bg: #e9e9ef;
+            --own-message-border: #007aff;
+            --input-bg: #ffffff;
+            --placeholder: #8e8e93;
+            --separator: #c6c6c8;
+            --toggle-bg: #e5e5ea;
+            --toggle-active: #34c759;
         }
-        @keyframes scanlinesMove { 0% { background-position: 0 0; } 100% { background-position: 0 20px; } }
-        .chroma {
-            position: absolute; width: 100%; height: 100%;
-            background: radial-gradient(circle, rgba(255,0,0,0.12), rgba(0,255,0,0.05), rgba(0,0,255,0.12));
-            mix-blend-mode: screen; animation: chromaShift 2.5s infinite alternate;
+
+        /* Тёмная тема */
+        body.theme-dark {
+            --bg-page: #000000;
+            --card-bg: #1c1c1e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border-light: rgba(84, 84, 88, 0.2);
+            --nav-bg: rgba(28, 28, 30, 0.96);
+            --message-bg: #2c2c2e;
+            --own-message-border: #0a84ff;
+            --input-bg: #1c1c1e;
+            --placeholder: #636366;
+            --separator: #38383a;
+            --toggle-bg: #2c2c2e;
+            --toggle-active: #30d158;
         }
-        @keyframes chromaShift { 0% { opacity: 0.6; transform: translateX(-1%); } 100% { opacity: 1; transform: translateX(1%); } }
-        .noise {
-            position: absolute; width: 100%; height: 100%;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJmIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjkiIG51bU9jdGF2ZXM9IjMiLz48L2ZpbHRlcj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWx0ZXI9InVybCgjZikiIG9wYWNpdHk9IjAuMjUiLz48L3N2Zz4=');
-            background-repeat: repeat; opacity: 0.4; animation: noiseShift 0.15s steps(2) infinite;
+
+        /* Ночная (ультратёмная) */
+        body.theme-night {
+            --bg-page: #0b0b0e;
+            --card-bg: #121214;
+            --text-primary: #ededef;
+            --text-secondary: #7c7c85;
+            --border-light: rgba(99, 99, 102, 0.25);
+            --nav-bg: rgba(18, 18, 20, 0.98);
+            --message-bg: #1d1d1f;
+            --own-message-border: #5e5ce0;
+            --input-bg: #121214;
+            --placeholder: #5a5a62;
+            --separator: #2a2a2e;
         }
-        @keyframes noiseShift { 0% { transform: translate(0,0); } 100% { transform: translate(2px, -2px); } }
-        .glitch-effect {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 15; background: rgba(255,0,0,0.1);
-            mix-blend-mode: screen; animation: flicker 0.1s infinite; display: none;
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            height: 100vh;
+            overflow: hidden;
         }
-        @keyframes flicker { 0% { opacity: 0.2; } 50% { opacity: 0.6; } 100% { opacity: 0.2; } }
-        #ui-top {
-            position: fixed; top: 15px; left: 0; right: 0; display: flex;
-            justify-content: space-between; padding: 10px 20px; z-index: 30; pointer-events: none;
+
+        /* Контейнеры */
+        .auth-container, .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-page);
         }
-        .hud-card {
-            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border-radius: 40px;
-            padding: 6px 18px; display: flex; align-items: center; gap: 12px;
-            font-size: 1.3rem; color: #ffc285; border-bottom: 2px solid #aa2a2a;
-            box-shadow: 0 0 12px rgba(0,0,0,0.7);
+
+        .auth-container {
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
         }
-        .crystal-icon {
-            width: 28px; height: 28px; background: radial-gradient(circle at 30% 35%, #c44, #400);
-            clip-path: polygon(50% 0%, 80% 25%, 80% 75%, 50% 100%, 20% 75%, 20% 25%);
-            box-shadow: 0 0 6px #f66;
+
+        .auth-card {
+            background: var(--card-bg);
+            border-radius: 2rem;
+            padding: 2rem 1.5rem;
+            width: 100%;
+            max-width: 340px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+            backdrop-filter: blur(0px);
+            border: 1px solid var(--border-light);
         }
-        .medal-icon {
-            width: 28px; height: 28px; background: radial-gradient(circle at 30% 40%, #c98f2e, #5a3a0a);
-            border-radius: 50%; position: relative; box-shadow: 0 0 6px #ffaa44;
+
+        .auth-title {
+            font-size: 1.8rem;
+            font-weight: 590;
+            margin-bottom: 1.5rem;
+            text-align: center;
         }
-        .medal-icon::after {
-            content: ''; position: absolute; bottom: -6px; left: 6px;
-            width: 16px; height: 7px; background: #aa7a2a; border-radius: 3px;
+
+        .input-group {
+            margin-bottom: 1.2rem;
         }
-        .counter-value { font-size: 1.4rem; font-weight: bold; }
-        .crosshair {
-            position: fixed; top: 50%; left: 50%; width: 20px; height: 20px;
-            transform: translate(-50%, -50%); border: 2px solid rgba(180,40,40,0.9);
-            border-radius: 50%; z-index: 25; background: rgba(80,0,0,0.3);
+
+        .input-group input {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: 0.2s;
         }
-        .crosshair::before, .crosshair::after {
-            content: ''; position: absolute; background: #b33;
+
+        .input-group input:focus {
+            border-color: #007aff;
         }
-        .crosshair::before { width: 2px; height: 12px; top: 4px; left: 9px; }
-        .crosshair::after { width: 12px; height: 2px; top: 9px; left: 4px; }
-        #interact-btn {
-            position: fixed; bottom: 30px; right: 30px; width: 70px; height: 70px;
-            border-radius: 50%; background: rgba(30,10,10,0.9); backdrop-filter: blur(8px);
-            border: 2px solid #a22; color: #d88; font-size: 28px; pointer-events: auto;
-            z-index: 35; display: flex; align-items: center; justify-content: center; cursor: pointer;
+
+        .auth-btn {
+            background: #007aff;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            font-weight: 590;
+            margin-top: 0.8rem;
+            cursor: pointer;
         }
-        .joystick-container {
-            position: fixed; bottom: 30px; left: 30px; width: 140px; height: 140px;
-            border-radius: 50%; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px);
-            border: 1px solid #a22; z-index: 35; touch-action: none;
+
+        .error-text {
+            color: #ff3b30;
+            text-align: center;
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
         }
-        .joystick-thumb {
-            position: absolute; width: 55px; height: 55px; background: #8a2a2a;
-            border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            box-shadow: 0 0 8px darkred; pointer-events: none; border: 1px solid #c44;
+
+        /* Навигация (табы) */
+        .nav-bar {
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            display: flex;
+            border-bottom: 0.5px solid var(--separator);
+            padding: 0.5rem 1rem;
+            gap: 1rem;
         }
-        .death-panel {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.96); backdrop-filter: blur(12px); z-index: 100;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #aa2e2e;
+
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.75rem 0;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 1rem;
         }
-        .death-panel h1 { font-size: 3rem; margin-bottom: 30px; }
-        .death-panel button {
-            background: #2c1a1a; border: 2px solid #aa2e2e; color: #ff8888;
-            font-size: 1.8rem; padding: 12px 32px; cursor: pointer;
+
+        .tab-btn.active {
+            color: #007aff;
+            background: rgba(0, 122, 255, 0.1);
         }
-        .medal-toast {
-            position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);
-            background: radial-gradient(circle, #aa2a2a, #3a0a0a); color: #ffc285;
-            padding: 14px 28px; border-radius: 60px; font-size: 1.8rem; z-index: 40;
-            text-align: center; white-space: nowrap; box-shadow: 0 0 20px #ff4444;
-            animation: fadeOutMedal 2s forwards; pointer-events: none;
+
+        /* Страницы (чат / настройки) */
+        .page {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
         }
-        @keyframes fadeOutMedal {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+
+        .page.active-page {
+            display: flex;
         }
-        @media (max-width: 700px) {
-            .hud-card { padding: 4px 12px; font-size: 1rem; gap: 8px; }
-            .crystal-icon, .medal-icon { width: 22px; height: 22px; }
-            .counter-value { font-size: 1.2rem; }
-            #interact-btn { width: 60px; height: 60px; font-size: 24px; }
-            .joystick-container { width: 120px; height: 120px; }
-            .joystick-thumb { width: 45px; height: 45px; }
+
+        /* Чат */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+
+        .message-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 85%;
+        }
+
+        .message-bubble {
+            background: var(--message-bg);
+            padding: 0.7rem 1rem;
+            border-radius: 1.2rem;
+            border: 1.5px solid transparent;
+            transition: border 0.1s;
+            word-break: break-word;
+        }
+
+        /* Обводка для сообщений текущего пользователя */
+        .message-item.own-message .message-bubble {
+            border-color: var(--own-message-border);
+            background: var(--message-bg);
+        }
+
+        .message-nick {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .message-text {
+            font-size: 1rem;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+
+        /* Панель ввода (прилеплена к низу) */
+        .input-bar {
+            background: var(--nav-bg);
+            backdrop-filter: blur(20px);
+            padding: 0.7rem 0.9rem;
+            border-top: 0.5px solid var(--separator);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 2rem;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        .send-btn {
+            background: #007aff;
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 44px;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        /* Настройки */
+        .settings-container {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .setting-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        input[type="text"].nick-input {
+            background: var(--input-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            padding: 0.6rem 1rem;
+            color: var(--text-primary);
+            flex: 1;
+            font-size: 1rem;
+        }
+
+        .save-nick-btn {
+            background: #007aff;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 2rem;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* Тема кнопки */
+        .theme-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            padding: 0.5rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        /* Toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--toggle-bg);
+            transition: 0.2s;
+            border-radius: 28px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 24px;
+            width: 24px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--toggle-active);
+        }
+        input:checked + .slider:before {
+            transform: translateX(24px);
+        }
+
+        /* Слайдер размера текста */
+        .font-slider {
+            width: 100%;
+            margin-top: 8px;
+            accent-color: #007aff;
+        }
+
+        .slider-hidden {
+            display: none;
+        }
+
+        hr {
+            border-color: var(--separator);
+            opacity: 0.5;
+        }
+
+        .logout-btn {
+            background: none;
+            border: 1px solid #ff3b30;
+            color: #ff3b30;
+            padding: 0.7rem;
+            border-radius: 1rem;
+            font-weight: 500;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        /* Адаптив под клавиатуру (прокрутка) */
+        .chat-messages {
+            scrollbar-width: thin;
         }
     </style>
 </head>
 <body>
-    <div class="vhs-overlay"><div class="scanlines"></div><div class="chroma"></div><div class="noise"></div></div>
-    <div class="glitch-effect" id="glitchEffect"></div>
-    <div class="crosshair"></div>
-    <div id="ui-top">
-        <div class="hud-card"><div class="crystal-icon"></div><span class="counter-value" id="crystal-num">0/20</span></div>
-        <div class="hud-card"><div class="medal-icon"></div><span class="counter-value" id="medal-num">0</span></div>
-    </div>
-    <div id="interact-btn">🩸</div>
-    <div id="joystickContainer" class="joystick-container"><div class="joystick-thumb" id="joystickThumb"></div></div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
-            }
-        }
-    </script>
-    <script type="module">
-        import * as THREE from 'three';
-        
-        // --- Глобальные переменные ---
-        let scene, camera, renderer;
-        let player;
-        let gameActive = true;
-        let crystals = [];
-        let crystalCount = 0, medalCount = 0;
-        let monster, monsterState = 'patrol', lastSeenPos = null;
-        let walls = [];
-        let doors = [];
-        let roomBounds = [];
-        let moveVec = { x: 0, z: 0 };
-        let keyboard = { forward: 0, right: 0 };
-        let yaw = -0.8, pitch = -0.1;
-        const MOVE_SPEED = 4.5;
-        const MONSTER_SPEED = 3.8;
-        let lastStepTime = 0;
-        let monsterVel = new THREE.Vector3(0,0,0);
-        let pathNodes = []; // для навигации монстра (упрощённо)
-        
-        // --- Аудио ---
-        let audioCtx = null;
-        let ambientSource = null;
-        let windInterval, knockInterval, growlInterval;
-        
-        function initAudio() {
-            if (audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            // Фоновый шум (эмбиент)
-            const buffer = audioCtx.createBuffer(1, 44100, 44100);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < 44100; i++) data[i] = (Math.random() - 0.5) * 0.03;
-            ambientSource = audioCtx.createBufferSource();
-            ambientSource.buffer = buffer;
-            ambientSource.loop = true;
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 300;
-            ambientSource.connect(filter);
-            filter.connect(audioCtx.destination);
-            ambientSource.start();
-            // Ветер
-            windInterval = setInterval(() => {
-                if (!gameActive) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 100 + Math.random() * 50;
-                gain.gain.value = 0.08;
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.5);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 1.2);
-            }, 8000);
-            // Стуки
-            knockInterval = setInterval(() => {
-                if (!gameActive) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 150 + Math.random() * 100;
-                gain.gain.value = 0.12;
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.6);
-            }, 7000);
-            // Завывания монстра
-            growlInterval = setInterval(() => {
-                if (!gameActive) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 60 + Math.random() * 50;
-                gain.gain.value = 0.25;
-                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 2.5);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 2.0);
-            }, 12000);
-        }
-        
-        function playFootstep() {
-            if (!audioCtx || !gameActive) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = 70;
-            gain.gain.value = 0.07;
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.2);
-        }
-        
-        function playPickup() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = 880;
-            gain.gain.value = 0.15;
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.3);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.25);
-        }
-        
-        function playChaseSound() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = 110;
-            gain.gain.value = 0.3;
-            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 1.0);
-        }
-        
-        // --- UI ---
-        function updateUI() {
-            document.getElementById('crystal-num').innerText = `${crystalCount}/20`;
-            document.getElementById('medal-num').innerText = medalCount;
-        }
-        function showMedal() {
-            const toast = document.createElement('div');
-            toast.className = 'medal-toast';
-            toast.innerText = '🏅 МЕДАЛЬ УЖАСА 🏅';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
-            medalCount++;
-            updateUI();
-        }
-        
-        // --- Кристаллы (спавн на поверхностях)---
-        const spawnSurfaces = []; // будут заполнены позициями после создания мебели
-        
-        function addSpawnPoint(x, y, z) {
-            spawnSurfaces.push(new THREE.Vector3(x, y + 0.2, z));
-        }
-        
-        function generateCrystals(count = 20) {
-            crystals.forEach(c => scene.remove(c.mesh));
-            crystals = [];
-            if (spawnSurfaces.length === 0) return;
-            for (let i = 0; i < count; i++) {
-                const pos = spawnSurfaces[Math.floor(Math.random() * spawnSurfaces.length)];
-                const geom = new THREE.IcosahedronGeometry(0.28, 0);
-                const mat = new THREE.MeshStandardMaterial({ color: 0xdd3377, emissive: 0x441122, emissiveIntensity: 0.9 });
-                const crystal = new THREE.Mesh(geom, mat);
-                crystal.position.copy(pos);
-                crystal.castShadow = true;
-                scene.add(crystal);
-                crystals.push({ mesh: crystal });
-            }
-            updateUI();
-        }
-        
-        function collectCrystal(crystalMesh) {
-            if (!gameActive) return;
-            const idx = crystals.findIndex(c => c.mesh === crystalMesh);
-            if (idx !== -1) {
-                scene.remove(crystalMesh);
-                crystals.splice(idx, 1);
-                crystalCount++;
-                updateUI();
-                playPickup();
-                if (crystalCount >= 20) {
-                    crystalCount = 0;
-                    showMedal();
-                    generateCrystals(20);
-                }
-            }
-        }
-        
-        // --- Построение уровня с мебелью и дверями ---
-        function buildLevel() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x020208);
-            scene.fog = new THREE.FogExp2(0x020208, 0.02);
-            
-            // Освещение (мрачное)
-            const ambient = new THREE.AmbientLight(0x2a1a1a, 0.7);
-            scene.add(ambient);
-            const dirLight = new THREE.DirectionalLight(0xccaa88, 1.2);
-            dirLight.position.set(4, 8, 3);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
-            const fillRed = new THREE.PointLight(0x882222, 0.6);
-            fillRed.position.set(-2, 1.5, -3);
-            scene.add(fillRed);
-            const flickerLight = new THREE.PointLight(0xcc6644, 0.8);
-            flickerLight.position.set(1, 2.2, 2);
-            scene.add(flickerLight);
-            
-            // Текстуры
-            const loader = new THREE.TextureLoader();
-            const woodTex = loader.load('https://threejs.org/examples/textures/uv_grid_opengl.jpg'); // временно, но можно заменить
-            const stoneTex = loader.load('https://threejs.org/examples/textures/brick_diffuse.jpg');
-            
-            function createWallTexture() {
-                const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#3a2a1a'; ctx.fillRect(0, 0, 512, 512);
-                for (let i=0;i<1500;i++) { ctx.fillStyle = '#2a1a0a'; ctx.fillRect(Math.random()*512, Math.random()*512, 4, 4); }
-                return new THREE.CanvasTexture(canvas);
-            }
-            const wallTex = createWallTexture();
-            const floorTex = (() => { const c=document.createElement('canvas');c.width=512;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#4a2e1a';ctx.fillRect(0,0,512,512);for(let i=0;i<2000;i++){ctx.fillStyle='#2a1608';ctx.fillRect(Math.random()*512,Math.random()*512,3,3);} return new THREE.CanvasTexture(c);})();
-            const ceilTex = (() => { const c=document.createElement('canvas');c.width=512;c.height=512;const ctx=c.getContext('2d');ctx.fillStyle='#2a2018';ctx.fillRect(0,0,512,512);for(let i=0;i<1000;i++){ctx.fillStyle='#100804';ctx.fillRect(Math.random()*512,Math.random()*512,2,2);} return new THREE.CanvasTexture(c);})();
-            
-            // Полы
-            const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.9 });
-            const floor0 = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), floorMat);
-            floor0.rotation.x = -Math.PI/2; floor0.position.set(0, -0.05, 0); floor0.receiveShadow = true;
-            scene.add(floor0);
-            const floor1 = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), floorMat);
-            floor1.rotation.x = -Math.PI/2; floor1.position.set(0, 4.0, 0); floor1.receiveShadow = true;
-            scene.add(floor1);
-            const floorB = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), floorMat);
-            floorB.rotation.x = -Math.PI/2; floorB.position.set(0, -2.1, 0); floorB.receiveShadow = true;
-            scene.add(floorB);
-            
-            // Потолки (сплошные)
-            const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex, color: 0x332418 });
-            const ceil0 = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), ceilMat);
-            ceil0.rotation.x = -Math.PI/2; ceil0.position.set(0, 2.85, 0); ceil0.receiveShadow = true;
-            scene.add(ceil0);
-            const ceil1 = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), ceilMat);
-            ceil1.rotation.x = -Math.PI/2; ceil1.position.set(0, 6.85, 0); ceil1.receiveShadow = true;
-            scene.add(ceil1);
-            const ceilB = new THREE.Mesh(new THREE.PlaneGeometry(28, 26), ceilMat);
-            ceilB.rotation.x = -Math.PI/2; ceilB.position.set(0, -1.25, 0); ceilB.receiveShadow = true;
-            scene.add(ceilB);
-            
-            // Стены
-            function addWall(x, z, w, d, h, yBase) {
-                const box = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.7 }));
-                box.position.set(x, yBase + h/2, z);
-                box.castShadow = true; box.receiveShadow = true;
-                scene.add(box);
-                walls.push({ mesh: box, minX: x - w/2, maxX: x + w/2, minZ: z - d/2, maxZ: z + d/2, yMin: yBase, yMax: yBase + h });
-            }
-            addWall(0, -12.8, 28, 0.35, 2.9, 0);
-            addWall(0, 12.8, 28, 0.35, 2.9, 0);
-            addWall(-13.8, 0, 0.35, 25.6, 2.9, 0);
-            addWall(13.8, 0, 0.35, 25.6, 2.9, 0);
-            addWall(-5, -4, 0.25, 7, 2.7, 0);
-            addWall(5, -4, 0.25, 7, 2.7, 0);
-            addWall(-5, 5, 0.25, 7, 2.7, 0);
-            addWall(5, 5, 0.25, 7, 2.7, 0);
-            addWall(0, 0, 0.25, 12, 2.7, 0);
-            
-            // Лестница
-            const stairMat = new THREE.MeshStandardMaterial({ color: 0x5a3a2a });
-            for (let i = 0; i < 12; i++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.2, 0.8), stairMat);
-                step.position.set(-1.8 + i*0.1, 0.1 + i*0.22, 8.3);
-                step.castShadow = true;
-                scene.add(step);
-            }
-            
-            // Комнаты с дверями и мебелью
-            roomBounds = [
-                { name: "living", minX: -8, maxX: -2, minZ: -7, maxZ: -1, yFloor: 0, doorX: -4.5, doorZ: -1.5, doorRot: 0 },
-                { name: "kitchen", minX: 2, maxX: 8, minZ: -7, maxZ: -1, yFloor: 0, doorX: 5.2, doorZ: -1.5, doorRot: 0 },
-                { name: "bath", minX: -7, maxX: -2, minZ: 3, maxZ: 7, yFloor: 0, doorX: -4.2, doorZ: 5.5, doorRot: Math.PI/2 },
-                { name: "bedroom", minX: -8, maxX: -2, minZ: 1, maxZ: 6, yFloor: 0, doorX: -5.5, doorZ: 1.2, doorRot: 0 },
-                { name: "up_bed1", minX: -8, maxX: -2, minZ: -7, maxZ: -1, yFloor: 4, doorX: -5.2, doorZ: -1.5, doorRot: 0 },
-                { name: "up_bed2", minX: 2, maxX: 8, minZ: -7, maxZ: -1, yFloor: 4, doorX: 3.5, doorZ: -1.5, doorRot: 0 },
-                { name: "up_bath", minX: -6, maxX: -1, minZ: 4, maxZ: 8, yFloor: 4, doorX: -2.5, doorZ: 5.8, doorRot: Math.PI/2 },
-                { name: "attic", minX: 3, maxX: 8, minZ: 2, maxZ: 7, yFloor: 4, doorX: 5.2, doorZ: 2.2, doorRot: 0 },
-                { name: "basement1", minX: -8, maxX: -1, minZ: -6, maxZ: 0, yFloor: -2, doorX: -5.5, doorZ: -1.8, doorRot: 0 },
-                { name: "basement2", minX: 1, maxX: 7, minZ: -5, maxZ: 1, yFloor: -2, doorX: 3.2, doorZ: -1.8, doorRot: 0 }
+<!-- СТРАНИЦА АВТОРИЗАЦИИ -->
+<div id="authPage" class="auth-container">
+    <div class="auth-card">
+        <div class="auth-title">Вход в чат</div>
+        <div class="input-group">
+            <input type="text" id="loginNick" placeholder="Ник" autocomplete="off">
+        </div>
+        <div class="input-group">
+            <input type="password" id="loginKey" placeholder="Ключ">
+        </div>
+        <button class="auth-btn" id="authBtn">Войти</button>
+        <div id="authError" class="error-text"></div>
+        <div style="font-size: 0.75rem; text-align: center; margin-top: 1rem; color: var(--text-secondary);">Тестовый вход: ник <strong>demo</strong> / ключ <strong>demo</strong></div>
+    </div>
+</div>
+
+<!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (после авторизации) -->
+<div id="appPage" class="app-container" style="display: none;">
+    <div class="nav-bar">
+        <button class="tab-btn active" data-tab="chat">Чат</button>
+        <button class="tab-btn" data-tab="settings">Настройки</button>
+    </div>
+
+    <!-- Страница чата -->
+    <div id="chatPage" class="page active-page">
+        <div class="chat-messages" id="messagesContainer"></div>
+        <div class="input-bar">
+            <input type="text" id="messageInput" placeholder="Сообщение..." autocomplete="off">
+            <button class="send-btn" id="sendBtn">➤</button>
+        </div>
+    </div>
+
+    <!-- Страница настроек -->
+    <div id="settingsPage" class="page">
+        <div class="settings-container">
+            <!-- Ник пользователя -->
+            <div class="setting-row">
+                <span class="setting-label">Ваш ник</span>
+                <input type="text" id="settingsNick" class="nick-input" placeholder="Никнейм">
+                <button id="saveNickBtn" class="save-nick-btn">Сохранить</button>
+            </div>
+            <hr>
+            <!-- Тема приложения -->
+            <div class="setting-row">
+                <span class="setting-label">Тема</span>
+                <select id="themeSelect" class="theme-select">
+                    <option value="adaptive">Адаптивная</option>
+                    <option value="light">Светлая</option>
+                    <option value="dark">Тёмная</option>
+                    <option value="night">Ночная</option>
+                </select>
+            </div>
+            <hr>
+            <!-- Системный размер текста + тумблер -->
+            <div class="setting-row">
+                <span class="setting-label">Системный размер текста</span>
+                <label class="switch">
+                    <input type="checkbox" id="systemFontToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <!-- Слайдер размера текста (7 делений) -->
+            <div id="fontSliderContainer">
+                <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="setting-label">Размер текста</span>
+                    <input type="range" id="fontSizeSlider" min="0" max="6" step="1" value="3" style="width: 100%;" class="font-slider">
+                    <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text-secondary);">
+                        <span>A</span><span>A</span><span>A</span><span>A</span><span>A</span><span>A</span><span>A</span>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <button id="logoutBtn" class="logout-btn">Выйти из аккаунта</button>
+            <div style="height: 1rem;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // -------- ВАЛИДНЫЕ ДАННЫЕ ДЛЯ ВХОДА ----------
+    const VALID_NICK = "demo";
+    const VALID_KEY = "demo";
+
+    // -------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
+    let currentUser = null;        // {nick: "demo"}
+    let messages = [];              // [{id, nick, text, timestamp}]
+
+    // Настройки приложения
+    let appSettings = {
+        theme: "adaptive",         // adaptive, light, dark, night
+        systemFontEnabled: false,  // тумблер системный
+        fontSizeStep: 3,           // 0..6 (7 делений)
+    };
+
+    // DOM элементы
+    const authPage = document.getElementById('authPage');
+    const appPage = document.getElementById('appPage');
+    const authError = document.getElementById('authError');
+    const authBtn = document.getElementById('authBtn');
+    const loginNick = document.getElementById('loginNick');
+    const loginKey = document.getElementById('loginKey');
+
+    const chatMessagesDiv = document.getElementById('messagesContainer');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const settingsNick = document.getElementById('settingsNick');
+    const saveNickBtn = document.getElementById('saveNickBtn');
+    const themeSelect = document.getElementById('themeSelect');
+    const systemFontToggle = document.getElementById('systemFontToggle');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSliderContainer = document.getElementById('fontSliderContainer');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Табы
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const chatPageDiv = document.getElementById('chatPage');
+    const settingsPageDiv = document.getElementById('settingsPage');
+
+    // ---------- Helper: сохранение данных в localStorage ----------
+    function saveMessagesToStorage() {
+        localStorage.setItem('chat_messages', JSON.stringify(messages));
+    }
+
+    function loadMessagesFromStorage() {
+        const stored = localStorage.getItem('chat_messages');
+        if (stored) {
+            try {
+                messages = JSON.parse(stored);
+                if (!Array.isArray(messages)) messages = [];
+            } catch(e) { messages = []; }
+        } else {
+            // Стартовые приветственные сообщения для примера
+            messages = [
+                { id: Date.now() + 1, nick: "Система", text: "Добро пожаловать в общий чат!", timestamp: Date.now() },
+                { id: Date.now() + 2, nick: "demo", text: "Привет всем!", timestamp: Date.now() }
             ];
-            
-            // Функция добавления мебели
-            function addTable(x, z, y, color = 0x8b5a3a) {
-                const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
-                const top = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 1.2), mat);
-                top.position.set(x, y + 0.65, z);
-                top.castShadow = true;
-                scene.add(top);
-                const legMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a });
-                for (let dx = -0.45; dx <= 0.45; dx+=0.9) {
-                    for (let dz = -0.45; dz <= 0.45; dz+=0.9) {
-                        const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.6, 4), legMat);
-                        leg.position.set(x + dx, y + 0.3, z + dz);
-                        leg.castShadow = true;
-                        scene.add(leg);
-                    }
-                }
-                addSpawnPoint(x, y + 0.75, z);
-            }
-            function addChair(x, z, y, rot = 0) {
-                const mat = new THREE.MeshStandardMaterial({ color: 0x7a5a3a });
-                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.1, 0.6), mat);
-                seat.position.set(x, y + 0.35, z);
-                seat.castShadow = true;
-                scene.add(seat);
-                const back = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.1), mat);
-                back.position.set(x, y + 0.65, z - 0.3);
-                back.castShadow = true;
-                scene.add(back);
-            }
-            function addBed(x, z, y) {
-                const mat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a });
-                const frame = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 2.2), mat);
-                frame.position.set(x, y + 0.15, z);
-                frame.castShadow = true;
-                scene.add(frame);
-                const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 2.0), new THREE.MeshStandardMaterial({ color: 0x9a7a5a }));
-                mattress.position.set(x, y + 0.35, z);
-                mattress.castShadow = true;
-                scene.add(mattress);
-                addSpawnPoint(x, y + 0.55, z);
-            }
-            function addCabinet(x, z, y, width = 0.8, height = 1.5) {
-                const mat = new THREE.MeshStandardMaterial({ color: 0x8b5a3a });
-                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.6), mat);
-                cabinet.position.set(x, y + height/2, z);
-                cabinet.castShadow = true;
-                scene.add(cabinet);
-                addSpawnPoint(x, y + height - 0.1, z);
-            }
-            function addSink(x, z, y) {
-                const mat = new THREE.MeshStandardMaterial({ color: 0xccaa88 });
-                const sink = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.6), mat);
-                sink.position.set(x, y + 0.85, z);
-                sink.castShadow = true;
-                scene.add(sink);
-            }
-            function addToilet(x, z, y) {
-                const mat = new THREE.MeshStandardMaterial({ color: 0xeeccaa });
-                const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.6, 8), mat);
-                bowl.position.set(x, y + 0.35, z);
-                bowl.castShadow = true;
-                scene.add(bowl);
-            }
-            
-            // Размещение мебели по комнатам
-            roomBounds.forEach(room => {
-                const cx = (room.minX + room.maxX) / 2;
-                const cz = (room.minZ + room.maxZ) / 2;
-                const yBase = room.yFloor;
-                if (room.name === "living") {
-                    addTable(cx-1, cz-1, yBase, 0x9b6a3a);
-                    addChair(cx-2, cz-1, yBase);
-                    addCabinet(cx+1, cz+0.5, yBase, 1.2, 1.8);
-                    addSpawnPoint(cx+1.2, yBase+1.2, cz+0.5);
-                } else if (room.name === "kitchen") {
-                    addTable(cx, cz-0.5, yBase, 0xac704a);
-                    addCabinet(cx-1, cz+0.8, yBase, 1.0, 1.2);
-                    addSink(cx+1, cz-0.8, yBase);
-                    addSpawnPoint(cx+0.8, yBase+1.0, cz-0.8);
-                } else if (room.name === "bath") {
-                    addToilet(cx-0.5, cz, yBase);
-                    addSink(cx+0.8, cz+0.5, yBase);
-                    addCabinet(cx+0.2, cz-0.8, yBase, 0.6, 1.0);
-                } else if (room.name === "bedroom") {
-                    addBed(cx, cz, yBase);
-                    addCabinet(cx-1.5, cz+0.8, yBase, 0.9, 1.5);
-                    addChair(cx+1.2, cz-0.5, yBase);
-                } else if (room.name.includes("up_bed")) {
-                    addBed(cx, cz, yBase);
-                    addCabinet(cx-1.2, cz+0.5, yBase, 0.9, 1.5);
-                } else if (room.name === "up_bath") {
-                    addToilet(cx, cz-0.3, yBase);
-                    addSink(cx+0.7, cz+0.5, yBase);
-                } else if (room.name === "attic") {
-                    addCabinet(cx, cz, yBase, 1.2, 1.2);
-                    addTable(cx-0.8, cz+0.8, yBase, 0x9c6a42);
-                } else if (room.name.includes("basement")) {
-                    addCabinet(cx, cz, yBase, 1.5, 1.4);
-                    addTable(cx-0.5, cz-0.5, yBase, 0x5a3a2a);
-                }
-            });
-            
-            // Двери
-            roomBounds.forEach(room => {
-                const doorGroup = new THREE.Group();
-                const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.1), new THREE.MeshStandardMaterial({ color: 0x6b4c3b }));
-                doorMesh.position.set(0, 0.95, 0);
-                doorGroup.add(doorMesh);
-                const knob = new THREE.Mesh(new THREE.SphereGeometry(0.07), new THREE.MeshStandardMaterial({ color: 0xccaa77 }));
-                knob.position.set(0.4, 1.0, 0.06);
-                doorGroup.add(knob);
-                doorGroup.position.set(room.doorX, room.yFloor, room.doorZ);
-                doorGroup.rotation.y = room.doorRot;
-                scene.add(doorGroup);
-                doors.push({ group: doorGroup, pos: new THREE.Vector3(room.doorX, room.yFloor, room.doorZ), rot: room.doorRot });
-            });
-            
-            // Игрок
-            player = new THREE.Object3D();
-            player.position.set(-5.2, 0.2, -3.8);
-            scene.add(player);
-            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 1.65, 0);
-            player.add(camera);
-            
-            // Монстр (страшный)
-            const monsterGroup = new THREE.Group();
-            const bodyGeo = new THREE.CylinderGeometry(0.5, 0.6, 1.8, 12);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x442222, emissive: 0x220000 });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 0.9;
-            monsterGroup.add(body);
-            const headGeo = new THREE.SphereGeometry(0.5, 24, 24);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0x553333 });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.8;
-            monsterGroup.add(head);
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xaa2222 });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), eyeMat);
-            leftEye.position.set(-0.2, 1.95, 0.5);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.15, 16, 16), eyeMat);
-            rightEye.position.set(0.2, 1.95, 0.5);
-            monsterGroup.add(leftEye, rightEye);
-            const armMat = new THREE.MeshStandardMaterial({ color: 0x442222 });
-            const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 1.2, 6), armMat);
-            leftArm.position.set(-0.7, 1.4, 0);
-            leftArm.rotation.z = 0.5;
-            const rightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 1.2, 6), armMat);
-            rightArm.position.set(0.7, 1.4, 0);
-            rightArm.rotation.z = -0.5;
-            monsterGroup.add(leftArm, rightArm);
-            monsterGroup.position.set(4, 0.2, 7);
-            monsterGroup.castShadow = true;
-            scene.add(monsterGroup);
-            monster = monsterGroup;
+            saveMessagesToStorage();
         }
-        
-        // --- Функции монстра (обход препятствий)---
-        function isPointInRoom(p) {
-            for (let r of roomBounds) {
-                if (p.x >= r.minX && p.x <= r.maxX && p.z >= r.minZ && p.z <= r.maxZ && Math.abs(p.y - r.yFloor) < 1.2)
-                    return true;
-            }
-            return false;
+    }
+
+    function saveSettingsToStorage() {
+        localStorage.setItem('app_settings', JSON.stringify(appSettings));
+    }
+
+    function loadSettingsFromStorage() {
+        const stored = localStorage.getItem('app_settings');
+        if (stored) {
+            try {
+                const saved = JSON.parse(stored);
+                appSettings = { ...appSettings, ...saved };
+            } catch(e) {}
         }
-        
-        const corridors = [
-            { minX: -5, maxX: 5, minZ: -4, maxZ: 4, y: 0 },
-            { minX: -8, maxX: 8, minZ: -2, maxZ: 2, y: 4 },
-            { minX: -2.5, maxX: -0.5, minZ: 7, maxZ: 9.5, y: 0 },
-            { minX: -2.5, maxX: -0.5, minZ: 7, maxZ: 9.5, y: 4 },
-            { minX: -4, maxX: 4, minZ: -3, maxZ: 3, y: -2 }
-        ];
-        
-        function clampMonsterPosition(pos) {
-            for (let c of corridors) {
-                if (pos.x >= c.minX && pos.x <= c.maxX && pos.z >= c.minZ && pos.z <= c.maxZ && Math.abs(pos.y - c.y) < 1.2) {
-                    if (!isPointInRoom(pos)) return new THREE.Vector3(pos.x, c.y + 0.2, pos.z);
-                }
-            }
-            let best = null, bestDist = Infinity;
-            for (let c of corridors) {
-                const cx = Math.min(c.maxX, Math.max(c.minX, pos.x));
-                const cz = Math.min(c.maxZ, Math.max(c.minZ, pos.z));
-                const cand = new THREE.Vector3(cx, c.y + 0.2, cz);
-                const d2 = (cx-pos.x)**2 + (cz-pos.z)**2;
-                if (d2 < bestDist && !isPointInRoom(cand)) { bestDist = d2; best = cand; }
-            }
-            return best || new THREE.Vector3(0, 0.2, 0);
+        // применить настройки к интерфейсу
+        applyTheme(appSettings.theme);
+        applyFontSize(appSettings.systemFontEnabled, appSettings.fontSizeStep);
+        systemFontToggle.checked = appSettings.systemFontEnabled;
+        fontSizeSlider.value = appSettings.fontSizeStep;
+        themeSelect.value = appSettings.theme;
+        // Показать/скрыть слайдер в зависимости от системного тумблера
+        if (appSettings.systemFontEnabled) {
+            fontSliderContainer.style.display = 'none';
+        } else {
+            fontSliderContainer.style.display = 'block';
         }
-        
-        function updateMonster(delta) {
-            if (!gameActive) return;
-            const mPos = monster.position;
-            const pPos = player.position;
-            const dirToPlayer = new THREE.Vector3().subVectors(pPos, mPos).normalize();
-            const raycaster = new THREE.Raycaster(mPos.clone().add(new THREE.Vector3(0,0.5,0)), dirToPlayer, 0, 14);
-            const hits = raycaster.intersectObjects(walls.map(w => w.mesh));
-            const seePlayer = (hits.length === 0 || hits[0].distance > mPos.distanceTo(pPos) - 0.5);
-            const dist = mPos.distanceTo(pPos);
-            const playerInRoom = isPointInRoom(pPos);
-            
-            if (monsterState === 'patrol') {
-                if (seePlayer && dist < 10 && !playerInRoom) {
-                    monsterState = 'chase';
-                    lastSeenPos = pPos.clone();
-                    playChaseSound();
-                } else {
-                    if (Math.random() < 0.02) {
-                        const randTarget = new THREE.Vector3((Math.random()-0.5)*5, 0, (Math.random()-0.5)*5);
-                        const target = clampMonsterPosition(mPos.clone().add(randTarget));
-                        if (target) monsterVel.subVectors(target, mPos).normalize().multiplyScalar(MONSTER_SPEED);
-                    }
-                }
-            } else if (monsterState === 'chase') {
-                if (playerInRoom) {
-                    monsterState = 'patrol';
-                    lastSeenPos = null;
-                } else if (!seePlayer) {
-                    monsterState = 'seekLast';
-                    lastSeenPos = pPos.clone();
-                } else {
-                    const dir = new THREE.Vector3().subVectors(pPos, mPos).normalize();
-                    monsterVel.copy(dir.multiplyScalar(MONSTER_SPEED));
-                }
-            } else if (monsterState === 'seekLast' && lastSeenPos) {
-                if (mPos.distanceTo(lastSeenPos) < 1.2) {
-                    monsterState = 'patrol';
-                    lastSeenPos = null;
-                } else {
-                    const dir = new THREE.Vector3().subVectors(lastSeenPos, mPos).normalize();
-                    monsterVel.copy(dir.multiplyScalar(MONSTER_SPEED));
-                    if (seePlayer && dist < 8 && !playerInRoom) monsterState = 'chase';
-                }
-            }
-            
-            let newPos = mPos.clone().add(monsterVel.clone().multiplyScalar(delta));
-            newPos = clampMonsterPosition(newPos);
-            let collides = false;
-            const monsterBox = new THREE.Box3().setFromCenterAndSize(newPos, new THREE.Vector3(0.9, 1.4, 0.9));
-            for (let w of walls) {
-                const wallBox = new THREE.Box3().setFromObject(w.mesh);
-                if (monsterBox.intersectsBox(wallBox)) { collides = true; break; }
-            }
-            if (!collides) monster.position.copy(newPos);
-            monster.lookAt(pPos);
-            if (monster.position.distanceTo(pPos) < 0.9 && gameActive) gameOver();
-            
-            // Мерцание
-            const monsterFloor = monster.position.y > 3 ? 1 : (monster.position.y < -1 ? -1 : 0);
-            const playerFloor = player.position.y > 3 ? 1 : (player.position.y < -1 ? -1 : 0);
-            const glitch = document.getElementById('glitchEffect');
-            if (monsterFloor === playerFloor && monsterState === 'chase') {
-                glitch.style.display = 'block';
+    }
+
+    // Применение темы
+    function applyTheme(theme) {
+        const body = document.body;
+        body.classList.remove('theme-light', 'theme-dark', 'theme-night');
+        if (theme === 'adaptive') {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) {
+                body.classList.add('theme-dark');
             } else {
-                glitch.style.display = 'none';
+                body.classList.add('theme-light');
             }
+            // дополнительно для ночной нет, но можно сбросить.
+            body.style.backgroundColor = '';
+        } else if (theme === 'light') {
+            body.classList.add('theme-light');
+        } else if (theme === 'dark') {
+            body.classList.add('theme-dark');
+        } else if (theme === 'night') {
+            body.classList.add('theme-night');
         }
-        
-        // --- Движение игрока ---
-        function updatePlayer(delta) {
-            if (!gameActive) return;
-            const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
-            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
-            let move = new THREE.Vector3(0,0,0);
-            let inputX = moveVec.x, inputZ = moveVec.z;
-            if (Math.abs(keyboard.right) > 0.01) inputX = keyboard.right;
-            if (Math.abs(keyboard.forward) > 0.01) inputZ = keyboard.forward;
-            if (inputZ !== 0) move.addScaledVector(forward, inputZ);
-            if (inputX !== 0) move.addScaledVector(right, inputX);
-            move.normalize();
-            let newPos = player.position.clone().add(move.multiplyScalar(MOVE_SPEED * delta));
-            let collides = false;
-            const playerBox = new THREE.Box3().setFromCenterAndSize(newPos, new THREE.Vector3(0.7, 1.6, 0.7));
-            for (let w of walls) {
-                const wallBox = new THREE.Box3().setFromObject(w.mesh);
-                if (playerBox.intersectsBox(wallBox)) { collides = true; break; }
-            }
-            if (!collides) {
-                player.position.copy(newPos);
-                if ((inputX !== 0 || inputZ !== 0) && Date.now() - lastStepTime > 380) {
-                    playFootstep();
-                    lastStepTime = Date.now();
-                }
-            }
-            // Лестница
-            if (player.position.z > 7.5 && player.position.z < 9.3 && player.position.x > -2.3 && player.position.x < -0.7) {
-                if (player.position.y < 2) player.position.y = 3.95;
-                else if (player.position.y > 3) player.position.y = 0.2;
-            }
-            if (player.position.y > 3.6) player.position.y = 4.15;
-            else if (player.position.y < -1.7) player.position.y = -1.95;
-            else if (player.position.y < 0.5 && player.position.y > -0.5) player.position.y = 0.2;
-            camera.rotation.set(pitch, yaw, 0);
-            
-            // Двери
-            doors.forEach(door => {
-                const distToDoor = player.position.distanceTo(door.pos);
-                const targetRot = (distToDoor < 2.0 && Math.abs(player.position.y - door.pos.y) < 1.2) ? door.rot + Math.PI/1.5 : door.rot;
-                door.group.rotation.y += (targetRot - door.group.rotation.y) * 0.3;
-            });
+        // сохраняем выбранную тему в настройках
+        appSettings.theme = theme;
+        saveSettingsToStorage();
+    }
+
+    // Размер текста: 7 делений от 0.75rem до 1.4rem
+    function getFontSizeFromStep(step) {
+        const sizes = [0.75, 0.85, 0.95, 1.05, 1.15, 1.25, 1.4];
+        return sizes[step] || 1.05;
+    }
+
+    function applyFontSize(systemEnabled, step) {
+        const html = document.documentElement;
+        if (systemEnabled) {
+            html.style.fontSize = ''; // сброс, используем системный (16px обычно)
+        } else {
+            const fontSizeRem = getFontSizeFromStep(step);
+            html.style.fontSize = `${fontSizeRem}rem`;
         }
-        
-        // --- Управление ---
-        function initControls() {
-            window.addEventListener('keydown', (e) => {
-                switch(e.code) {
-                    case 'KeyW': keyboard.forward = 1; break;
-                    case 'KeyS': keyboard.forward = -1; break;
-                    case 'KeyA': keyboard.right = -1; break;
-                    case 'KeyD': keyboard.right = 1; break;
-                }
-            });
-            window.addEventListener('keyup', (e) => {
-                switch(e.code) {
-                    case 'KeyW': if (keyboard.forward === 1) keyboard.forward = 0; break;
-                    case 'KeyS': if (keyboard.forward === -1) keyboard.forward = 0; break;
-                    case 'KeyA': if (keyboard.right === -1) keyboard.right = 0; break;
-                    case 'KeyD': if (keyboard.right === 1) keyboard.right = 0; break;
-                }
-            });
-            let mouseLook = false;
-            renderer.domElement.addEventListener('mousedown', (e) => {
-                if (e.button === 0) { mouseLook = true; renderer.domElement.style.cursor = 'none'; e.preventDefault(); }
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (mouseLook) {
-                    yaw -= e.movementX * 0.003;
-                    pitch -= e.movementY * 0.002;
-                    pitch = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, pitch));
-                }
-            });
-            window.addEventListener('mouseup', (e) => { if (e.button === 0) { mouseLook = false; renderer.domElement.style.cursor = 'default'; } });
-            
-            const joyDiv = document.getElementById('joystickContainer');
-            const thumb = document.getElementById('joystickThumb');
-            let activeTouch = null;
-            function updateJoystick(clientX, clientY) {
-                const rect = joyDiv.getBoundingClientRect();
-                const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-                let dx = clientX - cx, dy = clientY - cy;
-                const dist = Math.min(Math.hypot(dx, dy), 52);
-                const angle = Math.atan2(dy, dx);
-                const tx = Math.cos(angle) * dist, ty = Math.sin(angle) * dist;
-                thumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
-                moveVec.x = dx / 52; moveVec.z = dy / 52;
-                if (moveVec.x > 1) moveVec.x = 1; if (moveVec.x < -1) moveVec.x = -1;
-                if (moveVec.z > 1) moveVec.z = 1; if (moveVec.z < -1) moveVec.z = -1;
-            }
-            function resetJoystick() { thumb.style.transform = 'translate(-50%, -50%)'; moveVec = { x: 0, z: 0 }; activeTouch = null; }
-            joyDiv.addEventListener('touchstart', (e) => { e.preventDefault(); if (activeTouch !== null) return; activeTouch = e.touches[0].identifier; updateJoystick(e.touches[0].clientX, e.touches[0].clientY); });
-            joyDiv.addEventListener('touchmove', (e) => { e.preventDefault(); if (activeTouch === null) return; for (let t of e.touches) if (t.identifier === activeTouch) { updateJoystick(t.clientX, t.clientY); break; } });
-            joyDiv.addEventListener('touchend', (e) => { e.preventDefault(); resetJoystick(); });
-            
-            let rotateActive = false, lastRotX = 0;
-            document.body.addEventListener('touchstart', (e) => {
-                if (e.target.closest('#interact-btn') || e.target.closest('.joystick-container')) return;
-                if (e.touches.length === 1) { rotateActive = true; lastRotX = e.touches[0].clientX; }
-            });
-            document.body.addEventListener('touchmove', (e) => {
-                if (rotateActive && e.touches.length === 1 && !e.target.closest('.joystick-container')) {
-                    const dx = e.touches[0].clientX - lastRotX;
-                    yaw -= dx * 0.006;
-                    lastRotX = e.touches[0].clientX;
-                    e.preventDefault();
-                }
-            });
-            document.body.addEventListener('touchend', () => { rotateActive = false; });
-            
-            document.getElementById('interact-btn').addEventListener('click', () => {
-                if (!gameActive) return;
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-                const intersects = raycaster.intersectObjects(crystals.map(c => c.mesh));
-                if (intersects.length > 0 && intersects[0].distance < 2.8) collectCrystal(intersects[0].object);
-            });
+    }
+
+    // Переключение видимости слайдера в зависимости от тумблера
+    function toggleFontSliderVisibility() {
+        const isSystem = systemFontToggle.checked;
+        if (isSystem) {
+            fontSliderContainer.style.display = 'none';
+            appSettings.systemFontEnabled = true;
+            applyFontSize(true, appSettings.fontSizeStep);
+        } else {
+            fontSliderContainer.style.display = 'block';
+            appSettings.systemFontEnabled = false;
+            applyFontSize(false, appSettings.fontSizeStep);
         }
-        
-        function gameOver() {
-            if (!gameActive) return;
-            gameActive = false;
-            if (audioCtx) {
-                if (ambientSource) ambientSource.stop();
-                if (windInterval) clearInterval(windInterval);
-                if (knockInterval) clearInterval(knockInterval);
-                if (growlInterval) clearInterval(growlInterval);
-            }
-            const panel = document.createElement('div'); panel.className = 'death-panel';
-            panel.innerHTML = '<h1>ВЫ ПОГИБЛИ!</h1><button id="restartBtn">ЗАНОВО</button>';
-            document.body.appendChild(panel);
-            document.getElementById('restartBtn').onclick = () => location.reload();
+        saveSettingsToStorage();
+    }
+
+    // Рендер сообщений в чате
+    function renderMessages() {
+        if (!chatMessagesDiv) return;
+        chatMessagesDiv.innerHTML = '';
+        if (!messages.length) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.textContent = 'Нет сообщений. Напишите первое!';
+            emptyDiv.style.textAlign = 'center';
+            emptyDiv.style.color = 'var(--text-secondary)';
+            emptyDiv.style.padding = '2rem';
+            chatMessagesDiv.appendChild(emptyDiv);
+            return;
         }
-        
-        // --- Запуск ---
-        buildLevel();
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
-        
-        initControls();
-        generateCrystals(20);
-        updateUI();
-        
-        window.addEventListener('touchstart', initAudio, { once: true });
-        window.addEventListener('click', initAudio, { once: true });
-        
-        let lastTime = performance.now();
-        function animate() {
-            const now = performance.now();
-            let delta = Math.min(0.033, (now - lastTime) / 1000);
-            lastTime = now;
-            if (gameActive) {
-                updatePlayer(delta);
-                updateMonster(delta);
-                // динамическое мерцание света
-                const flicker = 0.6 + Math.sin(Date.now() * 0.012) * 0.2 + Math.random() * 0.1;
-                scene.children.forEach(child => {
-                    if (child instanceof THREE.PointLight && child.intensity > 0.5) child.intensity = flicker;
-                });
-            }
-            renderer.render(scene, camera);
-            requestAnimationFrame(animate);
+
+        messages.forEach(msg => {
+            const isOwn = (currentUser && msg.nick === currentUser.nick);
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-item';
+            if (isOwn) msgDiv.classList.add('own-message');
+
+            const nickSpan = document.createElement('div');
+            nickSpan.className = 'message-nick';
+            nickSpan.textContent = msg.nick;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            const textSpan = document.createElement('div');
+            textSpan.className = 'message-text';
+            textSpan.textContent = msg.text;
+            bubbleDiv.appendChild(textSpan);
+            msgDiv.appendChild(nickSpan);
+            msgDiv.appendChild(bubbleDiv);
+            chatMessagesDiv.appendChild(msgDiv);
+        });
+        // Прокрутка вниз
+        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+    }
+
+    // Добавление сообщения
+    function addMessage(text) {
+        if (!text.trim()) return;
+        if (!currentUser) return;
+        const newMsg = {
+            id: Date.now(),
+            nick: currentUser.nick,
+            text: text.trim(),
+            timestamp: Date.now()
+        };
+        messages.push(newMsg);
+        saveMessagesToStorage();
+        renderMessages();
+        // авто-скролл
+        setTimeout(() => {
+            if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+        }, 30);
+    }
+
+    // Отправка сообщения (кнопка или Enter)
+    function sendMessageHandler() {
+        const msg = messageInput.value;
+        if (msg.trim()) {
+            addMessage(msg);
+            messageInput.value = '';
+            // Сохраняем фокус, но для мобильных клавиатура останется открытой
+            messageInput.focus();
         }
-        animate();
-    </script>
+    }
+
+    // Инициализация чата после загрузки
+    function initChat() {
+        loadMessagesFromStorage();
+        renderMessages();
+    }
+
+    // Обновить ник в настройках (отображаем текущий)
+    function updateSettingsNickUI() {
+        if (currentUser) settingsNick.value = currentUser.nick;
+    }
+
+    // Сохранить ник из настроек
+    function saveNickFromSettings() {
+        let newNick = settingsNick.value.trim();
+        if (newNick === "") {
+            alert("Ник не может быть пустым");
+            return;
+        }
+        if (currentUser) {
+            currentUser.nick = newNick;
+            localStorage.setItem('auth_user', JSON.stringify({ nick: currentUser.nick }));
+            // Обновляем отображение ника в настройках и перерисовываем чат (обводка изменится)
+            renderMessages();
+            updateSettingsNickUI();
+        }
+    }
+
+    // Выход из аккаунта
+    function logout() {
+        localStorage.removeItem('auth_user');
+        currentUser = null;
+        authPage.style.display = 'flex';
+        appPage.style.display = 'none';
+        // Очистка полей ввода
+        loginNick.value = '';
+        loginKey.value = '';
+        authError.innerText = '';
+        // Сброс активной вкладки
+        document.querySelector('.tab-btn.active')?.classList.remove('active');
+        document.querySelector('.tab-btn[data-tab="chat"]')?.classList.add('active');
+        chatPageDiv.classList.add('active-page');
+        settingsPageDiv.classList.remove('active-page');
+    }
+
+    // Проверка авторизации при загрузке
+    function checkAutoLogin() {
+        const storedUser = localStorage.getItem('auth_user');
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser);
+                if (user && user.nick) {
+                    currentUser = { nick: user.nick };
+                    authPage.style.display = 'none';
+                    appPage.style.display = 'flex';
+                    initChat();
+                    updateSettingsNickUI();
+                    return true;
+                }
+            } catch(e) {}
+        }
+        authPage.style.display = 'flex';
+        appPage.style.display = 'none';
+        return false;
+    }
+
+    // Обработка авторизации (кнопка)
+    function performAuth() {
+        const nick = loginNick.value.trim();
+        const key = loginKey.value.trim();
+        if (nick === VALID_NICK && key === VALID_KEY) {
+            currentUser = { nick: nick };
+            localStorage.setItem('auth_user', JSON.stringify({ nick: nick }));
+            authError.innerText = '';
+            authPage.style.display = 'none';
+            appPage.style.display = 'flex';
+            initChat();
+            updateSettingsNickUI();
+            // Переключить на чат
+            setActiveTab('chat');
+        } else {
+            authError.innerText = 'Неизвестно';
+        }
+    }
+
+    // Переключение между вкладками
+    function setActiveTab(tabId) {
+        if (tabId === 'chat') {
+            chatPageDiv.classList.add('active-page');
+            settingsPageDiv.classList.remove('active-page');
+            renderMessages(); // обновляем при переключении (на случай смены ника)
+        } else if (tabId === 'settings') {
+            chatPageDiv.classList.remove('active-page');
+            settingsPageDiv.classList.add('active-page');
+            // актуализируем ник в настройках
+            if (currentUser) settingsNick.value = currentUser.nick;
+            // синхронизируем состояние UI настроек
+            themeSelect.value = appSettings.theme;
+            systemFontToggle.checked = appSettings.systemFontEnabled;
+            fontSizeSlider.value = appSettings.fontSizeStep;
+            if (appSettings.systemFontEnabled) fontSliderContainer.style.display = 'none';
+            else fontSliderContainer.style.display = 'block';
+        }
+        tabBtns.forEach(btn => {
+            if (btn.getAttribute('data-tab') === tabId) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    // Обработка изменения темы
+    function onThemeChange(e) {
+        const newTheme = e.target.value;
+        applyTheme(newTheme);
+    }
+
+    // Обработка изменения ползунка
+    function onFontSliderChange(e) {
+        const step = parseInt(e.target.value, 10);
+        appSettings.fontSizeStep = step;
+        if (!appSettings.systemFontEnabled) {
+            applyFontSize(false, step);
+        }
+        saveSettingsToStorage();
+    }
+
+    // Обработка тумблера системного шрифта
+    function onSystemFontToggle() {
+        const isChecked = systemFontToggle.checked;
+        appSettings.systemFontEnabled = isChecked;
+        if (isChecked) {
+            applyFontSize(true, appSettings.fontSizeStep);
+            fontSliderContainer.style.display = 'none';
+        } else {
+            applyFontSize(false, appSettings.fontSizeStep);
+            fontSliderContainer.style.display = 'block';
+        }
+        saveSettingsToStorage();
+    }
+
+    // -------- ИНИЦИАЛИЗАЦИЯ ВСЕГО ПРИЛОЖЕНИЯ ----------
+    function initApp() {
+        loadSettingsFromStorage();
+        const isAuth = checkAutoLogin();
+        if (!isAuth) {
+            // если не авторизован, ждём ручного входа
+        } else {
+            // подгружаем настройки после автологина (тема и шрифт уже применены в loadSettingsFromStorage)
+            // но возможен ререндер чата
+            renderMessages();
+        }
+
+        // события
+        authBtn.addEventListener('click', performAuth);
+        loginNick.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
+        loginKey.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
+        sendBtn.addEventListener('click', sendMessageHandler);
+        messageInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') { e.preventDefault(); sendMessageHandler(); } });
+        saveNickBtn.addEventListener('click', saveNickFromSettings);
+        logoutBtn.addEventListener('click', logout);
+        themeSelect.addEventListener('change', onThemeChange);
+        fontSizeSlider.addEventListener('input', onFontSliderChange);
+        systemFontToggle.addEventListener('change', onSystemFontToggle);
+        // Табы
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tab = btn.getAttribute('data-tab');
+                if (tab === 'chat') setActiveTab('chat');
+                else if (tab === 'settings') setActiveTab('settings');
+            });
+        });
+
+        // Для мобильной клавиатуры: при фокусе на input, прокручиваем контейнер сообщений вниз (необязательно, но комфортно)
+        messageInput.addEventListener('focus', () => {
+            setTimeout(() => {
+                if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+                messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        });
+    }
+
+    initApp();
+</script>
 </body>
 </html>
+```
