@@ -12,7 +12,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Базовые переменные (светлая тема по умолчанию) */
+        /* Базовые переменные (светлая тема + синий акцент по умолчанию) */
         :root {
             --bg-page: #f5f5f7;
             --card-bg: #ffffff;
@@ -22,13 +22,16 @@
             --nav-bg: rgba(255, 255, 255, 0.85);
             --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.02);
             --message-bg: #e9e9ef;
-            --own-message-border: #007aff;
             --input-bg: rgba(255, 255, 255, 0.9);
             --placeholder: #8e8e93;
             --separator: rgba(60, 60, 67, 0.08);
             --toggle-bg: #e5e5ea;
             --toggle-active: #34c759;
             --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235e5e66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            
+            /* Цветовой акцент (синий) */
+            --accent-color: #007aff;
+            --accent-light: rgba(0, 122, 255, 0.15);
         }
 
         /* Тёмная тема */
@@ -40,7 +43,6 @@
             --border-light: rgba(84, 84, 88, 0.2);
             --nav-bg: rgba(28, 28, 30, 0.85);
             --message-bg: #2c2c2e;
-            --own-message-border: #0a84ff;
             --input-bg: rgba(28, 28, 30, 0.9);
             --placeholder: #636366;
             --separator: rgba(84, 84, 88, 0.2);
@@ -58,13 +60,38 @@
             --border-light: rgba(99, 99, 102, 0.25);
             --nav-bg: rgba(18, 18, 20, 0.85);
             --message-bg: #1d1d1f;
-            --own-message-border: #5e5ce0;
             --input-bg: rgba(18, 18, 20, 0.9);
             --placeholder: #5a5a62;
             --separator: rgba(99, 99, 102, 0.2);
             --toggle-bg: #1d1d1f;
             --toggle-active: #5e5ce0;
             --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c7c85' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+
+        /* Цветовые акценты (переопределяют --accent-color) */
+        body.accent-blue {
+            --accent-color: #007aff;
+            --accent-light: rgba(0, 122, 255, 0.15);
+        }
+        body.accent-purple {
+            --accent-color: #af52de;
+            --accent-light: rgba(175, 82, 222, 0.15);
+        }
+        body.accent-pink {
+            --accent-color: #ff2d55;
+            --accent-light: rgba(255, 45, 85, 0.15);
+        }
+        body.accent-red {
+            --accent-color: #ff3b30;
+            --accent-light: rgba(255, 59, 48, 0.15);
+        }
+        body.accent-orange {
+            --accent-color: #ff9500;
+            --accent-light: rgba(255, 149, 0, 0.15);
+        }
+        body.accent-green {
+            --accent-color: #34c759;
+            --accent-light: rgba(52, 199, 89, 0.15);
         }
 
         body {
@@ -124,11 +151,11 @@
         }
 
         .input-group input:focus {
-            border-color: #007aff;
+            border-color: var(--accent-color);
         }
 
         .auth-btn {
-            background: #007aff;
+            background: var(--accent-color);
             color: white;
             border: none;
             width: 100%;
@@ -148,18 +175,18 @@
             font-size: 0.9rem;
         }
 
-        /* Навигация (табы) с анимированной плашкой */
+        /* Навигация с пузырьком */
         .nav-bar {
             position: relative;
             background: var(--nav-bg);
             backdrop-filter: blur(20px);
             display: flex;
-            padding: 0.5rem 1rem;
-            gap: 1rem;
-            box-shadow: var(--shadow-sm);
+            padding: 0.5rem;
+            gap: 0.5rem;
             border-radius: 2rem;
             margin: 0.75rem 1rem;
             z-index: 10;
+            box-shadow: var(--shadow-sm);
         }
 
         .tab-btn {
@@ -168,30 +195,23 @@
             border: none;
             font-size: 1rem;
             font-weight: 500;
-            padding: 0.75rem 0;
+            padding: 0.65rem 0;
+            border-radius: 1.8rem;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: color 0.2s ease;
+            transition: all 0.2s ease;
             position: relative;
             z-index: 2;
+            text-align: center;
         }
 
         .tab-btn.active {
-            color: #007aff;
+            color: white;
+            background-color: var(--accent-color);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
-        .floating-indicator {
-            position: absolute;
-            bottom: 0.4rem;
-            height: 2.5px;
-            background-color: #007aff;
-            border-radius: 2px;
-            transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1), width 0.2s ease;
-            width: 0;
-            left: 0;
-        }
-
-        /* Страницы (чат / настройки) */
+        /* Страницы */
         .page {
             flex: 1;
             overflow-y: auto;
@@ -231,7 +251,8 @@
         }
 
         .message-item.own-message .message-bubble {
-            border-color: var(--own-message-border);
+            border-color: var(--accent-color);
+            background: var(--message-bg);
         }
 
         .message-nick {
@@ -248,7 +269,7 @@
             color: var(--text-primary);
         }
 
-        /* Панель ввода — левитирующая, без прямоугольников */
+        /* Панель ввода */
         .input-bar {
             background: var(--nav-bg);
             backdrop-filter: blur(20px);
@@ -278,8 +299,12 @@
             transition: height 0.1s ease;
         }
 
+        .input-bar textarea:focus {
+            border-color: var(--accent-color);
+        }
+
         .send-btn {
-            background: #007aff;
+            background: var(--accent-color);
             border: none;
             width: 44px;
             height: 44px;
@@ -316,11 +341,6 @@
             font-size: 1rem;
         }
 
-        .setting-desc {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
         .nick-readonly {
             background: var(--input-bg);
             padding: 0.6rem 1rem;
@@ -331,8 +351,7 @@
             flex: 1;
         }
 
-        /* Кастомный select с адаптивной стрелкой */
-        .theme-select {
+        .theme-select, .accent-select {
             background-color: var(--card-bg);
             border: 1px solid var(--border-light);
             border-radius: 1rem;
@@ -347,7 +366,6 @@
             cursor: pointer;
         }
 
-        /* Toggle switch */
         .switch {
             position: relative;
             display: inline-block;
@@ -382,17 +400,16 @@
             border-radius: 50%;
         }
         input:checked + .slider {
-            background-color: var(--toggle-active);
+            background-color: var(--accent-color);
         }
         input:checked + .slider:before {
             transform: translateX(24px);
         }
 
-        /* Слайдер размера текста */
         .font-slider {
             width: 100%;
             margin-top: 8px;
-            accent-color: #007aff;
+            accent-color: var(--accent-color);
         }
 
         .slider-hidden {
@@ -402,10 +419,6 @@
         hr {
             border-color: var(--separator);
             opacity: 0.5;
-        }
-
-        .chat-messages {
-            scrollbar-width: thin;
         }
     </style>
 </head>
@@ -426,15 +439,13 @@
     </div>
 </div>
 
-<!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ (после авторизации) -->
+<!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
 <div id="appPage" class="app-container" style="display: none;">
     <div class="nav-bar">
         <button class="tab-btn" data-tab="chat">Чат</button>
         <button class="tab-btn" data-tab="settings">Настройки</button>
-        <div class="floating-indicator"></div>
     </div>
 
-    <!-- Страница чата -->
     <div id="chatPage" class="page active-page">
         <div class="chat-messages" id="messagesContainer"></div>
         <div class="input-bar">
@@ -443,16 +454,13 @@
         </div>
     </div>
 
-    <!-- Страница настроек -->
     <div id="settingsPage" class="page">
         <div class="settings-container">
-            <!-- Ник пользователя (только для чтения) -->
             <div class="setting-row">
                 <span class="setting-label">Ваш ник</span>
                 <div id="displayNick" class="nick-readonly"></div>
             </div>
             <hr>
-            <!-- Тема приложения -->
             <div class="setting-row">
                 <span class="setting-label">Тема</span>
                 <select id="themeSelect" class="theme-select">
@@ -462,8 +470,18 @@
                     <option value="night">Ночная</option>
                 </select>
             </div>
+            <div class="setting-row">
+                <span class="setting-label">Оттенок</span>
+                <select id="accentSelect" class="accent-select">
+                    <option value="blue">Синий</option>
+                    <option value="purple">Фиолетовый</option>
+                    <option value="pink">Розовый</option>
+                    <option value="red">Красный</option>
+                    <option value="orange">Оранжевый</option>
+                    <option value="green">Зелёный</option>
+                </select>
+            </div>
             <hr>
-            <!-- Системный размер текста + тумблер -->
             <div class="setting-row">
                 <span class="setting-label">Системный размер текста</span>
                 <label class="switch">
@@ -471,11 +489,10 @@
                     <span class="slider"></span>
                 </label>
             </div>
-            <!-- Слайдер размера текста (7 делений) -->
             <div id="fontSliderContainer">
                 <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
                     <span class="setting-label">Размер текста</span>
-                    <input type="range" id="fontSizeSlider" min="0" max="6" step="1" value="3" style="width: 100%;" class="font-slider">
+                    <input type="range" id="fontSizeSlider" min="0" max="6" step="1" value="3" class="font-slider">
                     <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.7rem; color: var(--text-secondary);">
                         <span>A</span><span>A</span><span>A</span><span>A</span><span>A</span><span>A</span><span>A</span>
                     </div>
@@ -486,7 +503,7 @@
 </div>
 
 <script>
-    // -------- СПИСОК ПОЛЬЗОВАТЕЛЕЙ (НИК:КЛЮЧ) ----------
+    // -------- СПИСОК ПОЛЬЗОВАТЕЛЕЙ ----------
     const validCredentials = [
         { nick: "Ваниш", key: "Серафима1410" },
         { nick: "Wezxqqs1x", key: "BlackPussy2009" },
@@ -495,13 +512,12 @@
         { nick: "тест1", key: "тест1" }
     ];
 
-    // -------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ----------
-    let currentUser = null;        // {nick: ...}
-    let messages = [];              // [{id, nick, text, timestamp}]
+    let currentUser = null;
+    let messages = [];
 
-    // Настройки приложения
     let appSettings = {
         theme: "adaptive",
+        accent: "blue",
         systemFontEnabled: false,
         fontSizeStep: 3,
     };
@@ -513,27 +529,23 @@
     const authBtn = document.getElementById('authBtn');
     const loginNick = document.getElementById('loginNick');
     const loginKey = document.getElementById('loginKey');
-
     const chatMessagesDiv = document.getElementById('messagesContainer');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const displayNickSpan = document.getElementById('displayNick');
     const themeSelect = document.getElementById('themeSelect');
+    const accentSelect = document.getElementById('accentSelect');
     const systemFontToggle = document.getElementById('systemFontToggle');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
     const fontSliderContainer = document.getElementById('fontSliderContainer');
-
-    // Табы
     const tabBtns = document.querySelectorAll('.tab-btn');
     const chatPageDiv = document.getElementById('chatPage');
     const settingsPageDiv = document.getElementById('settingsPage');
-    const floatingIndicator = document.querySelector('.floating-indicator');
 
-    // ---------- Helper: сохранение данных в localStorage ----------
+    // Сохранение / загрузка
     function saveMessagesToStorage() {
         localStorage.setItem('simply_messages', JSON.stringify(messages));
     }
-
     function loadMessagesFromStorage() {
         const stored = localStorage.getItem('simply_messages');
         if (stored) {
@@ -543,18 +555,13 @@
             } catch(e) { messages = []; }
         }
         if (!messages.length) {
-            // Приветственное сообщение от системы
-            messages = [
-                { id: Date.now() + 1, nick: "Simply", text: "Добро пожаловать в общий чат!", timestamp: Date.now() }
-            ];
+            messages = [{ id: Date.now(), nick: "Simply", text: "Добро пожаловать в общий чат!", timestamp: Date.now() }];
             saveMessagesToStorage();
         }
     }
-
     function saveSettingsToStorage() {
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
-
     function loadSettingsFromStorage() {
         const stored = localStorage.getItem('simply_settings');
         if (stored) {
@@ -564,55 +571,52 @@
             } catch(e) {}
         }
         applyTheme(appSettings.theme);
+        applyAccent(appSettings.accent);
         applyFontSize(appSettings.systemFontEnabled, appSettings.fontSizeStep);
         systemFontToggle.checked = appSettings.systemFontEnabled;
         fontSizeSlider.value = appSettings.fontSizeStep;
         themeSelect.value = appSettings.theme;
-        if (appSettings.systemFontEnabled) {
-            fontSliderContainer.style.display = 'none';
-        } else {
-            fontSliderContainer.style.display = 'block';
-        }
+        accentSelect.value = appSettings.accent;
+        if (appSettings.systemFontEnabled) fontSliderContainer.style.display = 'none';
+        else fontSliderContainer.style.display = 'block';
     }
 
-    // Применение темы
     function applyTheme(theme) {
         const body = document.body;
         body.classList.remove('theme-light', 'theme-dark', 'theme-night');
         if (theme === 'adaptive') {
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            if (prefersDark) {
-                body.classList.add('theme-dark');
-            } else {
-                body.classList.add('theme-light');
-            }
-        } else if (theme === 'light') {
-            body.classList.add('theme-light');
-        } else if (theme === 'dark') {
-            body.classList.add('theme-dark');
-        } else if (theme === 'night') {
-            body.classList.add('theme-night');
-        }
+            if (prefersDark) body.classList.add('theme-dark');
+            else body.classList.add('theme-light');
+        } else if (theme === 'light') body.classList.add('theme-light');
+        else if (theme === 'dark') body.classList.add('theme-dark');
+        else if (theme === 'night') body.classList.add('theme-night');
         appSettings.theme = theme;
         saveSettingsToStorage();
-        // Обновляем стиль select (стрелка обновится через CSS-переменную)
+    }
+
+    function applyAccent(accent) {
+        const body = document.body;
+        body.classList.remove('accent-blue', 'accent-purple', 'accent-pink', 'accent-red', 'accent-orange', 'accent-green');
+        if (accent === 'blue') body.classList.add('accent-blue');
+        else if (accent === 'purple') body.classList.add('accent-purple');
+        else if (accent === 'pink') body.classList.add('accent-pink');
+        else if (accent === 'red') body.classList.add('accent-red');
+        else if (accent === 'orange') body.classList.add('accent-orange');
+        else if (accent === 'green') body.classList.add('accent-green');
+        appSettings.accent = accent;
+        saveSettingsToStorage();
     }
 
     function getFontSizeFromStep(step) {
         const sizes = [0.75, 0.85, 0.95, 1.05, 1.15, 1.25, 1.4];
         return sizes[step] || 1.05;
     }
-
     function applyFontSize(systemEnabled, step) {
         const root = document.documentElement;
-        if (systemEnabled) {
-            root.style.fontSize = '';
-        } else {
-            const fontSizeRem = getFontSizeFromStep(step);
-            root.style.fontSize = `${fontSizeRem}rem`;
-        }
+        if (systemEnabled) root.style.fontSize = '';
+        else root.style.fontSize = `${getFontSizeFromStep(step)}rem`;
     }
-
     function toggleFontSliderVisibility() {
         const isSystem = systemFontToggle.checked;
         if (isSystem) {
@@ -627,7 +631,6 @@
         saveSettingsToStorage();
     }
 
-    // Рендер сообщений
     function renderMessages() {
         if (!chatMessagesDiv) return;
         chatMessagesDiv.innerHTML = '';
@@ -640,13 +643,11 @@
             chatMessagesDiv.appendChild(emptyDiv);
             return;
         }
-
         messages.forEach(msg => {
             const isOwn = (currentUser && msg.nick === currentUser.nick);
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message-item';
             if (isOwn) msgDiv.classList.add('own-message');
-
             const nickSpan = document.createElement('div');
             nickSpan.className = 'message-nick';
             nickSpan.textContent = msg.nick;
@@ -663,70 +664,52 @@
         chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
     }
 
-    // Добавление сообщения
     function addMessage(text) {
-        if (!text.trim()) return;
-        if (!currentUser) return;
-        const newMsg = {
-            id: Date.now(),
-            nick: currentUser.nick,
-            text: text.trim(),
-            timestamp: Date.now()
-        };
+        if (!text.trim() || !currentUser) return;
+        const newMsg = { id: Date.now(), nick: currentUser.nick, text: text.trim(), timestamp: Date.now() };
         messages.push(newMsg);
         saveMessagesToStorage();
         renderMessages();
-        setTimeout(() => {
-            if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
-        }, 30);
+        setTimeout(() => chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight, 30);
     }
 
-    // Отправка сообщения
     function sendMessageHandler() {
         const msg = messageInput.value;
         if (msg.trim()) {
             addMessage(msg);
             messageInput.value = '';
-            // Сброс высоты textarea
             messageInput.style.height = 'auto';
             messageInput.focus();
         }
     }
 
-    // Автоматическое расширение textarea
     function autoResizeTextarea() {
         messageInput.style.height = 'auto';
-        let newHeight = Math.min(messageInput.scrollHeight, 120);
-        messageInput.style.height = newHeight + 'px';
+        messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
     }
 
-    // Инициализация чата
     function initChat() {
         loadMessagesFromStorage();
         renderMessages();
-        // Настройка авто-расширения
         messageInput.addEventListener('input', autoResizeTextarea);
     }
 
-    // Обновить отображение ника в настройках
     function updateSettingsUI() {
         if (currentUser) displayNickSpan.textContent = currentUser.nick;
     }
 
-    // Проверка авторизации
     function checkAutoLogin() {
         const storedUser = localStorage.getItem('simply_user');
         if (storedUser) {
             try {
                 const user = JSON.parse(storedUser);
                 if (user && user.nick) {
-                    // Проверка, что ник до сих пор существует в списке (необязательно, но для порядка)
                     currentUser = { nick: user.nick };
                     authPage.style.display = 'none';
                     appPage.style.display = 'flex';
                     initChat();
                     updateSettingsUI();
-                    updateFloatingIndicator('chat');
+                    setActiveTab('chat');
                     return true;
                 }
             } catch(e) {}
@@ -736,7 +719,6 @@
         return false;
     }
 
-    // Авторизация с проверкой по списку
     function performAuth() {
         const nick = loginNick.value.trim();
         const key = loginKey.value.trim();
@@ -755,73 +737,41 @@
         }
     }
 
-    // Анимация плашки (индикатора) между табами
-    function updateFloatingIndicator(activeTabId) {
-        const activeBtn = document.querySelector(`.tab-btn[data-tab="${activeTabId}"]`);
-        if (!activeBtn || !floatingIndicator) return;
-        const parent = activeBtn.parentElement;
-        const btnRect = activeBtn.getBoundingClientRect();
-        const parentRect = parent.getBoundingClientRect();
-        const leftOffset = btnRect.left - parentRect.left;
-        floatingIndicator.style.width = `${btnRect.width}px`;
-        floatingIndicator.style.transform = `translateX(${leftOffset}px)`;
-    }
-
-    // Переключение между вкладками
     function setActiveTab(tabId) {
         if (tabId === 'chat') {
             chatPageDiv.classList.add('active-page');
             settingsPageDiv.classList.remove('active-page');
-            renderMessages(); // обновляем сообщения
+            renderMessages();
         } else if (tabId === 'settings') {
             chatPageDiv.classList.remove('active-page');
             settingsPageDiv.classList.add('active-page');
             if (currentUser) displayNickSpan.textContent = currentUser.nick;
-            // синхронизация UI настроек
             themeSelect.value = appSettings.theme;
+            accentSelect.value = appSettings.accent;
             systemFontToggle.checked = appSettings.systemFontEnabled;
             fontSizeSlider.value = appSettings.fontSizeStep;
             if (appSettings.systemFontEnabled) fontSliderContainer.style.display = 'none';
             else fontSliderContainer.style.display = 'block';
         }
         tabBtns.forEach(btn => {
-            if (btn.getAttribute('data-tab') === tabId) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            if (btn.getAttribute('data-tab') === tabId) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
-        updateFloatingIndicator(tabId);
     }
 
-    // Обработчики настроек
-    function onThemeChange(e) {
-        applyTheme(e.target.value);
-    }
-
+    function onThemeChange(e) { applyTheme(e.target.value); }
+    function onAccentChange(e) { applyAccent(e.target.value); }
     function onFontSliderChange(e) {
         const step = parseInt(e.target.value, 10);
         appSettings.fontSizeStep = step;
-        if (!appSettings.systemFontEnabled) {
-            applyFontSize(false, step);
-        }
+        if (!appSettings.systemFontEnabled) applyFontSize(false, step);
         saveSettingsToStorage();
     }
+    function onSystemFontToggle() { toggleFontSliderVisibility(); }
 
-    function onSystemFontToggle() {
-        toggleFontSliderVisibility();
-    }
-
-    // ---------- ИНИЦИАЛИЗАЦИЯ ----------
     function initApp() {
         loadSettingsFromStorage();
-        const isAuth = checkAutoLogin();
-        if (!isAuth) {
-            // ожидаем ручной вход
-        } else {
-            renderMessages();
-        }
-
+        checkAutoLogin();
         authBtn.addEventListener('click', performAuth);
         loginNick.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
         loginKey.addEventListener('keypress', (e) => { if(e.key === 'Enter') performAuth(); });
@@ -832,39 +782,20 @@
                 sendMessageHandler();
             }
         });
-
         themeSelect.addEventListener('change', onThemeChange);
+        accentSelect.addEventListener('change', onAccentChange);
         fontSizeSlider.addEventListener('input', onFontSliderChange);
         systemFontToggle.addEventListener('change', onSystemFontToggle);
-
-        // Табы
         tabBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const tab = btn.getAttribute('data-tab');
-                if (tab === 'chat') setActiveTab('chat');
-                else if (tab === 'settings') setActiveTab('settings');
-            });
+            btn.addEventListener('click', () => setActiveTab(btn.getAttribute('data-tab')));
         });
-
-        // При фокусе на textarea, прокрутка вниз
         messageInput.addEventListener('focus', () => {
             setTimeout(() => {
                 if (chatMessagesDiv) chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
                 messageInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }, 100);
         });
-
-        // Инициализируем позицию индикатора после загрузки
-        window.addEventListener('resize', () => {
-            const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab');
-            if (activeTab) updateFloatingIndicator(activeTab);
-        });
-        setTimeout(() => {
-            const activeTab = document.querySelector('.tab-btn.active')?.getAttribute('data-tab') || 'chat';
-            updateFloatingIndicator(activeTab);
-        }, 50);
     }
-
     initApp();
 </script>
 </body>
