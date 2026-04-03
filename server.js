@@ -32,18 +32,17 @@ async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
-      room VARCHAR(100) NOT NULL,
+      room VARCHAR(50) NOT NULL,
       nick VARCHAR(50) NOT NULL,
       text TEXT NOT NULL,
-      reply_to_id INTEGER DEFAULT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id SERIAL PRIMARY KEY,
-      name VARCHAR(100) UNIQUE NOT NULL,
-      created_by VARCHAR(50),
+      name VARCHAR(50) UNIQUE NOT NULL,
+      owner_nick VARCHAR(50) NOT NULL,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
@@ -130,82 +129,57 @@ app.post('/delete-message', async (req, res) => {
   res.json({ success: true });
 });
 
-// Получение списка комнат
-app.get('/rooms', async (req, res) => {
-  const result = await pool.query('SELECT name, created_by FROM rooms ORDER BY created_at ASC');
+// Получение сообщений для комнаты
+app.get('/messages/:room', async (req, res) => {
+  const { room } = req.params;
+  const result = await pool.query('SELECT id, nick, text, created_at FROM messages WHERE room = $1 ORDER BY created_at ASC LIMIT 200', [room]);
   res.json(result.rows);
 });
 
-// Создание комнаты
+// Создание новой комнаты (чата)
 app.post('/rooms', async (req, res) => {
-  const { name, token } = req.body;
-  if (!name || !token) return res.status(400).json({ success: false });
+  const { token, roomName } = req.body;
+  if (!token || !roomName) return res.status(400).json({ success: false, error: 'Данные неполные' });
   const user = await findUserByToken(token);
-  if (!user) return res.json({ success: false });
-  try {
-    await pool.query('INSERT INTO rooms (name, created_by) VALUES ($1, $2)', [name, user.nick]);
-    res.json({ success: true });
-  } catch(e) {
-    res.json({ success: false, error: 'Комната уже существует' });
-  }
+  if (!user) return res.json({ success: false, error: 'Сессия недействительна' });
+  const existing = await pool.query('SELECT name FROM rooms WHERE name = $1', [roomName]);
+  if (existing.rows.length > 0) return res.json({ success: false, error: 'Комната уже существует' });
+  await pool.query('INSERT INTO rooms (name, owner_nick) VALUES ($1, $2)', [roomName, user.nick]);
+  res.json({ success: true, roomName });
 });
 
-// Получение сообщений комнаты
-app.get('/messages/:room', async (req, res) => {
-  const { room } = req.params;
-  const result = await pool.query(`
-    SELECT m.id, m.nick, m.text, m.reply_to_id, m.created_at,
-           r.nick as reply_nick, r.text as reply_text
-    FROM messages m
-    LEFT JOIN messages r ON m.reply_to_id = r.id
-    WHERE m.room = $1
-    ORDER BY m.created_at ASC LIMIT 200
-  `, [room]);
-  const messages = result.rows.map(row => ({
-    id: row.id,
-    nick: row.nick,
-    text: row.text,
-    reply_to_id: row.reply_to_id,
-    created_at: row.created_at,
-    reply: row.reply_to_id ? { nick: row.reply_nick, text: row.reply_text } : null
-  }));
-  res.json(messages);
+// Получение списка комнат для пользователя (все существующие)
+app.get('/rooms', async (req, res) => {
+  const result = await pool.query('SELECT name, owner_nick FROM rooms ORDER BY created_at DESC');
+  res.json(result.rows);
 });
 
-// Socket.IO с поддержкой комнат
+// Socket.IO
 io.on('connection', (socket) => {
   console.log('Клиент подключился');
   socket.on('join room', (room) => {
     socket.join(room);
+    console.log(`Клиент присоединился к комнате ${room}`);
   });
   socket.on('leave room', (room) => {
     socket.leave(room);
   });
   socket.on('new message', async (data) => {
-    const { room, nick, text, reply_to_id } = data;
+    const { room, nick, text } = data;
     if (!room || !nick || !text || !text.trim()) return;
     const result = await pool.query(
-      'INSERT INTO messages (room, nick, text, reply_to_id) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
-      [room, nick, text.trim(), reply_to_id || null]
+      'INSERT INTO messages (room, nick, text) VALUES ($1, $2, $3) RETURNING id, created_at',
+      [room, nick, text.trim()]
     );
-    const newMsgId = result.rows[0].id;
-    let replyData = null;
-    if (reply_to_id) {
-      const replyRes = await pool.query('SELECT nick, text FROM messages WHERE id = $1', [reply_to_id]);
-      if (replyRes.rows.length) {
-        replyData = { nick: replyRes.rows[0].nick, text: replyRes.rows[0].text };
-      }
-    }
     const newMsg = {
-      id: newMsgId,
+      id: result.rows[0].id,
       nick,
       text: text.trim(),
-      reply_to_id: reply_to_id || null,
-      created_at: result.rows[0].created_at,
-      reply: replyData
+      created_at: result.rows[0].created_at
     };
     io.to(room).emit('message received', newMsg);
   });
+  socket.on('disconnect', () => console.log('Клиент отключился'));
 });
 
 const PORT = process.env.PORT || 3000;
