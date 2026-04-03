@@ -32,9 +32,18 @@ async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
+      room VARCHAR(100) NOT NULL,
       nick VARCHAR(50) NOT NULL,
       text TEXT NOT NULL,
       reply_to_id INTEGER DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(100) UNIQUE NOT NULL,
+      created_by VARCHAR(50),
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
@@ -117,19 +126,41 @@ app.post('/delete-message', async (req, res) => {
   if (msgRes.rows.length === 0) return res.json({ success: false });
   if (msgRes.rows[0].nick !== user.nick) return res.json({ success: false });
   await pool.query('DELETE FROM messages WHERE id = $1', [messageId]);
-  io.emit('message deleted', messageId);
+  io.emit('message deleted', { messageId });
   res.json({ success: true });
 });
 
-// Получение сообщений (с подгрузкой ответов)
-app.get('/messages', async (req, res) => {
+// Получение списка комнат
+app.get('/rooms', async (req, res) => {
+  const result = await pool.query('SELECT name, created_by FROM rooms ORDER BY created_at ASC');
+  res.json(result.rows);
+});
+
+// Создание комнаты
+app.post('/rooms', async (req, res) => {
+  const { name, token } = req.body;
+  if (!name || !token) return res.status(400).json({ success: false });
+  const user = await findUserByToken(token);
+  if (!user) return res.json({ success: false });
+  try {
+    await pool.query('INSERT INTO rooms (name, created_by) VALUES ($1, $2)', [name, user.nick]);
+    res.json({ success: true });
+  } catch(e) {
+    res.json({ success: false, error: 'Комната уже существует' });
+  }
+});
+
+// Получение сообщений комнаты
+app.get('/messages/:room', async (req, res) => {
+  const { room } = req.params;
   const result = await pool.query(`
     SELECT m.id, m.nick, m.text, m.reply_to_id, m.created_at,
            r.nick as reply_nick, r.text as reply_text
     FROM messages m
     LEFT JOIN messages r ON m.reply_to_id = r.id
+    WHERE m.room = $1
     ORDER BY m.created_at ASC LIMIT 200
-  `);
+  `, [room]);
   const messages = result.rows.map(row => ({
     id: row.id,
     nick: row.nick,
@@ -141,15 +172,21 @@ app.get('/messages', async (req, res) => {
   res.json(messages);
 });
 
-// Socket.IO
+// Socket.IO с поддержкой комнат
 io.on('connection', (socket) => {
   console.log('Клиент подключился');
+  socket.on('join room', (room) => {
+    socket.join(room);
+  });
+  socket.on('leave room', (room) => {
+    socket.leave(room);
+  });
   socket.on('new message', async (data) => {
-    const { nick, text, reply_to_id } = data;
-    if (!nick || !text || !text.trim()) return;
+    const { room, nick, text, reply_to_id } = data;
+    if (!room || !nick || !text || !text.trim()) return;
     const result = await pool.query(
-      'INSERT INTO messages (nick, text, reply_to_id) VALUES ($1, $2, $3) RETURNING id, created_at',
-      [nick, text.trim(), reply_to_id || null]
+      'INSERT INTO messages (room, nick, text, reply_to_id) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
+      [room, nick, text.trim(), reply_to_id || null]
     );
     const newMsgId = result.rows[0].id;
     let replyData = null;
@@ -167,9 +204,8 @@ io.on('connection', (socket) => {
       created_at: result.rows[0].created_at,
       reply: replyData
     };
-    io.emit('message received', newMsg);
+    io.to(room).emit('message received', newMsg);
   });
-  socket.on('disconnect', () => console.log('Клиент отключился'));
 });
 
 const PORT = process.env.PORT || 3000;
