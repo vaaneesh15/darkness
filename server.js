@@ -20,6 +20,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
+  // Создаём таблицу users, если её нет
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -31,6 +32,22 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // Проверяем, есть ли колонка full_nick (на случай, если таблица создана без неё)
+  const checkColumn = await pool.query(`
+    SELECT column_name 
+    FROM information_schema.columns 
+    WHERE table_name='users' AND column_name='full_nick'
+  `);
+  if (checkColumn.rows.length === 0) {
+    // Добавляем колонку full_nick, делаем её уникальной и not null
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN full_nick VARCHAR(55) UNIQUE;
+      UPDATE users SET full_nick = CONCAT(nick, tag);
+      ALTER TABLE users ALTER COLUMN full_nick SET NOT NULL;
+    `);
+  }
+
+  // Таблица сообщений
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -61,14 +78,12 @@ app.post('/auth', async (req, res) => {
   const cleanNick = nick.trim();
   const existing = await pool.query('SELECT id, full_nick, pin_hash FROM users WHERE nick = $1', [cleanNick]);
   if (existing.rows.length > 0) {
-    // Проверяем PIN
     const valid = await bcrypt.compare(pin, existing.rows[0].pin_hash);
     if (!valid) return res.json({ success: false, error: 'Неверный PIN' });
     const token = uuidv4();
     await pool.query('UPDATE users SET token = $1 WHERE id = $2', [token, existing.rows[0].id]);
     return res.json({ success: true, full_nick: existing.rows[0].full_nick, token });
   } else {
-    // Новый пользователь
     let tag;
     let full_nick;
     let unique = false;
@@ -90,7 +105,6 @@ app.post('/auth', async (req, res) => {
   }
 });
 
-// Проверка токена (без PIN)
 app.post('/verify', async (req, res) => {
   const { token } = req.body;
   if (!token) return res.json({ success: false });
@@ -99,7 +113,6 @@ app.post('/verify', async (req, res) => {
   else res.json({ success: false });
 });
 
-// Смена PIN (требует старый PIN)
 app.post('/change-pin', async (req, res) => {
   const { token, oldPin, newPin } = req.body;
   if (!token || !oldPin || !newPin || newPin.length !== 4 || !/^\d+$/.test(newPin)) {
@@ -114,7 +127,6 @@ app.post('/change-pin', async (req, res) => {
   res.json({ success: true });
 });
 
-// Смена ника (требует PIN)
 app.post('/change-nick', async (req, res) => {
   const { token, newNick, pin } = req.body;
   if (!token || !newNick || newNick.trim() === '' || !pin) {
@@ -127,10 +139,8 @@ app.post('/change-nick', async (req, res) => {
   const oldFullNick = user.rows[0].full_nick;
   const oldNick = user.rows[0].nick;
   if (newNick === oldNick) return res.json({ success: true, newFullNick: oldFullNick });
-  // Генерируем новый полный ник с тем же тегом (тег не меняем)
-  const tag = oldFullNick.substring(oldNick.length); // извлечём #123
+  const tag = oldFullNick.substring(oldNick.length); // извлекаем тег, например "#123"
   const newFullNick = `${newNick}${tag}`;
-  // Проверяем уникальность нового полного ника (маловероятно, но может быть)
   const existing = await pool.query('SELECT id FROM users WHERE full_nick = $1', [newFullNick]);
   if (existing.rows.length > 0) {
     return res.json({ success: false, error: 'Ник уже существует (возможно, с другим тегом)' });
