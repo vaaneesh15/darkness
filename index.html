@@ -21,6 +21,15 @@
             width: 100%;
         }
 
+        /* ----- Цветовые акценты ----- */
+        body.accent-blue { --accent-color: #007aff; --accent-light: rgba(0, 122, 255, 0.1); }
+        body.accent-purple { --accent-color: #6c5ce7; --accent-light: rgba(108, 92, 231, 0.1); }
+        body.accent-pink { --accent-color: #ff6b81; --accent-light: rgba(255, 107, 129, 0.1); }
+        body.accent-mint { --accent-color: #2ecc71; --accent-light: rgba(46, 204, 113, 0.1); }
+        body.accent-orange { --accent-color: #f39c12; --accent-light: rgba(243, 156, 18, 0.1); }
+        body.accent-yellow { --accent-color: #f1c40f; --accent-light: rgba(241, 196, 15, 0.1); }
+        body.accent-teal { --accent-color: #1abc9c; --accent-light: rgba(26, 188, 156, 0.1); }
+
         /* Авторизация */
         .auth-container {
             height: 100%;
@@ -58,10 +67,10 @@
             outline: none;
         }
         .input-group input:focus {
-            border-color: #007aff;
+            border-color: var(--accent-color, #007aff);
         }
         .auth-btn {
-            background: #007aff;
+            background: var(--accent-color, #007aff);
             color: white;
             border: none;
             width: 100%;
@@ -78,13 +87,52 @@
             font-size: 0.9rem;
         }
 
-        /* Чат */
+        /* Приложение */
         .app-container {
             height: 100%;
             display: flex;
             flex-direction: column;
             background-color: #f5f5f7;
         }
+
+        /* Панель навигации */
+        .nav-bar {
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            padding: 0.6rem 1rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.5rem 0.8rem;
+            border-radius: 2rem;
+            color: #5e5e66;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: var(--accent-color, #007aff);
+            background: var(--accent-light, rgba(0, 122, 255, 0.1));
+        }
+
+        /* Страницы */
+        .page {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+        }
+        .page.active-page {
+            display: flex;
+        }
+
+        /* Чат */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -98,16 +146,24 @@
             flex-direction: column;
             align-items: flex-start;
             max-width: 85%;
+            position: relative;
+        }
+        .message-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            width: 100%;
         }
         .message-bubble {
             background: white;
             padding: 0.7rem 1rem;
             border-radius: 1.2rem;
-            border: 1.5px solid #e9e9ef;
+            border: 1px solid #e9e9ef;
             word-break: break-word;
+            flex: 1;
         }
         .message-item.own-message .message-bubble {
-            border-color: #007aff;
+            border-color: var(--accent-color, #007aff);
             background: white;
         }
         .message-nick {
@@ -122,23 +178,23 @@
             line-height: 1.4;
             color: black;
         }
-        .message-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 4px;
-            margin-left: 0.5rem;
-        }
         .delete-btn {
             background: none;
             border: none;
-            font-size: 1rem;
             cursor: pointer;
-            color: #8e8e93;
-            padding: 4px 8px;
+            padding: 8px;
             border-radius: 1rem;
+            font-size: 1rem;
+            color: #8e8e93;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .delete-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
         }
 
-        /* Панель ввода */
+        /* Поле ввода (растущее) */
         .input-wrapper {
             padding: 0.7rem 1rem;
             margin: 0 1rem 1rem 1rem;
@@ -150,9 +206,9 @@
         .input-row {
             display: flex;
             gap: 10px;
-            align-items: center;
+            align-items: flex-end;
         }
-        .input-row input {
+        .input-row textarea {
             flex: 1;
             background: #f9f9fb;
             border: none;
@@ -160,12 +216,17 @@
             padding: 0.8rem 1rem;
             font-size: 1rem;
             outline: none;
+            resize: none;
+            overflow-y: hidden;
+            font-family: inherit;
+            line-height: 1.4;
+            max-height: 120px;
         }
-        .input-row input:focus {
+        .input-row textarea:focus {
             background: white;
         }
         .send-btn {
-            background: #007aff;
+            background: var(--accent-color, #007aff);
             border: none;
             width: 2.5rem;
             height: 2.5rem;
@@ -176,6 +237,63 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            margin-bottom: 2px;
+        }
+
+        /* Настройки */
+        .settings-container {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .setting-label {
+            font-weight: 500;
+            font-size: 1rem;
+            color: black;
+        }
+        .nick-input {
+            background: #f9f9fb;
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(60, 60, 67, 0.08);
+            font-size: 1rem;
+            flex: 1;
+        }
+        .accent-select {
+            background-color: #f9f9fb;
+            border: 1px solid rgba(60, 60, 67, 0.08);
+            border-radius: 1rem;
+            padding: 0.6rem 2rem 0.6rem 1rem;
+            font-size: 0.9rem;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235e5e66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.8rem center;
+            background-size: 1.2rem;
+            cursor: pointer;
+        }
+        .danger-btn {
+            background: none;
+            border: 1px solid #ff3b30;
+            color: #ff3b30;
+            padding: 0.6rem;
+            border-radius: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+        }
+        hr {
+            border-color: rgba(60, 60, 67, 0.08);
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -191,11 +309,41 @@
 </div>
 
 <div id="appPage" class="app-container" style="display: none;">
-    <div class="chat-messages" id="messagesContainer"></div>
-    <div class="input-wrapper">
-        <div class="input-row">
-            <input type="text" id="messageInput" placeholder="Сообщение...">
-            <button class="send-btn" id="sendBtn">+</button>
+    <div class="nav-bar">
+        <button class="tab-btn active" data-tab="chat">Чат</button>
+        <button class="tab-btn" data-tab="settings">Настройки</button>
+    </div>
+    <div id="chatPage" class="page active-page">
+        <div class="chat-messages" id="messagesContainer"></div>
+        <div class="input-wrapper">
+            <div class="input-row">
+                <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn">+</button>
+            </div>
+        </div>
+    </div>
+    <div id="settingsPage" class="page">
+        <div class="settings-container">
+            <div class="setting-row">
+                <span class="setting-label">Ваш ник</span>
+                <input type="text" id="nickInput" class="nick-input" placeholder="Новый ник">
+                <button id="changeNickBtn" class="danger-btn" style="width: auto;">Сменить</button>
+            </div>
+            <hr>
+            <div class="setting-row">
+                <span class="setting-label">Оттенок</span>
+                <select id="accentSelect" class="accent-select">
+                    <option value="blue">Синий</option>
+                    <option value="purple">Фиолетовый</option>
+                    <option value="pink">Розовый</option>
+                    <option value="mint">Мятный</option>
+                    <option value="orange">Оранжевый</option>
+                    <option value="yellow">Жёлтый</option>
+                    <option value="teal">Бирюзовый</option>
+                </select>
+            </div>
+            <hr>
+            <button id="logoutBtn" class="danger-btn">Выйти</button>
         </div>
     </div>
 </div>
@@ -206,6 +354,24 @@
     let currentUser = null;
     let messages = [];
     let authToken = localStorage.getItem('simply_token');
+    
+    let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || {
+        accent: 'blue'
+    };
+
+    // --- Акцент ---
+    function applyAccent(accent) {
+        document.body.classList.remove('accent-blue', 'accent-purple', 'accent-pink', 'accent-mint', 'accent-orange', 'accent-yellow', 'accent-teal');
+        if (accent === 'blue') document.body.classList.add('accent-blue');
+        else if (accent === 'purple') document.body.classList.add('accent-purple');
+        else if (accent === 'pink') document.body.classList.add('accent-pink');
+        else if (accent === 'mint') document.body.classList.add('accent-mint');
+        else if (accent === 'orange') document.body.classList.add('accent-orange');
+        else if (accent === 'yellow') document.body.classList.add('accent-yellow');
+        else if (accent === 'teal') document.body.classList.add('accent-teal');
+        appSettings.accent = accent;
+        localStorage.setItem('simply_settings', JSON.stringify(appSettings));
+    }
 
     // --- Чат ---
     function escapeHtml(str) {
@@ -222,14 +388,15 @@
             if (isOwn) msgDiv.classList.add('own-message');
             msgDiv.innerHTML = `
                 <div class="message-nick">${escapeHtml(msg.nick)}</div>
-                <div class="message-bubble">
-                    <div class="message-text">${escapeHtml(msg.text)}</div>
+                <div class="message-row">
+                    <div class="message-bubble">
+                        <div class="message-text">${escapeHtml(msg.text)}</div>
+                    </div>
+                    ${isOwn ? `<button class="delete-btn" data-id="${msg.id}">🗑</button>` : ''}
                 </div>
-                ${isOwn ? `<div class="message-actions"><button class="delete-btn" data-id="${msg.id}">🗑</button></div>` : ''}
             `;
             container.appendChild(msgDiv);
         });
-        // Обработчики удаления
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const id = parseInt(btn.dataset.id);
@@ -285,6 +452,7 @@
                     renderMessages();
                 });
                 await loadHistory();
+                setActiveTab('chat');
             } else {
                 document.getElementById('authError').innerText = data.error || 'Ошибка';
             }
@@ -319,30 +487,86 @@
                     renderMessages();
                 });
                 await loadHistory();
+                setActiveTab('chat');
                 return true;
             }
         } catch(e) {}
         return false;
     }
 
-    // --- Отправка сообщения ---
+    // --- Отправка сообщения (Enter -> новая строка, только кнопка отправляет) ---
     function sendMessage() {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
         if (!text || !socket || !currentUser) return;
         socket.emit('new message', { nick: currentUser.nick, text });
         input.value = '';
+        input.style.height = 'auto';
+    }
+    function autoResizeTextarea() {
+        const textarea = document.getElementById('messageInput');
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+    }
+
+    // --- Настройки ---
+    async function changeNick() {
+        const newNick = document.getElementById('nickInput').value.trim();
+        if (!newNick || newNick === currentUser.nick) return;
+        // Просто обновляем локально, без сервера (упрощённо)
+        currentUser.nick = newNick;
+        localStorage.setItem('simply_nick', newNick);
+        alert('Ник изменён');
+        renderMessages();
+    }
+    async function logout() {
+        localStorage.removeItem('simply_token');
+        localStorage.removeItem('simply_nick');
+        if (socket) socket.disconnect();
+        window.location.reload();
+    }
+
+    // --- Переключение вкладок ---
+    function setActiveTab(tabId) {
+        const chatPage = document.getElementById('chatPage');
+        const settingsPage = document.getElementById('settingsPage');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        if (tabId === 'chat') {
+            chatPage.classList.add('active-page');
+            settingsPage.classList.remove('active-page');
+            renderMessages();
+        } else {
+            chatPage.classList.remove('active-page');
+            settingsPage.classList.add('active-page');
+            document.getElementById('accentSelect').value = appSettings.accent;
+            document.getElementById('nickInput').value = currentUser?.nick || '';
+        }
+        tabBtns.forEach(btn => {
+            if (btn.getAttribute('data-tab') === tabId) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
     }
 
     // --- Инициализация ---
     window.onload = async () => {
+        applyAccent(appSettings.accent);
         document.getElementById('authBtn').onclick = performAuth;
         document.getElementById('sendBtn').onclick = sendMessage;
+        document.getElementById('changeNickBtn').onclick = changeNick;
+        document.getElementById('logoutBtn').onclick = logout;
+        document.getElementById('accentSelect').onchange = (e) => applyAccent(e.target.value);
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => setActiveTab(btn.getAttribute('data-tab')));
+
         const msgInput = document.getElementById('messageInput');
+        msgInput.addEventListener('input', autoResizeTextarea);
         msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // не отправляем, а делаем новую строку
+                const start = msgInput.selectionStart;
+                const end = msgInput.selectionEnd;
+                msgInput.value = msgInput.value.substring(0, start) + '\n' + msgInput.value.substring(end);
+                msgInput.selectionStart = msgInput.selectionEnd = start + 1;
+                autoResizeTextarea();
             }
         });
 
