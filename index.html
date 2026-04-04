@@ -22,17 +22,16 @@
             --input-bg: #1c1c1e;
         }
 
-        /* Нежные акцентные цвета */
+        /* Исправленные акцентные цвета */
         body.accent-blue { --accent-color: #0a84ff; }
         body.accent-purple { --accent-color: #a47ae2; }
-        body.accent-pink { --accent-color: #ff8a8a; }
+        body.accent-pink { --accent-color: #ff5e7e; }
         body.accent-mint { --accent-color: #6fcf97; }
-        body.accent-orange { --accent-color: #f5a623; }
-        body.accent-yellow { --accent-color: #f2c94c; }
-        body.accent-teal { --accent-color: #76e4e4; }
+        body.accent-orange { --accent-color: #ff8800; }
+        body.accent-yellow { --accent-color: #ffcc00; }
+        body.accent-teal { --accent-color: #48c9b0; }
         body.accent-red { --accent-color: #ff6b6b; }
         body.accent-indigo { --accent-color: #5856d6; }
-        body.accent-coral { --accent-color: #ff9a9a; }
         body.accent-beige { --accent-color: #d4a373; }
         body.accent-gray { --accent-color: #8e8e93; }
 
@@ -259,7 +258,6 @@
                 <option value="teal">Бирюзовый</option>
                 <option value="red">Красный</option>
                 <option value="indigo">Индиго</option>
-                <option value="coral">Коралловый</option>
                 <option value="beige">Бежевый</option>
                 <option value="gray">Светло-серый</option>
             </select>
@@ -273,10 +271,12 @@
     let socket = null;
     let currentUser = { nick: "Пользователь" };
     let messages = [];
+    let authToken = localStorage.getItem('simply_token');
     let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { accent: 'blue' };
 
+    // Применение акцента (мгновенно)
     function applyAccent(accent) {
-        const classes = ['accent-blue', 'accent-purple', 'accent-pink', 'accent-mint', 'accent-orange', 'accent-yellow', 'accent-teal', 'accent-red', 'accent-indigo', 'accent-coral', 'accent-beige', 'accent-gray'];
+        const classes = ['accent-blue', 'accent-purple', 'accent-pink', 'accent-mint', 'accent-orange', 'accent-yellow', 'accent-teal', 'accent-red', 'accent-indigo', 'accent-beige', 'accent-gray'];
         document.body.classList.remove(...classes);
         if (accent === 'blue') document.body.classList.add('accent-blue');
         else if (accent === 'purple') document.body.classList.add('accent-purple');
@@ -287,7 +287,6 @@
         else if (accent === 'teal') document.body.classList.add('accent-teal');
         else if (accent === 'red') document.body.classList.add('accent-red');
         else if (accent === 'indigo') document.body.classList.add('accent-indigo');
-        else if (accent === 'coral') document.body.classList.add('accent-coral');
         else if (accent === 'beige') document.body.classList.add('accent-beige');
         else if (accent === 'gray') document.body.classList.add('accent-gray');
         appSettings.accent = accent;
@@ -326,6 +325,59 @@
         } catch(e) { console.error(e); }
     }
 
+    async function performAuth() {
+        const nick = currentUser.nick;
+        try {
+            const res = await fetch('/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nick })
+            });
+            const data = await res.json();
+            if (data.success) {
+                authToken = data.token;
+                localStorage.setItem('simply_token', authToken);
+                localStorage.setItem('simply_nick', data.nick);
+                currentUser.nick = data.nick;
+                if (socket) socket.disconnect();
+                socket = io();
+                socket.on('message received', (newMsg) => {
+                    messages.push(newMsg);
+                    renderMessages();
+                });
+                await loadHistory();
+            } else {
+                console.error('Auth failed');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function verifyToken() {
+        const token = localStorage.getItem('simply_token');
+        const nick = localStorage.getItem('simply_nick');
+        if (!token || !nick) return false;
+        try {
+            const res = await fetch('/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser = { nick: data.nick };
+                authToken = token;
+                socket = io();
+                socket.on('message received', (newMsg) => {
+                    messages.push(newMsg);
+                    renderMessages();
+                });
+                await loadHistory();
+                return true;
+            }
+        } catch(e) {}
+        return false;
+    }
+
     function sendMessage() {
         const input = document.getElementById('messageInput');
         const text = input.value;
@@ -342,13 +394,31 @@
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
 
-    function changeNick() {
+    // Смена ника с обновлением всех старых сообщений
+    async function changeNick() {
         const newNick = document.getElementById('nickInput').value.trim();
-        if (newNick && newNick !== currentUser.nick) {
-            currentUser.nick = newNick;
-            localStorage.setItem('simply_nick', newNick);
-            renderMessages();
-        }
+        if (!newNick || newNick === currentUser.nick) return;
+        try {
+            const res = await fetch('/change-nick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: authToken, newNick })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser.nick = newNick;
+                localStorage.setItem('simply_nick', newNick);
+                // Обновляем ник во всех сообщениях пользователя
+                messages.forEach(msg => {
+                    if (msg.nick === currentUser.nick || (msg.nick === currentUser.nick && msg.nick !== newNick)) {
+                        // На самом деле сервер уже обновил в БД, нужно перезагрузить историю
+                    }
+                });
+                await loadHistory(); // перезагружаем всю историю, чтобы обновить ники
+            } else {
+                alert('Ошибка при смене ника');
+            }
+        } catch(e) { console.error(e); }
     }
 
     window.onload = async () => {
@@ -359,13 +429,15 @@
         applyAccent(appSettings.accent);
         document.getElementById('accentSelect').value = appSettings.accent;
 
-        socket = io();
-        socket.on('message received', (newMsg) => {
-            messages.push(newMsg);
-            renderMessages();
-        });
+        // Применяем оттенок мгновенно при выборе
+        document.getElementById('accentSelect').onchange = (e) => {
+            applyAccent(e.target.value);
+        };
 
-        await loadHistory();
+        const logged = await verifyToken();
+        if (!logged) {
+            await performAuth();
+        }
 
         document.getElementById('sendBtn').onclick = sendMessage;
         const msgInput = document.getElementById('messageInput');
@@ -386,16 +458,12 @@
             modal.style.display = 'flex';
         };
         document.getElementById('closeModalBtn').onclick = () => {
-            changeNick();
-            const newAccent = document.getElementById('accentSelect').value;
-            applyAccent(newAccent);
+            changeNick(); // применяем смену ника при закрытии
             modal.style.display = 'none';
         };
         window.onclick = (e) => {
             if (e.target === modal) {
                 changeNick();
-                const newAccent = document.getElementById('accentSelect').value;
-                applyAccent(newAccent);
                 modal.style.display = 'none';
             }
         };
