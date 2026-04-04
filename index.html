@@ -12,7 +12,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* ----- Светлая тема (по умолчанию) ----- */
+        /* Светлая тема */
         :root {
             --bg-page: #f5f5f7;
             --card-bg: #ffffff;
@@ -26,7 +26,7 @@
             --accent-light: rgba(0, 122, 255, 0.1);
         }
 
-        /* ----- Тёмная тема (автоматически при системной) ----- */
+        /* Тёмная тема */
         @media (prefers-color-scheme: dark) {
             :root {
                 --bg-page: #000000;
@@ -42,7 +42,7 @@
             }
         }
 
-        /* ----- Цветовые акценты (переопределяют --accent-color) ----- */
+        /* Цветовые акценты */
         body.accent-blue { --accent-color: #007aff; --accent-light: rgba(0, 122, 255, 0.1); }
         body.accent-purple { --accent-color: #6c5ce7; --accent-light: rgba(108, 92, 231, 0.1); }
         body.accent-pink { --accent-color: #ff6b81; --accent-light: rgba(255, 107, 129, 0.1); }
@@ -128,7 +128,7 @@
             overflow: hidden;
         }
 
-        /* Панель навигации — пузырёк по центру */
+        /* Панель навигации — пузырёк */
         .nav-bar {
             display: flex;
             justify-content: center;
@@ -171,7 +171,7 @@
             display: flex;
         }
 
-        /* Чат — сообщения с автоматическим размером */
+        /* Чат */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -193,11 +193,9 @@
             border: 1px solid var(--border-light);
             word-break: break-word;
             width: auto;
-            max-width: 100%;
         }
         .message-item.own-message .message-bubble {
             border-color: var(--accent-color);
-            background: var(--message-bg);
         }
         .message-nick {
             font-size: 0.75rem;
@@ -212,17 +210,20 @@
             color: var(--text-primary);
         }
 
-        /* Поле ввода — фиксируется внизу, при клавиатуре поднимается только оно */
+        /* Панель ввода — возвращаем прежний вид с равными отступами */
         .input-wrapper {
+            margin: 0 1rem 1rem 1rem;
             background: var(--nav-bg);
             backdrop-filter: blur(20px);
-            border-top: 0.5px solid var(--border-light);
-            padding: 0.7rem 1rem;
+            border-radius: 2rem;
+            border: 0.5px solid var(--border-light);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         .input-row {
             display: flex;
             gap: 10px;
             align-items: center;
+            padding: 0.7rem; /* единый отступ со всех сторон внутри панели */
         }
         .input-row textarea {
             flex: 1;
@@ -379,7 +380,6 @@
         accent: 'blue'
     };
 
-    // --- Акцент ---
     function applyAccent(accent) {
         document.body.classList.remove('accent-blue', 'accent-purple', 'accent-pink', 'accent-mint', 'accent-orange', 'accent-yellow', 'accent-teal');
         if (accent === 'blue') document.body.classList.add('accent-blue');
@@ -393,7 +393,6 @@
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
-    // --- Чат ---
     function escapeHtml(str) {
         return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
     }
@@ -425,7 +424,6 @@
         } catch(e) { console.error(e); }
     }
 
-    // --- Авторизация ---
     async function performAuth() {
         const nick = document.getElementById('loginNick').value.trim();
         if (!nick) {
@@ -491,7 +489,6 @@
         return false;
     }
 
-    // --- Отправка сообщения (Enter -> новая строка) ---
     function sendMessage() {
         const input = document.getElementById('messageInput');
         const text = input.value.trim();
@@ -506,7 +503,6 @@
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
 
-    // --- Настройки ---
     async function changeNick() {
         const newNick = document.getElementById('nickInput').value.trim();
         if (!newNick || newNick === currentUser.nick) return;
@@ -522,7 +518,6 @@
         window.location.reload();
     }
 
-    // --- Переключение вкладок ---
     function setActiveTab(tabId) {
         const chatPage = document.getElementById('chatPage');
         const settingsPage = document.getElementById('settingsPage');
@@ -543,7 +538,6 @@
         });
     }
 
-    // --- Инициализация ---
     window.onload = async () => {
         applyAccent(appSettings.accent);
         document.getElementById('authBtn').onclick = performAuth;
