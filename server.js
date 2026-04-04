@@ -72,7 +72,7 @@ async function isFullNickUnique(fullNick) {
   return res.rows.length === 0;
 }
 
-// АВТОРИЗАЦИЯ
+// АВТОРИЗАЦИЯ (с PIN)
 app.post('/auth', async (req, res) => {
   const { nick, pin } = req.body;
   if (!nick || nick.trim() === '' || !pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
@@ -116,7 +116,7 @@ app.post('/verify', async (req, res) => {
   else res.json({ success: false });
 });
 
-// СМЕНА НИКА
+// СМЕНА НИКА (без PIN)
 app.post('/change-nick', async (req, res) => {
   const { token, newNick } = req.body;
   if (!token || !newNick || newNick.trim() === '') {
@@ -157,6 +157,24 @@ app.post('/change-pin', async (req, res) => {
   res.json({ success: true });
 });
 
+// РЕДАКТИРОВАНИЕ СООБЩЕНИЯ
+app.post('/edit-message', async (req, res) => {
+  const { messageId, full_nick, newText } = req.body;
+  if (!messageId || !full_nick || !newText || newText.trim() === '') {
+    return res.status(400).json({ success: false });
+  }
+  const result = await pool.query(
+    'UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 AND full_nick = $3 RETURNING id',
+    [newText.trim(), messageId, full_nick]
+  );
+  if (result.rowCount > 0) {
+    io.emit('message edited', { messageId, newText: newText.trim() });
+    res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
+});
+
 // СООБЩЕНИЯ
 app.get('/messages', async (req, res) => {
   const { full_nick } = req.query;
@@ -181,23 +199,6 @@ app.post('/delete-message', async (req, res) => {
   const result = await pool.query('DELETE FROM messages WHERE id = $1 AND full_nick = $2 RETURNING id', [messageId, full_nick]);
   if (result.rowCount > 0) {
     io.emit('message deleted', messageId);
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
-});
-
-app.post('/edit-message', async (req, res) => {
-  const { full_nick, messageId, newText } = req.body;
-  if (!full_nick || !messageId || !newText || newText.trim() === '') {
-    return res.status(400).json({ success: false });
-  }
-  const result = await pool.query(
-    'UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 AND full_nick = $3 RETURNING id',
-    [newText.trim(), messageId, full_nick]
-  );
-  if (result.rowCount > 0) {
-    io.emit('message edited', { messageId, newText: newText.trim() });
     res.json({ success: true });
   } else {
     res.json({ success: false });
@@ -270,7 +271,7 @@ app.post('/delete-mail', async (req, res) => {
 });
 
 app.post('/reply-mail', async (req, res) => {
-  const { from_full_nick, to_full_nick, originalMailId, replyText } = req.body;
+  const { from_full_nick, to_full_nick, replyText } = req.body;
   if (!from_full_nick || !to_full_nick || !replyText || replyText.trim() === '') {
     return res.status(400).json({ success: false, error: 'Не все поля заполнены' });
   }
