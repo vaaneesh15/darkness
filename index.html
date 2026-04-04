@@ -26,7 +26,6 @@
             --accent-color: #0a84ff;
             --input-bg: #1c1c1e;
         }
-        /* Цвета оттенков */
         body.accent-blue { --accent-color: #0a84ff; }
         body.accent-indigo { --accent-color: #4f46e5; }
         body.accent-purple { --accent-color: #8b5cf6; }
@@ -94,7 +93,6 @@
         .edited-badge { font-size:0.65rem; color:var(--text-secondary); margin-left:8px; font-style:italic; }
         .message-divider { margin-top:8px; height:1px; background-color:rgba(84,84,88,0.4); width:100%; }
 
-        /* Нижняя панель */
         .input-wrapper { background: var(--input-bg); border-top:1px solid rgba(84,84,88,0.6); padding-bottom:env(safe-area-inset-bottom,0); }
         .input-row { display: flex; gap:12px; align-items: center; padding:0.9rem 1rem; }
         .settings-btn, .mails-btn {
@@ -113,15 +111,15 @@
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
         }
 
-        /* Круглые кнопки для редактирования */
+        /* Редактирование: auto-resize, белый SVG-крестик */
         .edit-cancel, .edit-save {
             width: 2rem; height: 2rem; border-radius: 2rem; display: inline-flex; align-items: center;
             justify-content: center; font-size: 1rem; cursor: pointer; border: none;
         }
-        .edit-cancel { background: #3a3a3c; color: white; }
+        .edit-cancel { background: #3a3a3c; }
+        .edit-cancel svg { width: 1rem; height: 1rem; stroke: white; stroke-width: 1.5; fill: none; }
         .edit-save { background: var(--accent-color); color: white; }
 
-        /* Модальные окна (общие) */
         .modal {
             display: none; position: fixed; top:0; left:0; width:100%; height:100%;
             background-color:rgba(0,0,0,0.7); backdrop-filter:blur(12px); z-index:1000;
@@ -147,11 +145,8 @@
         .modal-buttons button:first-child { background: #2c2c2e; color: white; }
         .modal-buttons button:last-child { background: var(--accent-color); color:white; }
 
-        /* Контекстное меню (модальное окно) */
         .context-menu-modal .modal-content { max-width: 300px; }
-        .context-message-nick {
-            font-size:0.75rem; margin-bottom:0.5rem; text-align: center;
-        }
+        .context-message-nick { font-size:0.75rem; margin-bottom:0.5rem; text-align: center; }
         .context-message-preview {
             background: #2c2c2e; border-radius: 1rem; padding: 0.5rem; margin-bottom: 1rem;
             word-break: break-word; font-size:0.85rem; color: var(--text-secondary);
@@ -163,7 +158,6 @@
         }
         .context-menu-buttons button svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
 
-        /* Письма */
         .mails-list { max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; margin-bottom:1rem; }
         .mail-item {
             background:#2c2c2e; border-radius:1rem; padding:0.8rem; position: relative;
@@ -183,7 +177,6 @@
             color: var(--accent-color); cursor: pointer; font-size:0.8rem;
         }
 
-        /* Настройки: белая стрелка select */
         .accent-select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
             background-repeat: no-repeat !important;
@@ -194,7 +187,6 @@
         }
         .nick-readonly { border:1px solid var(--border-light); border-radius:1rem; padding:0.6rem 1rem; background:var(--input-bg); color:var(--text-primary); font-size:1rem; }
 
-        /* В просмотре письма */
         .view-mail-header { margin-bottom: 0.5rem; }
         .view-mail-time { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
         .view-mail-from { font-size: 0.8rem; font-weight: 600; color: var(--accent-color); margin-bottom: 0.5rem; }
@@ -203,7 +195,6 @@
 </head>
 <body>
 
-<!-- Экран авторизации -->
 <div id="loginScreen" class="login-screen">
     <div class="login-card">
         <h2>Simply</h2>
@@ -214,7 +205,6 @@
     </div>
 </div>
 
-<!-- Основное приложение -->
 <div id="appContainer" class="app-container" style="display: none;">
     <div class="chat-messages" id="messagesContainer"></div>
     <div class="input-wrapper">
@@ -237,7 +227,6 @@
     </div>
 </div>
 
-<!-- Модальные окна -->
 <div id="settingsModal" class="modal"><div class="modal-content"><h3>Настройки</h3><div class="modal-setting"><label>Ваш ник</label><div id="displayNickWithTag" class="nick-readonly"></div><button id="changeNickBtn" style="margin-top:8px; width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Изменить ник</button></div><div class="modal-setting"><label>Сменить PIN</label><button id="changePinBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Сменить PIN</button></div><div class="modal-setting"><label>Оттенок</label><select id="accentSelect" class="accent-select"><option value="blue">Синий</option><option value="indigo">Индиго</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="red">Красный</option><option value="orange">Оранжевый</option><option value="beige">Бежевый</option><option value="yellow">Жёлтый</option><option value="mint">Мятный</option><option value="teal">Бирюзовый</option><option value="gray">Светло-серый</option></select></div><button id="closeModalBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer; margin-top:0.5rem;">Закрыть</button></div></div>
 <div id="changeNickModal" class="modal"><div class="modal-content"><h3>Смена ника</h3><div class="modal-setting"><label>Новый ник</label><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickBtn">Закрыть</button><button id="applyNickBtn">Применить</button></div></div></div>
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-buttons"><button id="cancelPinBtn">Закрыть</button><button id="applyPinBtn">Применить</button></div></div></div>
@@ -246,7 +235,6 @@
 <div id="viewMailModal" class="modal"><div class="modal-content"><h3>Письмо</h3><div id="viewMailContent" style="white-space:pre-wrap; word-break:break-word;"></div><div class="modal-buttons"><button id="closeViewMailBtn">Закрыть</button><button id="replyMailBtn">Ответить</button></div></div></div>
 <div id="replyMailModal" class="modal"><div class="modal-content"><h3>Ответ на письмо</h3><div class="modal-setting"><label>Исходное письмо</label><div id="originalMailPreview" style="background:#2c2c2e; padding:0.5rem; border-radius:1rem; margin-bottom:0.5rem; font-size:0.9rem;"></div></div><div class="modal-setting"><label>Ваш ответ</label><textarea id="replyMailText" rows="3"></textarea></div><div class="modal-buttons"><button id="cancelReplyBtn">Закрыть</button><button id="sendReplyBtn">Отправить</button></div></div></div>
 
-<!-- Контекстное меню (модальное окно) -->
 <div id="contextMenuModal" class="modal context-menu-modal">
     <div class="modal-content">
         <div id="contextMessageNick" class="context-message-nick"></div>
@@ -255,7 +243,6 @@
     </div>
 </div>
 
-<!-- Модальное окно подтверждения удаления -->
 <div id="confirmModal" class="modal">
     <div class="modal-content">
         <h3>Подтверждение</h3>
@@ -269,7 +256,6 @@
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    // ---------- Глобальные переменные ----------
     let socket = null;
     let currentUser = { full_nick: "" };
     let messages = [];
@@ -281,7 +267,6 @@
     let editingMessageId = null;
     let pendingDeleteMessageId = null;
 
-    // ---------- Вспомогательные ----------
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
     function linkify(text) {
@@ -307,7 +292,6 @@
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
-    // Рендер сообщений
     function renderMessages() {
         const container = document.getElementById('messagesContainer');
         if (!container) return;
@@ -327,13 +311,21 @@
                     <div class="message-header"><div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span></div></div>
                     <textarea id="edit-textarea-${msg.id}" class="edit-textarea" style="width:100%; background:#2c2c2e; border:1px solid var(--border-light); border-radius:1rem; padding:0.5rem; margin-bottom:0.5rem; color:white; font-family:inherit; font-size:1rem; line-height:1.4;">${escapeHtml(msg.text)}</textarea>
                     <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button class="edit-cancel" data-id="${msg.id}">✖</button>
+                        <button class="edit-cancel" data-id="${msg.id}"><svg viewBox="0 0 24 24" stroke="white" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
                         <button class="edit-save" data-id="${msg.id}">✓</button>
                     </div>
                     <div class="message-divider"></div>
                 `;
                 const ta = msgDiv.querySelector('textarea');
-                if (ta) { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 150) + 'px'; }
+                if (ta) {
+                    ta.style.height = 'auto';
+                    const targetHeight = Math.min(ta.scrollHeight, 150);
+                    ta.style.height = targetHeight + 'px';
+                    ta.addEventListener('input', function() {
+                        this.style.height = 'auto';
+                        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+                    });
+                }
             } else {
                 msgDiv.innerHTML = `
                     <div class="message-header">
@@ -406,7 +398,6 @@
         try { const res = await fetch(`/messages?full_nick=${encodeURIComponent(currentUser.full_nick)}`); const data = await res.json(); messages = data; renderMessages(); } catch(e){ console.error(e); }
     }
 
-    // Письма
     async function loadMails() {
         const mailsListDiv = document.getElementById('mailsList');
         mailsListDiv.innerHTML = 'Загрузка...';
@@ -442,12 +433,10 @@
     async function sendNewMail(to,text){ const res=await fetch('/send-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_full_nick:currentUser.full_nick,to_full_nick:to,text})}); const data=await res.json(); if(data.success){ alert('Письмо отправлено'); document.getElementById('newMailModal').style.display='none'; } else alert(data.error||'Ошибка'); }
     async function sendReply(replyText){ if(!currentMailForReply) return; const res=await fetch('/reply-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_full_nick:currentUser.full_nick,to_full_nick:currentMailForReply.from_full_nick,replyText})}); const data=await res.json(); if(data.success){ alert('Ответ отправлен'); document.getElementById('replyMailModal').style.display='none'; await loadMails(); } else alert(data.error||'Ошибка'); }
 
-    // Смена ника и PIN
     async function changeNick(newNick){ const res=await fetch('/change-nick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,newNick})}); const data=await res.json(); if(data.success){ currentUser.full_nick=data.newFullNick; localStorage.setItem('simply_nick',newNick); await loadHistory(); updateSettingsUI(); alert('Ник изменён'); } else alert(data.error||'Ошибка'); }
     async function changePin(oldPin,newPin){ const res=await fetch('/change-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,oldPin,newPin})}); const data=await res.json(); if(data.success) alert('PIN изменён'); else alert(data.error||'Ошибка'); }
     function updateSettingsUI(){ const {nick,tag}=splitFullNick(currentUser.full_nick); document.getElementById('displayNickWithTag').innerHTML=`${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`; }
 
-    // Авторизация
     async function authWithPin(nick,pin){
         try{ const res=await fetch('/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nick,pin})}); const data=await res.json();
             if(data.success){ currentUser.full_nick=data.full_nick; authToken=data.token; localStorage.setItem('simply_token',authToken); localStorage.setItem('simply_nick',nick); document.getElementById('loginScreen').style.display='none'; document.getElementById('appContainer').style.display='flex';
@@ -504,7 +493,6 @@
         msgInput.addEventListener('keypress',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const start=msgInput.selectionStart, end=msgInput.selectionEnd; msgInput.value=msgInput.value.substring(0,start)+'\n'+msgInput.value.substring(end); msgInput.selectionStart=msgInput.selectionEnd=start+1; autoResizeTextarea(); } });
         document.getElementById('messagesContainer').addEventListener('scroll',()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTimeout); window.scrollTimeout=setTimeout(()=>{ window.isUserScrolling=false; },200); });
 
-        // Модалки
         const settingsModal=document.getElementById('settingsModal'); document.getElementById('settingsBtn').onclick=()=>settingsModal.style.display='flex'; document.getElementById('closeModalBtn').onclick=()=>settingsModal.style.display='none';
         document.getElementById('changeNickBtn').onclick=()=>document.getElementById('changeNickModal').style.display='flex'; document.getElementById('changePinBtn').onclick=()=>document.getElementById('changePinModal').style.display='flex';
         document.getElementById('applyNickBtn').onclick=async()=>{ const nn=document.getElementById('newNickInput').value.trim(); if(nn) await changeNick(nn); document.getElementById('changeNickModal').style.display='none'; document.getElementById('newNickInput').value=''; };
