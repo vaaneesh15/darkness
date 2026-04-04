@@ -20,7 +20,7 @@
             --text-secondary: #5e5e66;
             --border-light: rgba(60, 60, 67, 0.08);
             --message-bg: #ffffff;
-            --input-bg: #ffffff;
+            --input-bg: rgba(255, 255, 255, 0.9);
             --accent-color: #007aff;
         }
 
@@ -33,7 +33,7 @@
                 --text-secondary: #98989e;
                 --border-light: rgba(84, 84, 88, 0.3);
                 --message-bg: #1c1c1e;
-                --input-bg: #1c1c1e;
+                --input-bg: rgba(28, 28, 30, 0.9);
                 --accent-color: #0a84ff;
             }
         }
@@ -62,7 +62,6 @@
             display: flex;
             flex-direction: column;
             background-color: var(--bg-page);
-            overflow: hidden;
         }
 
         .chat-messages {
@@ -78,10 +77,11 @@
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            max-width: 85%;
+            max-width: 80%;
         }
 
         .message-bubble {
+            display: inline-block;
             background: var(--message-bg);
             padding: 0.7rem 1rem;
             border-radius: 1.2rem;
@@ -89,7 +89,6 @@
             word-break: break-word;
             white-space: pre-wrap;
             width: auto;
-            max-width: 100%;
         }
 
         .message-item.own-message .message-bubble {
@@ -110,19 +109,19 @@
             color: var(--text-primary);
         }
 
+        /* Панель ввода как в ВК: на всю ширину, с размытием */
         .input-wrapper {
-            margin: 0 1rem 1.2rem 1rem;
             background: var(--input-bg);
-            border-radius: 2rem;
-            border: 0.5px solid var(--border-light);
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--border-light);
+            padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
         .input-row {
             display: flex;
             gap: 10px;
             align-items: center;
-            padding: 0.7rem;
+            padding: 0.7rem 1rem;
         }
 
         .settings-btn {
@@ -151,7 +150,6 @@
             flex: 1;
             background: transparent;
             border: none;
-            border-radius: 2rem;
             padding: 0.75rem 0;
             font-size: 1rem;
             color: var(--text-primary);
