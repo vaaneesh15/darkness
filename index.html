@@ -19,11 +19,9 @@
             --text-primary: #000000;
             --text-secondary: #5e5e66;
             --border-light: rgba(60, 60, 67, 0.08);
-            --nav-bg: rgba(255, 255, 255, 0.85);
             --message-bg: #ffffff;
-            --input-bg: #f9f9fb;
+            --input-bg: #ffffff;
             --accent-color: #007aff;
-            --accent-light: rgba(0, 122, 255, 0.1);
         }
 
         /* Тёмная тема */
@@ -34,22 +32,20 @@
                 --text-primary: #ffffff;
                 --text-secondary: #98989e;
                 --border-light: rgba(84, 84, 88, 0.3);
-                --nav-bg: rgba(28, 28, 30, 0.9);
                 --message-bg: #1c1c1e;
-                --input-bg: #2c2c2e;
+                --input-bg: #1c1c1e;
                 --accent-color: #0a84ff;
-                --accent-light: rgba(10, 132, 255, 0.1);
             }
         }
 
         /* Цветовые акценты */
-        body.accent-blue { --accent-color: #007aff; --accent-light: rgba(0, 122, 255, 0.1); }
-        body.accent-purple { --accent-color: #6c5ce7; --accent-light: rgba(108, 92, 231, 0.1); }
-        body.accent-pink { --accent-color: #ff6b81; --accent-light: rgba(255, 107, 129, 0.1); }
-        body.accent-mint { --accent-color: #2ecc71; --accent-light: rgba(46, 204, 113, 0.1); }
-        body.accent-orange { --accent-color: #f39c12; --accent-light: rgba(243, 156, 18, 0.1); }
-        body.accent-yellow { --accent-color: #f1c40f; --accent-light: rgba(241, 196, 15, 0.1); }
-        body.accent-teal { --accent-color: #1abc9c; --accent-light: rgba(26, 188, 156, 0.1); }
+        body.accent-blue { --accent-color: #007aff; }
+        body.accent-purple { --accent-color: #6c5ce7; }
+        body.accent-pink { --accent-color: #ff6b81; }
+        body.accent-mint { --accent-color: #2ecc71; }
+        body.accent-orange { --accent-color: #f39c12; }
+        body.accent-yellow { --accent-color: #f1c40f; }
+        body.accent-teal { --accent-color: #1abc9c; }
 
         body {
             background-color: var(--bg-page);
@@ -69,7 +65,6 @@
             overflow: hidden;
         }
 
-        /* Список сообщений (перевёрнутый порядок, чтобы новые сообщения были внизу и прижаты к панели) */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -78,12 +73,14 @@
             flex-direction: column;
             gap: 12px;
         }
+
         .message-item {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             max-width: 85%;
         }
+
         .message-bubble {
             background: var(--message-bg);
             padding: 0.7rem 1rem;
@@ -92,10 +89,13 @@
             word-break: break-word;
             white-space: pre-wrap;
             width: auto;
+            max-width: 100%;
         }
+
         .message-item.own-message .message-bubble {
             border-color: var(--accent-color);
         }
+
         .message-nick {
             font-size: 0.75rem;
             font-weight: 600;
@@ -103,31 +103,31 @@
             margin-bottom: 4px;
             margin-left: 0.5rem;
         }
+
         .message-text {
             font-size: 1rem;
             line-height: 1.4;
             color: var(--text-primary);
         }
 
-        /* Панель ввода */
         .input-wrapper {
             margin: 0 1rem 1.2rem 1rem;
-            background: var(--nav-bg);
-            backdrop-filter: blur(20px);
+            background: var(--input-bg);
             border-radius: 2rem;
             border: 0.5px solid var(--border-light);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
         }
+
         .input-row {
             display: flex;
             gap: 10px;
             align-items: center;
             padding: 0.7rem;
         }
+
         .settings-btn {
             background: none;
             border: none;
-            font-size: 1.5rem;
             cursor: pointer;
             padding: 0;
             width: 2.5rem;
@@ -138,12 +138,21 @@
             justify-content: center;
             color: var(--text-secondary);
         }
+
+        .settings-btn svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
         .input-row textarea {
             flex: 1;
-            background: var(--input-bg);
-            border: 1px solid var(--border-light);
+            background: transparent;
+            border: none;
             border-radius: 2rem;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 0;
             font-size: 1rem;
             color: var(--text-primary);
             outline: none;
@@ -153,9 +162,7 @@
             line-height: 1.4;
             max-height: 120px;
         }
-        .input-row textarea:focus {
-            border-color: var(--accent-color);
-        }
+
         .send-btn {
             background: var(--accent-color);
             border: none;
@@ -171,7 +178,6 @@
             flex-shrink: 0;
         }
 
-        /* Модальное окно настроек */
         .modal {
             display: none;
             position: fixed;
@@ -185,6 +191,7 @@
             justify-content: center;
             align-items: center;
         }
+
         .modal-content {
             background: var(--card-bg);
             border-radius: 2rem;
@@ -194,14 +201,17 @@
             border: 1px solid var(--border-light);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
+
         .modal-content h3 {
             margin-bottom: 1rem;
             font-size: 1.3rem;
             font-weight: 590;
         }
+
         .modal-setting {
             margin-bottom: 1.2rem;
         }
+
         .modal-setting label {
             display: block;
             margin-bottom: 0.4rem;
@@ -209,6 +219,7 @@
             font-size: 0.9rem;
             color: var(--text-secondary);
         }
+
         .modal-setting input, .modal-setting select {
             width: 100%;
             padding: 0.6rem 1rem;
@@ -218,6 +229,7 @@
             font-size: 1rem;
             color: var(--text-primary);
         }
+
         .modal-close {
             background: var(--accent-color);
             color: white;
@@ -238,7 +250,12 @@
     <div class="chat-messages" id="messagesContainer"></div>
     <div class="input-wrapper">
         <div class="input-row">
-            <button class="settings-btn" id="settingsBtn">⚙️</button>
+            <button class="settings-btn" id="settingsBtn">
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
             <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
             <button class="send-btn" id="sendBtn">+</button>
         </div>
@@ -273,11 +290,8 @@
     let socket = null;
     let currentUser = { nick: "Пользователь" };
     let messages = [];
-    let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || {
-        accent: 'blue'
-    };
+    let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { accent: 'blue' };
 
-    // Применение акцента
     function applyAccent(accent) {
         document.body.classList.remove('accent-blue', 'accent-purple', 'accent-pink', 'accent-mint', 'accent-orange', 'accent-yellow', 'accent-teal');
         if (accent === 'blue') document.body.classList.add('accent-blue');
@@ -291,10 +305,10 @@
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
-    // Рендер сообщений
     function escapeHtml(str) {
         return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]);
     }
+
     function renderMessages() {
         const container = document.getElementById('messagesContainer');
         if (!container) return;
@@ -312,11 +326,9 @@
             `;
             container.appendChild(msgDiv);
         });
-        // Прокручиваем вниз, чтобы последнее сообщение было видно
         container.scrollTop = container.scrollHeight;
     }
 
-    // Загрузка истории
     async function loadHistory() {
         try {
             const res = await fetch('/messages');
@@ -326,39 +338,32 @@
         } catch(e) { console.error(e); }
     }
 
-    // Отправка сообщения (клавиатура не закрывается)
     function sendMessage() {
         const input = document.getElementById('messageInput');
-        const text = input.value.trim();
-        if (!text || !socket || !currentUser) return;
-        socket.emit('new message', { nick: currentUser.nick, text });
+        const text = input.value;
+        if (!text.trim() || !socket || !currentUser) return;
+        socket.emit('new message', { nick: currentUser.nick, text: text });
         input.value = '';
         input.style.height = 'auto';
-        // Не вызываем input.blur(), клавиатура остаётся открытой
         input.focus();
     }
 
-    // Авто-расширение textarea
     function autoResizeTextarea() {
         const textarea = document.getElementById('messageInput');
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
     }
 
-    // Смена ника
     function changeNick() {
         const newNick = document.getElementById('nickInput').value.trim();
         if (newNick && newNick !== currentUser.nick) {
             currentUser.nick = newNick;
             localStorage.setItem('simply_nick', newNick);
-            alert('Ник изменён');
-            renderMessages(); // обновляем подписи в сообщениях
+            renderMessages();
         }
     }
 
-    // --- Инициализация ---
     window.onload = async () => {
-        // Загружаем сохранённый ник
         const savedNick = localStorage.getItem('simply_nick');
         if (savedNick) currentUser.nick = savedNick;
         document.getElementById('nickInput').value = currentUser.nick;
@@ -366,7 +371,6 @@
         applyAccent(appSettings.accent);
         document.getElementById('accentSelect').value = appSettings.accent;
 
-        // Подключаем сокет
         socket = io();
         socket.on('message received', (newMsg) => {
             messages.push(newMsg);
@@ -375,7 +379,6 @@
 
         await loadHistory();
 
-        // Обработчики UI
         document.getElementById('sendBtn').onclick = sendMessage;
         const msgInput = document.getElementById('messageInput');
         msgInput.addEventListener('input', autoResizeTextarea);
@@ -390,13 +393,12 @@
             }
         });
 
-        // Модальное окно настроек
         const modal = document.getElementById('settingsModal');
         document.getElementById('settingsBtn').onclick = () => {
             modal.style.display = 'flex';
         };
         document.getElementById('closeModalBtn').onclick = () => {
-            changeNick(); // сохраняем ник при закрытии
+            changeNick();
             const newAccent = document.getElementById('accentSelect').value;
             applyAccent(newAccent);
             modal.style.display = 'none';
