@@ -105,13 +105,14 @@
             flex:1; background:transparent; border:none; padding:0.75rem 0; font-size:1rem;
             color:var(--text-primary); outline:none; resize:none; overflow-y:hidden; font-family:inherit;
             line-height:1.4; max-height:150px;
+            scroll-margin-bottom: 80px; /* чтобы клавиатура не поднимала слишком высоко */
         }
         .send-btn {
             background:var(--accent-color); border:none; width:2.5rem; height:2.5rem; border-radius:2rem;
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
         }
 
-        /* Редактирование: auto-resize, белый SVG-крестик */
+        /* Редактирование: авто-высота, белый крест */
         .edit-cancel, .edit-save {
             width: 2rem; height: 2rem; border-radius: 2rem; display: inline-flex; align-items: center;
             justify-content: center; font-size: 1rem; cursor: pointer; border: none;
@@ -474,12 +475,24 @@
         const input=document.getElementById('messageInput'); const text=input.value;
         if(!text.trim() || !socket || !currentUser.full_nick) return;
         socket.emit('new message',{full_nick:currentUser.full_nick,text});
-        input.value=''; input.style.height='auto'; input.focus();
+        input.value=''; input.style.height='auto'; 
+        // Плавная прокрутка с отступом, чтобы клавиатура не поднимала слишком высоко
+        setTimeout(() => {
+            input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 50);
+        input.focus();
     }
     function autoResizeTextarea(){
         const textarea=document.getElementById('messageInput');
         textarea.style.height='auto'; textarea.style.height=Math.min(textarea.scrollHeight,150)+'px';
     }
+
+    // Отключаем прокрутку body при фокусе
+    document.body.addEventListener('touchmove', (e) => {
+        if (!e.target.closest('.chat-messages') && !e.target.closest('.input-row textarea')) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 
     window.onload=async()=>{
         applyAccent(appSettings.accent); document.getElementById('accentSelect').value=appSettings.accent; document.getElementById('accentSelect').onchange=e=>applyAccent(e.target.value);
@@ -491,6 +504,12 @@
         document.getElementById('sendBtn').onclick=sendMessage;
         const msgInput=document.getElementById('messageInput'); msgInput.addEventListener('input',autoResizeTextarea);
         msgInput.addEventListener('keypress',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const start=msgInput.selectionStart, end=msgInput.selectionEnd; msgInput.value=msgInput.value.substring(0,start)+'\n'+msgInput.value.substring(end); msgInput.selectionStart=msgInput.selectionEnd=start+1; autoResizeTextarea(); } });
+        // При фокусе на поле ввода — плавная прокрутка с отступом
+        msgInput.addEventListener('focus', () => {
+            setTimeout(() => {
+                msgInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        });
         document.getElementById('messagesContainer').addEventListener('scroll',()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTimeout); window.scrollTimeout=setTimeout(()=>{ window.isUserScrolling=false; },200); });
 
         const settingsModal=document.getElementById('settingsModal'); document.getElementById('settingsBtn').onclick=()=>settingsModal.style.display='flex'; document.getElementById('closeModalBtn').onclick=()=>settingsModal.style.display='none';
