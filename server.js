@@ -19,7 +19,6 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// Инициализация БД
 async function initDB() {
   // Таблица пользователей
   await pool.query(`
@@ -30,10 +29,12 @@ async function initDB() {
       full_nick VARCHAR(55) UNIQUE NOT NULL,
       pin_hash TEXT NOT NULL,
       token TEXT UNIQUE,
-      is_admin BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // Добавляем колонку is_admin, если её нет
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;`);
+  
   // Таблица сообщений (общий чат)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -124,7 +125,6 @@ async function isFullNickUnique(fullNick) {
   return res.rows.length === 0;
 }
 
-// Проверка, является ли пользователь админом
 async function isAdmin(full_nick) {
   const res = await pool.query('SELECT is_admin FROM users WHERE full_nick = $1', [full_nick]);
   return res.rows.length > 0 && res.rows[0].is_admin;
@@ -159,8 +159,8 @@ app.post('/auth', async (req, res) => {
     const pinHash = await bcrypt.hash(pin, 10);
     const token = uuidv4();
     await pool.query(
-      'INSERT INTO users (nick, tag, full_nick, pin_hash, token) VALUES ($1, $2, $3, $4, $5)',
-      [cleanNick, tag, full_nick, pinHash, token]
+      'INSERT INTO users (nick, tag, full_nick, pin_hash, token, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
+      [cleanNick, tag, full_nick, pinHash, token, false]
     );
     return res.json({ success: true, full_nick, token, is_admin: false });
   }
@@ -225,13 +225,15 @@ app.get('/messages', async (req, res) => {
   const result = await pool.query(`
     SELECT m.id, m.full_nick, m.text, m.edited, m.created_at,
            COALESCE(l.likes_count, 0) as likes_count,
-           EXISTS(SELECT 1 FROM likes WHERE message_id = m.id AND full_nick = $1) as is_liked
+           EXISTS(SELECT 1 FROM likes WHERE message_id = m.id AND full_nick = $1) as is_liked,
+           u.is_admin
     FROM messages m
     LEFT JOIN (
       SELECT message_id, COUNT(*) as likes_count
       FROM likes
       GROUP BY message_id
     ) l ON m.id = l.message_id
+    LEFT JOIN users u ON m.full_nick = u.full_nick
     ORDER BY m.created_at ASC
     LIMIT $2 OFFSET $3
   `, [full_nick || '', limit, offset]);
@@ -315,7 +317,6 @@ app.post('/like', async (req, res) => {
 });
 
 // ========== ПРИВАТНЫЕ КОМНАТЫ ==========
-// Получить комнаты, доступные пользователю
 app.get('/rooms', async (req, res) => {
   const { full_nick } = req.query;
   if (!full_nick) return res.status(400).json([]);
@@ -328,15 +329,12 @@ app.get('/rooms', async (req, res) => {
   res.json(result.rows);
 });
 
-// Создать новую комнату
 app.post('/create-room', async (req, res) => {
   const { name, created_by, members } = req.body;
   if (!name || !created_by) return res.status(400).json({ success: false, error: 'Не указано название' });
   const roomRes = await pool.query('INSERT INTO rooms (name, created_by) VALUES ($1, $2) RETURNING id', [name, created_by]);
   const roomId = roomRes.rows[0].id;
-  // Добавляем создателя как участника
   await pool.query('INSERT INTO room_members (room_id, full_nick) VALUES ($1, $2)', [roomId, created_by]);
-  // Добавляем остальных участников (список full_nick через запятую)
   if (members && members.length) {
     for (const member of members) {
       const userExists = await pool.query('SELECT full_nick FROM users WHERE full_nick = $1', [member]);
@@ -349,7 +347,6 @@ app.post('/create-room', async (req, res) => {
   res.json({ success: true, roomId });
 });
 
-// Добавить участника в комнату
 app.post('/add-room-member', async (req, res) => {
   const { roomId, full_nick, admin_nick } = req.body;
   if (!roomId || !full_nick || !admin_nick) return res.status(400).json({ success: false });
@@ -366,11 +363,9 @@ app.post('/add-room-member', async (req, res) => {
   res.json({ success: true });
 });
 
-// Получить сообщения комнаты с пагинацией
 app.get('/room-messages', async (req, res) => {
   const { roomId, full_nick, page = 1 } = req.query;
   if (!roomId || !full_nick) return res.status(400).json([]);
-  // Проверяем, есть ли у пользователя доступ к комнате
   const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
   if (member.rows.length === 0) return res.status(403).json([]);
   const limit = 25;
@@ -378,13 +373,15 @@ app.get('/room-messages', async (req, res) => {
   const result = await pool.query(`
     SELECT rm.id, rm.full_nick, rm.text, rm.edited, rm.created_at,
            COALESCE(l.likes_count, 0) as likes_count,
-           EXISTS(SELECT 1 FROM room_likes WHERE message_id = rm.id AND full_nick = $1) as is_liked
+           EXISTS(SELECT 1 FROM room_likes WHERE message_id = rm.id AND full_nick = $1) as is_liked,
+           u.is_admin
     FROM room_messages rm
     LEFT JOIN (
       SELECT message_id, COUNT(*) as likes_count
       FROM room_likes
       GROUP BY message_id
     ) l ON rm.id = l.message_id
+    LEFT JOIN users u ON rm.full_nick = u.full_nick
     WHERE rm.room_id = $2
     ORDER BY rm.created_at ASC
     LIMIT $3 OFFSET $4
@@ -393,7 +390,6 @@ app.get('/room-messages', async (req, res) => {
   res.json({ messages: result.rows, total: parseInt(total.rows[0].count), page: parseInt(page) });
 });
 
-// Удалить сообщение в комнате (админ или владелец)
 app.post('/delete-room-message', async (req, res) => {
   const { messageId, full_nick, isAdmin, roomId } = req.body;
   if (!messageId || !full_nick) return res.status(400).json({ success: false });
@@ -414,7 +410,6 @@ app.post('/delete-room-message', async (req, res) => {
   }
 });
 
-// Редактировать сообщение в комнате
 app.post('/edit-room-message', async (req, res) => {
   const { messageId, full_nick, newText, roomId } = req.body;
   if (!messageId || !full_nick || !newText || newText.trim() === '') {
@@ -432,7 +427,7 @@ app.post('/edit-room-message', async (req, res) => {
   }
 });
 
-// Админ: список всех пользователей (для выдачи админки)
+// Админ: список пользователей
 app.get('/users', async (req, res) => {
   const { admin_nick } = req.query;
   if (!admin_nick) return res.status(400).json([]);
@@ -442,7 +437,6 @@ app.get('/users', async (req, res) => {
   res.json(result.rows);
 });
 
-// Админ: выдать/забрать права администратора
 app.post('/toggle-admin', async (req, res) => {
   const { admin_nick, target_full_nick } = req.body;
   if (!admin_nick || !target_full_nick) return res.status(400).json({ success: false });
@@ -456,7 +450,7 @@ app.post('/toggle-admin', async (req, res) => {
   res.json({ success: true, is_admin: newStatus });
 });
 
-// Онлайн: список пользователей в сети (храним в памяти)
+// Онлайн
 const onlineUsers = new Set();
 io.on('connection', (socket) => {
   let currentFullNick = null;
@@ -475,6 +469,8 @@ io.on('connection', (socket) => {
   socket.on('new message', async (data) => {
     const { full_nick, text } = data;
     if (!full_nick || !text || text.trim() === '') return;
+    const user = await pool.query('SELECT is_admin FROM users WHERE full_nick = $1', [full_nick]);
+    const is_admin = user.rows.length > 0 ? user.rows[0].is_admin : false;
     const result = await pool.query(
       'INSERT INTO messages (full_nick, text) VALUES ($1, $2) RETURNING id, created_at',
       [full_nick, text.trim()]
@@ -486,7 +482,8 @@ io.on('connection', (socket) => {
       edited: false,
       created_at: result.rows[0].created_at,
       likes_count: 0,
-      is_liked: false
+      is_liked: false,
+      is_admin
     };
     io.emit('message received', newMsg);
   });
@@ -500,9 +497,10 @@ io.on('connection', (socket) => {
   socket.on('new room message', async (data) => {
     const { roomId, full_nick, text } = data;
     if (!roomId || !full_nick || !text || text.trim() === '') return;
-    // Проверка, что пользователь имеет доступ
     const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
     if (member.rows.length === 0) return;
+    const user = await pool.query('SELECT is_admin FROM users WHERE full_nick = $1', [full_nick]);
+    const is_admin = user.rows.length > 0 ? user.rows[0].is_admin : false;
     const result = await pool.query(
       'INSERT INTO room_messages (room_id, full_nick, text) VALUES ($1, $2, $3) RETURNING id, created_at',
       [roomId, full_nick, text.trim()]
@@ -514,7 +512,8 @@ io.on('connection', (socket) => {
       edited: false,
       created_at: result.rows[0].created_at,
       likes_count: 0,
-      is_liked: false
+      is_liked: false,
+      is_admin
     };
     io.to(`room_${roomId}`).emit('room message received', { roomId, message: newMsg });
   });
