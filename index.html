@@ -43,6 +43,7 @@
         body.accent-teal { --accent-color: #14b89a; }
         body.accent-gray { --accent-color: #9ca3af; }
 
+        /* Экран авторизации */
         .login-screen {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: var(--bg-page); display: flex; align-items: flex-start; justify-content: center;
@@ -64,23 +65,25 @@
         }
         .login-card .error { color:#ff6b6b; font-size:0.8rem; margin-top:0.5rem; text-align:center; }
 
+        /* Основной контейнер */
         .app-container { height:100%; display: flex; flex-direction: column; background-color: var(--bg-page); position: relative; overflow: hidden; }
 
-        /* Верхняя панель вкладок (как нижняя, но полоска снизу) */
+        /* Верхняя панель вкладок */
         .top-tab-bar {
             background: var(--input-bg);
             border-bottom: 1px solid var(--border-light);
             padding: 0.5rem 1rem;
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             overflow-x: auto;
             white-space: nowrap;
             flex-shrink: 0;
+            justify-content: center;
         }
         .top-tab {
             background: none;
             border: none;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1.2rem;
             font-size: 1rem;
             font-weight: 500;
             color: var(--text-secondary);
@@ -104,7 +107,7 @@
             display: flex;
         }
 
-        /* Общий чат */
+        /* Общий чат и приватные чаты (одинаковый стиль) */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -132,13 +135,10 @@
             align-items: baseline;
             gap: 0;
         }
-        .admin-badge {
+        .admin-star {
             margin-left: 6px;
             font-size: 0.7rem;
-            background: var(--accent-color);
-            color: white;
-            padding: 0 4px;
-            border-radius: 4px;
+            color: #f5b042;
         }
         .nick-main { color: var(--text-secondary); }
         .own-message .nick-main { color: var(--accent-color); }
@@ -183,7 +183,6 @@
             background: var(--input-bg);
             border-radius: 1rem;
             padding: 0.8rem;
-            cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -191,9 +190,77 @@
         .room-name {
             font-weight: 500;
         }
-        .room-members {
-            font-size: 0.7rem;
+        .join-room-btn {
+            background: var(--accent-color);
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Шапка приватного чата */
+        .room-header {
+            background: var(--input-bg);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--accent-color);
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .room-title {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .room-members-count {
+            background: none;
+            border: none;
             color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        /* Модальное окно участников */
+        .members-modal .modal-content {
+            max-width: 300px;
+        }
+        .members-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 0.5px solid var(--border-light);
+        }
+        .member-online {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #34c759;
+            margin-right: 0.5rem;
+            display: inline-block;
+        }
+        .member-offline {
+            filter: grayscale(0.6);
+            opacity: 0.6;
         }
 
         /* Админ-панель */
@@ -253,8 +320,12 @@
             padding: 0.2rem 0.5rem;
             cursor: pointer;
         }
+        .online-count {
+            font-size: 1rem;
+            font-weight: normal;
+        }
 
-        /* Нижняя панель ввода (общая для всех чатов) */
+        /* Нижняя панель ввода (общая) */
         .input-wrapper {
             background: var(--input-bg);
             border-top: 1px solid rgba(84,84,88,0.6);
@@ -307,7 +378,7 @@
         .modal-buttons button:first-child { background: #2c2c2e; color: white; }
         .modal-buttons button:last-child { background: var(--accent-color); color:white; }
 
-        /* Контекстное меню (модальное) */
+        /* Контекстное меню */
         .context-menu-modal .modal-content { max-width: 300px; }
         .context-message-nick { font-size:0.75rem; margin-bottom:0.5rem; text-align: center; }
         .context-message-preview {
@@ -367,9 +438,9 @@
 <div id="appContainer" class="app-container" style="display: none;">
     <!-- Верхние вкладки -->
     <div class="top-tab-bar">
+        <button class="top-tab" data-tab="admin">Админ</button>
         <button class="top-tab active" data-tab="public">Общий</button>
         <button class="top-tab" data-tab="private">Приватные</button>
-        <button id="adminTabBtn" class="top-tab" data-tab="admin" style="display: none;">Админ</button>
     </div>
 
     <!-- Вкладка "Общий чат" -->
@@ -389,7 +460,7 @@
         </div>
     </div>
 
-    <!-- Вкладка "Приватные чаты" -->
+    <!-- Вкладка "Приватные чаты" (список комнат) -->
     <div id="privateTab" class="tab-content">
         <div id="roomsList" class="rooms-list">Загрузка...</div>
     </div>
@@ -398,14 +469,15 @@
     <div id="adminTab" class="tab-content">
         <div class="admin-panel">
             <div class="admin-section">
-                <h4>Добавить администратора</h4>
+                <h4>Администраторы</h4>
                 <div class="admin-row">
                     <input type="text" id="adminNickInput" placeholder="Ник#Тег">
-                    <button id="grantAdminBtn">✓</button>
+                    <button id="grantAdminBtn">+</button>
                 </div>
+                <div id="adminsList" class="user-list">Загрузка...</div>
             </div>
             <div class="admin-section">
-                <h4>Список пользователей</h4>
+                <h4>Пользователи</h4>
                 <div id="usersList" class="user-list">Загрузка...</div>
             </div>
             <div class="admin-section">
@@ -419,18 +491,19 @@
                 </div>
             </div>
             <div class="admin-section">
-                <h4>Участники онлайн: <span id="onlineCount">0</span></h4>
+                <h4>Участники онлайн: <span id="onlineCount" class="online-count">0</span></h4>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Модальные окна (настройки, смена ника, смена PIN, контекстное меню, подтверждение) -->
+<!-- Модальные окна -->
 <div id="settingsModal" class="modal"><div class="modal-content"><h3>Настройки</h3><div class="modal-setting"><label>Ваш ник</label><div id="displayNickWithTag" class="nick-readonly"></div><button id="changeNickBtn" style="margin-top:8px; width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Изменить ник</button></div><div class="modal-setting"><label>Сменить PIN</label><button id="changePinBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Сменить PIN</button></div><div class="modal-setting"><label>Оттенок</label><select id="accentSelect" class="accent-select"><option value="blue">Синий</option><option value="indigo">Индиго</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="red">Красный</option><option value="orange">Оранжевый</option><option value="beige">Бежевый</option><option value="yellow">Жёлтый</option><option value="mint">Мятный</option><option value="teal">Бирюзовый</option><option value="gray">Светло-серый</option></select></div><button id="closeModalBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer; margin-top:0.5rem;">Закрыть</button></div></div>
 <div id="changeNickModal" class="modal"><div class="modal-content"><h3>Смена ника</h3><div class="modal-setting"><label>Новый ник</label><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickBtn">Закрыть</button><button id="applyNickBtn">Применить</button></div></div></div>
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-buttons"><button id="cancelPinBtn">Закрыть</button><button id="applyPinBtn">Применить</button></div></div></div>
 <div id="contextMenuModal" class="modal context-menu-modal"><div class="modal-content"><div id="contextMessageNick" class="context-message-nick"></div><div id="contextMessagePreview" class="context-message-preview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
 <div id="confirmModal" class="modal"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage" style="margin-bottom:1rem;">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">Удалить</button></div></div></div>
+<div id="membersModal" class="modal members-modal"><div class="modal-content"><h3>Участники комнаты</h3><div id="membersList" class="members-list"></div><button id="closeMembersBtn" class="modal-close">Закрыть</button></div></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
@@ -456,6 +529,7 @@
     let roomPages = {};
     let roomTotal = {};
     let roomLoading = {};
+    let onlineUsersSet = new Set(); // храним список онлайн для комнат
     
     // Админка
     let usersList = [];
@@ -467,7 +541,7 @@
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;">${url}</a>`);
     }
-function applyAccent(accent) {
+    function applyAccent(accent) {
         const classes = ['accent-blue','accent-indigo','accent-purple','accent-pink','accent-red','accent-orange','accent-beige','accent-yellow','accent-mint','accent-teal','accent-gray'];
         document.body.classList.remove(...classes);
         if (accent === 'blue') document.body.classList.add('accent-blue');
@@ -499,13 +573,13 @@ function applyAccent(accent) {
             msgDiv.setAttribute('data-id', msg.id);
             msgDiv.setAttribute('data-full-nick', msg.full_nick);
             msgDiv.setAttribute('data-text', msg.text);
-            let adminBadge = '';
-            if (msg.is_admin) adminBadge = '<span class="admin-badge">Админ</span>';
+            let adminStar = '';
+            if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
             msgDiv.innerHTML = `
                 <div class="message-header">
                     <div class="message-nick">
                         <span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>
-                        ${adminBadge}
+                        ${adminStar}
                     </div>
                 </div>
                 <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
@@ -550,7 +624,7 @@ function applyAccent(accent) {
         publicLoading = false;
     }
 
-    // Рендер списка комнат
+    // Список комнат
     async function loadRooms() {
         const res = await fetch(`/rooms?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
         rooms = await res.json();
@@ -564,7 +638,6 @@ function applyAccent(accent) {
             roomDiv.innerHTML = `
                 <div>
                     <div class="room-name">${escapeHtml(room.name)}</div>
-                    <div class="room-members">Создатель: ${escapeHtml(room.created_by)}</div>
                 </div>
                 <button class="join-room-btn" data-id="${room.id}" data-name="${escapeHtml(room.name)}">Войти</button>
             `;
@@ -579,6 +652,7 @@ function applyAccent(accent) {
         });
     }
 
+    // Открыть приватную комнату (шапка + сообщения)
     function openPrivateRoom(roomId, roomName) {
         currentRoom = { id: roomId, name: roomName };
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
@@ -590,24 +664,29 @@ function applyAccent(accent) {
     }
 
     function renderPrivateRoomView() {
-        const container = document.getElementById('roomsList');
+        const container = document.getElementById('privateTab');
         container.innerHTML = `
-            <div style="padding:1rem;">
-                <button id="backToRoomsBtn" style="background:none; border:none; color:var(--accent-color); margin-bottom:1rem;">← Назад к списку</button>
-                <h3>${escapeHtml(currentRoom.name)}</h3>
-                <div id="roomMessagesContainer" style="max-height:60vh; overflow-y:auto; margin:1rem 0;"></div>
+            <div class="room-header">
+                <button class="back-btn" id="backToRoomsBtn">←</button>
+                <div class="room-title">${escapeHtml(currentRoom.name)}</div>
+                <button class="room-members-count" id="showMembersBtn">👥</button>
+            </div>
+            <div class="chat-messages" id="roomMessagesContainer"></div>
+            <div class="input-wrapper">
                 <div class="input-row">
                     <textarea id="roomMessageInput" placeholder="Сообщение..." rows="1"></textarea>
-                    <button id="sendRoomBtn" class="send-btn">↑</button>
+                    <button class="send-btn" id="sendRoomBtn">↑</button>
                 </div>
             </div>
         `;
         document.getElementById('backToRoomsBtn').onclick = () => {
-            socket.emit('leave room', currentRoom.id);
+            if (currentRoom) socket.emit('leave room', currentRoom.id);
             currentRoom = null;
             loadRooms();
+            switchTab('private'); // переключаем вкладку обратно на список
         };
         document.getElementById('sendRoomBtn').onclick = () => sendRoomMessage();
+        document.getElementById('showMembersBtn').onclick = () => showRoomMembers(currentRoom.id);
         const roomInput = document.getElementById('roomMessageInput');
         roomInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendRoomMessage(); } });
         roomInput.addEventListener('input', function() { this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,150)+'px'; });
@@ -626,11 +705,11 @@ function applyAccent(accent) {
             msgDiv.className = 'message-item';
             if (isOwn) msgDiv.classList.add('own-message');
             msgDiv.setAttribute('data-id', msg.id);
-            let adminBadge = '';
-            if (msg.is_admin) adminBadge = '<span class="admin-badge">Админ</span>';
+            let adminStar = '';
+            if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
             msgDiv.innerHTML = `
                 <div class="message-header">
-                    <div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>${adminBadge}</div>
+                    <div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>${adminStar}</div>
                 </div>
                 <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
@@ -674,6 +753,23 @@ function applyAccent(accent) {
         roomLoading[roomId] = false;
     }
 
+    async function showRoomMembers(roomId) {
+        const res = await fetch(`/room-members?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        const members = await res.json();
+        const container = document.getElementById('membersList');
+        container.innerHTML = '';
+        members.forEach(member => {
+            const isOnline = onlineUsersSet.has(member.full_nick);
+            const div = document.createElement('div');
+            div.className = `member-item ${!isOnline ? 'member-offline' : ''}`;
+            div.innerHTML = `
+                <div><span class="${isOnline ? 'member-online' : ''}" style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${isOnline ? '#34c759' : '#6c6c70'}; margin-right:8px;"></span>${escapeHtml(member.full_nick)}</div>
+            `;
+            container.appendChild(div);
+        });
+        document.getElementById('membersModal').style.display = 'flex';
+    }
+
     function sendRoomMessage() {
         if (!currentRoom) return;
         const input = document.getElementById('roomMessageInput');
@@ -707,14 +803,14 @@ function applyAccent(accent) {
     // Контекстное меню
     function showContextMenu(messageId, full_nick, text, isOwn, isRoom, roomId) {
         const { nick, tag } = splitFullNick(full_nick);
-        const isAdmin = currentUser.is_admin;
+        const isAdminUser = currentUser.is_admin;
         document.getElementById('contextMessageNick').innerHTML = `<span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>`;
         document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text.substring(0, 150))) + (text.length>150?'…':'');
         const container = document.getElementById('contextMenuButtons');
         container.innerHTML = `
             <button id="ctx-like"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Лайкнуть</button>
             <button id="ctx-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
-            ${(isOwn || isAdmin) ? `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>
+            ${(isOwn || isAdminUser) ? `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>
             <button id="ctx-delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
             <button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
         `;
@@ -727,20 +823,33 @@ function applyAccent(accent) {
     }
 
     // Админка
-    async function loadUsersForAdmin() {
+    async function loadAdminsAndUsers() {
         if (!currentUser.is_admin) return;
         const res = await fetch(`/users?admin_nick=${encodeURIComponent(currentUser.full_nick)}`);
         usersList = await res.json();
-        const container = document.getElementById('usersList');
-        container.innerHTML = '';
-        usersList.forEach(user => {
+        const admins = usersList.filter(u => u.is_admin);
+        const normalUsers = usersList.filter(u => !u.is_admin);
+        const adminsContainer = document.getElementById('adminsList');
+        const usersContainer = document.getElementById('usersList');
+        adminsContainer.innerHTML = '';
+        usersContainer.innerHTML = '';
+        admins.forEach(admin => {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.innerHTML = `
+                <span>${escapeHtml(admin.full_nick)}</span>
+                <button class="toggle-admin-btn" data-nick="${escapeHtml(admin.full_nick)}">−</button>
+            `;
+            adminsContainer.appendChild(div);
+        });
+        normalUsers.forEach(user => {
             const div = document.createElement('div');
             div.className = 'user-item';
             div.innerHTML = `
                 <span>${escapeHtml(user.full_nick)}</span>
-                <button class="toggle-admin-btn" data-nick="${escapeHtml(user.full_nick)}" data-is-admin="${user.is_admin}">${user.is_admin ? 'Забрать админку' : 'Дать админку'}</button>
+                <button class="toggle-admin-btn" data-nick="${escapeHtml(user.full_nick)}">+</button>
             `;
-            container.appendChild(div);
+            usersContainer.appendChild(div);
         });
         document.querySelectorAll('.toggle-admin-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -750,7 +859,7 @@ function applyAccent(accent) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ admin_nick: currentUser.full_nick, target_full_nick: target })
                 });
-                await loadUsersForAdmin();
+                await loadAdminsAndUsers();
             });
         });
     }
@@ -800,12 +909,13 @@ function applyAccent(accent) {
                 socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
                 socket.on('room_like_updated', ({roomId, messageId, likes_count, is_liked}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
                 socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                socket.on('admin_toggled', () => { if(currentUser.is_admin) loadAdminsAndUsers(); });
                 await loadPublicMessages();
                 await loadRooms();
                 if (currentUser.is_admin) {
-                    document.getElementById('adminTabBtn').style.display = 'block';
-                    await loadUsersForAdmin();
+                    await loadAdminsAndUsers();
                 }
+                const { nick, tag } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`;
                 return true;
             } else { document.getElementById('loginError').innerText = data.error || 'Ошибка входа'; return false; }
@@ -836,11 +946,11 @@ function applyAccent(accent) {
                 socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
                 socket.on('room_like_updated', ({roomId, messageId, likes_count, is_liked}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
                 socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                socket.on('admin_toggled', () => { if(currentUser.is_admin) loadAdminsAndUsers(); });
                 await loadPublicMessages();
                 await loadRooms();
                 if (currentUser.is_admin) {
-                    document.getElementById('adminTabBtn').style.display = 'block';
-                    await loadUsersForAdmin();
+                    await loadAdminsAndUsers();
                 }
                 const { nick, tag } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`;
@@ -865,23 +975,42 @@ function applyAccent(accent) {
         textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
     }
 
-    // Обработка редактирования сообщений
-    function handleEditSave(messageId, isRoom, roomId, newText) {
-        fetch('/edit-message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, newText })
-        });
-    }
-
     // Переключение вкладок
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
         document.getElementById(`${tabId}Tab`).classList.add('active');
         document.querySelector(`.top-tab[data-tab="${tabId}"]`).classList.add('active');
-        if (tabId === 'private' && currentRoom) { currentRoom = null; loadRooms(); }
-        if (tabId === 'admin' && currentUser.is_admin) loadUsersForAdmin();
+        if (tabId === 'private' && !currentRoom) loadRooms();
+        if (tabId === 'admin' && currentUser.is_admin) loadAdminsAndUsers();
+    }
+
+    // Смена ника и PIN
+    async function changeNick(newNick) {
+        const res = await fetch('/change-nick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: authToken, newNick })
+        });
+        const data = await res.json();
+        if (data.success) {
+            currentUser.full_nick = data.newFullNick;
+            localStorage.setItem('simply_nick', newNick);
+            const { nick, tag } = splitFullNick(currentUser.full_nick);
+            document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`;
+            await loadPublicMessages();
+            alert('Ник изменён');
+        } else alert(data.error || 'Ошибка');
+    }
+    async function changePin(oldPin, newPin) {
+        const res = await fetch('/change-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: authToken, oldPin, newPin })
+        });
+        const data = await res.json();
+        if (data.success) alert('PIN изменён');
+        else alert(data.error || 'Ошибка');
     }
 
     // Инициализация
@@ -916,14 +1045,12 @@ function applyAccent(accent) {
         document.getElementById('cancelNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'none';
         document.getElementById('applyPinBtn').onclick = async () => { const old=document.getElementById('oldPinInput').value, newP=document.getElementById('newPinInput').value; if(old&&newP&&newP.length===4&&/^\d+$/.test(newP)){ await changePin(old,newP); document.getElementById('changePinModal').style.display='none'; document.getElementById('oldPinInput').value=''; document.getElementById('newPinInput').value=''; } else alert('PIN должен быть 4 цифры'); };
         document.getElementById('cancelPinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'none';
-        document.getElementById('grantAdminBtn').onclick = async () => { const target = document.getElementById('adminNickInput').value.trim(); if(target){ await fetch('/toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_nick: currentUser.full_nick, target_full_nick: target }) }); await loadUsersForAdmin(); document.getElementById('adminNickInput').value=''; } };
+        document.getElementById('grantAdminBtn').onclick = async () => { const target = document.getElementById('adminNickInput').value.trim(); if(target){ await fetch('/toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_nick: currentUser.full_nick, target_full_nick: target }) }); await loadAdminsAndUsers(); document.getElementById('adminNickInput').value=''; } };
         document.getElementById('createRoomBtn').onclick = createRoom;
-        document.getElementById('confirmOkBtn').onclick = async () => { if(pendingDeleteMessageId){ await fetch('/delete-message', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ full_nick: currentUser.full_nick, messageId: pendingDeleteMessageId, isAdmin: currentUser.is_admin }) }); pendingDeleteMessageId=null; } document.getElementById('confirmModal').style.display='none'; };
+        document.getElementById('confirmOkBtn').onclick = async () => { if(pendingDeleteMessageId){ const isRoom = contextMessageData?.isRoom || false; const roomId = contextMessageData?.roomId || null; const url = isRoom ? '/delete-room-message' : '/delete-message'; await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ messageId: pendingDeleteMessageId, full_nick: currentUser.full_nick, isAdmin: currentUser.is_admin, roomId }) }); pendingDeleteMessageId=null; } document.getElementById('confirmModal').style.display='none'; };
         document.getElementById('confirmCancelBtn').onclick = () => { pendingDeleteMessageId=null; document.getElementById('confirmModal').style.display='none'; };
+        document.getElementById('closeMembersBtn').onclick = () => document.getElementById('membersModal').style.display = 'none';
     };
-
-    async function changeNick(newNick) { /* реализация */ }
-    async function changePin(oldPin, newPin) { /* реализация */ }
 </script>
 </body>
 </html>
