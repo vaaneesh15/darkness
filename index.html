@@ -14,7 +14,7 @@
         }
         html, body {
             height: 100%;
-            overflow: hidden; /* полностью запрещаем прокрутку страницы */
+            overflow: hidden;
         }
         body {
             background-color: var(--bg-page);
@@ -65,10 +65,81 @@
         .login-card .error { color:#ff6b6b; font-size:0.8rem; margin-top:0.5rem; text-align:center; }
 
         .app-container { height:100%; display: flex; flex-direction: column; background-color: var(--bg-page); position: relative; overflow: hidden; }
-        .chat-messages { flex:1; overflow-y: auto; padding:1rem; display: flex; flex-direction: column; gap:12px; }
-        .message-item { display: flex; flex-direction: column; width:100%; position: relative; }
-        .message-header { display: flex; align-items: baseline; gap:8px; margin-bottom: 2px; }
-        .message-nick { font-size:0.75rem; font-weight:600; display: flex; align-items: baseline; gap: 0; }
+
+        /* Верхняя панель вкладок (как нижняя, но полоска снизу) */
+        .top-tab-bar {
+            background: var(--input-bg);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.5rem 1rem;
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .top-tab {
+            background: none;
+            border: none;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 2rem;
+            transition: all 0.2s;
+        }
+        .top-tab.active {
+            color: var(--accent-color);
+            background: var(--accent-light);
+        }
+
+        /* Контент вкладок */
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+        }
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* Общий чат */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message-item {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            position: relative;
+        }
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 2px;
+        }
+        .message-nick {
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: flex;
+            align-items: baseline;
+            gap: 0;
+        }
+        .admin-badge {
+            margin-left: 6px;
+            font-size: 0.7rem;
+            background: var(--accent-color);
+            color: white;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
         .nick-main { color: var(--text-secondary); }
         .own-message .nick-main { color: var(--accent-color); }
         .nick-tag { color:#6c6c70; font-weight:400; font-size:0.7rem; }
@@ -96,20 +167,114 @@
         .like-btn.liked svg { fill: #ff375f; stroke: #ff375f; }
         .likes-count { font-size:0.7rem; color:var(--text-secondary); }
         .edited-badge { font-size:0.65rem; color:var(--text-secondary); margin-left:8px; font-style:italic; }
-        .message-divider { margin-top:8px; height:1px; background-color:rgba(84,84,88,0.4); width:100%; }
+        .load-more-btn {
+            background: none; border: none; color: var(--accent-color); cursor: pointer;
+            margin-bottom: 1rem; font-size: 0.9rem;
+        }
 
-        .input-wrapper { background: var(--input-bg); border-top:1px solid rgba(84,84,88,0.6); padding-bottom:env(safe-area-inset-bottom,0); }
-        .input-row { display: flex; gap:12px; align-items: center; padding:0.9rem 1rem; }
-        .settings-btn, .mails-btn {
+        /* Список приватных комнат */
+        .rooms-list {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .room-item {
+            background: var(--input-bg);
+            border-radius: 1rem;
+            padding: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .room-name {
+            font-weight: 500;
+        }
+        .room-members {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        /* Админ-панель */
+        .admin-panel {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .admin-section {
+            background: var(--input-bg);
+            border-radius: 1rem;
+            padding: 1rem;
+        }
+        .admin-section h4 {
+            margin-bottom: 0.8rem;
+        }
+        .admin-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        .admin-row input {
+            flex: 1;
+            padding: 0.5rem;
+            background: #2c2c2e;
+            border: 1px solid var(--border-light);
+            border-radius: 0.8rem;
+            color: white;
+        }
+        .admin-row button {
+            background: var(--accent-color);
+            border: none;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+        .user-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border-bottom: 0.5px solid var(--border-light);
+        }
+        .toggle-admin-btn {
+            background: none;
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            border-radius: 1rem;
+            padding: 0.2rem 0.5rem;
+            cursor: pointer;
+        }
+
+        /* Нижняя панель ввода (общая для всех чатов) */
+        .input-wrapper {
+            background: var(--input-bg);
+            border-top: 1px solid rgba(84,84,88,0.6);
+            padding-bottom: env(safe-area-inset-bottom,0);
+        }
+        .input-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 0.9rem 1rem;
+        }
+        .settings-btn {
             background:none; border:none; cursor:pointer; padding:0; width:2.5rem; height:2.5rem;
             border-radius:2rem; display:flex; align-items:center; justify-content:center; color:var(--text-secondary);
         }
-        .settings-btn svg, .mails-btn svg { width:1.5rem; height:1.5rem; stroke:currentColor; stroke-width:1.5; fill:none; }
-        .mails-btn.has-unread { color: var(--accent-color); }
+        .settings-btn svg { width:1.5rem; height:1.5rem; stroke:currentColor; stroke-width:1.5; fill:none; }
         .input-row textarea {
             flex:1; background:transparent; border:none; padding:0.75rem 0; font-size:1rem;
             color:var(--text-primary); outline:none; resize: none; 
-            font-family:inherit; line-height:1.4; max-height:150px; overflow-y: auto; /* добавляем скролл при превышении */
+            font-family:inherit; line-height:1.4; max-height:150px; overflow-y: auto;
             scroll-margin-bottom: 80px;
         }
         .send-btn {
@@ -117,22 +282,7 @@
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
         }
 
-        /* Редактирование: фиксированная высота 5 строк + скролл */
-        .edit-textarea {
-            width:100%; background:#2c2c2e; border:1px solid var(--border-light); border-radius:1rem; padding:0.5rem;
-            margin-bottom:0.5rem; color:white; font-family:inherit; font-size:1rem; line-height:1.4;
-            height: calc(1.4rem * 5 + 1rem); /* ~ 5 строк + padding */
-            overflow-y: auto;
-            resize: none;
-        }
-        .edit-cancel, .edit-save {
-            width: 2rem; height: 2rem; border-radius: 2rem; display: inline-flex; align-items: center;
-            justify-content: center; font-size: 1rem; cursor: pointer; border: none;
-        }
-        .edit-cancel { background: #3a3a3c; }
-        .edit-cancel svg { width: 1rem; height: 1rem; stroke: white; stroke-width: 1.5; fill: none; }
-        .edit-save { background: var(--accent-color); color: white; }
-
+        /* Модальные окна */
         .modal {
             display: none; position: fixed; top:0; left:0; width:100%; height:100%;
             background-color:rgba(0,0,0,0.7); backdrop-filter:blur(12px); z-index:1000;
@@ -149,7 +299,6 @@
             width:100%; padding:0.6rem 1rem; background:#2c2c2e; border:0.5px solid var(--border-light);
             border-radius:1rem; font-size:1rem; color:white; outline:none;
         }
-        .modal-setting textarea { resize: vertical; min-height:80px; }
         .modal-buttons { display:flex; gap:10px; margin-top:1rem; }
         .modal-buttons button {
             flex:1; padding:0.7rem; border-radius:1rem; font-weight:590; cursor:pointer; border:none;
@@ -158,6 +307,7 @@
         .modal-buttons button:first-child { background: #2c2c2e; color: white; }
         .modal-buttons button:last-child { background: var(--accent-color); color:white; }
 
+        /* Контекстное меню (модальное) */
         .context-menu-modal .modal-content { max-width: 300px; }
         .context-message-nick { font-size:0.75rem; margin-bottom:0.5rem; text-align: center; }
         .context-message-preview {
@@ -171,25 +321,27 @@
         }
         .context-menu-buttons button svg { width: 1.2rem; height: 1.2rem; fill: none; stroke: currentColor; stroke-width: 1.5; }
 
-        .mails-list { max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; margin-bottom:1rem; }
-        .mail-item {
-            background:#2c2c2e; border-radius:1rem; padding:0.8rem; position: relative;
+        /* Редактирование сообщения */
+        .edit-textarea {
+            width:100%; background:#2c2c2e; border:1px solid var(--border-light); border-radius:1rem; padding:0.5rem;
+            margin-bottom:0.5rem; color:white; font-family:inherit; font-size:1rem; line-height:1.4;
+            height: calc(1.4rem * 5 + 1rem);
+            overflow-y: auto;
+            resize: none;
         }
-        .mail-unread-dot {
-            position: absolute; bottom: 8px; left: 8px; width: 8px; height: 8px;
-            background-color: var(--accent-color); border-radius: 50%;
+        .edit-cancel, .edit-save {
+            width: 2rem; height: 2rem; border-radius: 2rem; display: inline-flex; align-items: center;
+            justify-content: center; font-size: 1rem; cursor: pointer; border: none;
         }
-        .mail-header { display:flex; justify-content:space-between; margin-bottom:0.5rem; font-size:0.75rem; color:var(--text-secondary); }
-        .mail-snippet { 
-            font-size:0.85rem; white-space:pre-wrap; word-break:break-word; margin-bottom:0.5rem; 
-            color:var(--text-primary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-        }
-        .mail-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:0.5rem; }
-        .mail-actions button {
-            background: none; border: none; padding: 0.4rem 0.8rem; border-radius: 1rem;
-            color: var(--accent-color); cursor: pointer; font-size:0.8rem;
-        }
+        .edit-cancel { background: #3a3a3c; }
+        .edit-cancel svg { width: 1rem; height: 1rem; stroke: white; stroke-width: 1.5; fill: none; }
+        .edit-save { background: var(--accent-color); color: white; }
 
+        /* Настройки */
+        .settings-container { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.8rem; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .setting-label { font-weight: 500; font-size: 1rem; color: var(--text-primary); }
+        .nick-readonly { border:1px solid var(--border-light); border-radius:1rem; padding:0.6rem 1rem; background:var(--input-bg); color:var(--text-primary); font-size:1rem; }
         .accent-select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
             background-repeat: no-repeat !important;
@@ -198,12 +350,6 @@
             padding-left: 1rem !important;
             appearance: none;
         }
-        .nick-readonly { border:1px solid var(--border-light); border-radius:1rem; padding:0.6rem 1rem; background:var(--input-bg); color:var(--text-primary); font-size:1rem; }
-
-        .view-mail-header { margin-bottom: 0.5rem; }
-        .view-mail-time { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
-        .view-mail-from { font-size: 0.8rem; font-weight: 600; color: var(--accent-color); margin-bottom: 0.5rem; }
-        .view-mail-text { white-space: pre-wrap; word-break: break-word; margin-top: 0.5rem; }
     </style>
 </head>
 <body>
@@ -219,75 +365,109 @@
 </div>
 
 <div id="appContainer" class="app-container" style="display: none;">
-    <div class="chat-messages" id="messagesContainer"></div>
-    <div class="input-wrapper">
-        <div class="input-row">
-            <button class="mails-btn" id="mailsBtn">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                    <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-            </button>
-            <button class="settings-btn" id="settingsBtn">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3"></circle>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                </svg>
-            </button>
-            <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
-            <button class="send-btn" id="sendBtn">↑</button>
+    <!-- Верхние вкладки -->
+    <div class="top-tab-bar">
+        <button class="top-tab active" data-tab="public">Общий</button>
+        <button class="top-tab" data-tab="private">Приватные</button>
+        <button id="adminTabBtn" class="top-tab" data-tab="admin" style="display: none;">Админ</button>
+    </div>
+
+    <!-- Вкладка "Общий чат" -->
+    <div id="publicTab" class="tab-content active">
+        <div class="chat-messages" id="publicMessagesContainer"></div>
+        <div class="input-wrapper">
+            <div class="input-row">
+                <button class="settings-btn" id="settingsBtn">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                </button>
+                <textarea id="publicMessageInput" placeholder="Сообщение..." rows="1"></textarea>
+                <button class="send-btn" id="sendPublicBtn">↑</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладка "Приватные чаты" -->
+    <div id="privateTab" class="tab-content">
+        <div id="roomsList" class="rooms-list">Загрузка...</div>
+    </div>
+
+    <!-- Вкладка "Админ" -->
+    <div id="adminTab" class="tab-content">
+        <div class="admin-panel">
+            <div class="admin-section">
+                <h4>Добавить администратора</h4>
+                <div class="admin-row">
+                    <input type="text" id="adminNickInput" placeholder="Ник#Тег">
+                    <button id="grantAdminBtn">✓</button>
+                </div>
+            </div>
+            <div class="admin-section">
+                <h4>Список пользователей</h4>
+                <div id="usersList" class="user-list">Загрузка...</div>
+            </div>
+            <div class="admin-section">
+                <h4>Создать приватный чат</h4>
+                <div class="admin-row">
+                    <input type="text" id="roomNameInput" placeholder="Название чата">
+                    <button id="createRoomBtn">+</button>
+                </div>
+                <div class="admin-row">
+                    <input type="text" id="roomMembersInput" placeholder="Участники (ник#тег через запятую)">
+                </div>
+            </div>
+            <div class="admin-section">
+                <h4>Участники онлайн: <span id="onlineCount">0</span></h4>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Модальные окна (настройки, смена ника, смена PIN, контекстное меню, подтверждение) -->
 <div id="settingsModal" class="modal"><div class="modal-content"><h3>Настройки</h3><div class="modal-setting"><label>Ваш ник</label><div id="displayNickWithTag" class="nick-readonly"></div><button id="changeNickBtn" style="margin-top:8px; width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Изменить ник</button></div><div class="modal-setting"><label>Сменить PIN</label><button id="changePinBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer;">Сменить PIN</button></div><div class="modal-setting"><label>Оттенок</label><select id="accentSelect" class="accent-select"><option value="blue">Синий</option><option value="indigo">Индиго</option><option value="purple">Фиолетовый</option><option value="pink">Розовый</option><option value="red">Красный</option><option value="orange">Оранжевый</option><option value="beige">Бежевый</option><option value="yellow">Жёлтый</option><option value="mint">Мятный</option><option value="teal">Бирюзовый</option><option value="gray">Светло-серый</option></select></div><button id="closeModalBtn" style="width:100%; background:#2c2c2e; border:none; padding:0.7rem; border-radius:1rem; color:white; cursor:pointer; margin-top:0.5rem;">Закрыть</button></div></div>
 <div id="changeNickModal" class="modal"><div class="modal-content"><h3>Смена ника</h3><div class="modal-setting"><label>Новый ник</label><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickBtn">Закрыть</button><button id="applyNickBtn">Применить</button></div></div></div>
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-buttons"><button id="cancelPinBtn">Закрыть</button><button id="applyPinBtn">Применить</button></div></div></div>
-<div id="mailsModal" class="modal"><div class="modal-content" style="max-width:400px;"><h3>Письма</h3><div id="mailsList" class="mails-list">Загрузка...</div><div class="modal-buttons"><button id="closeMailsBtn">Закрыть</button><button id="newMailBtn">Написать</button></div></div></div>
-<div id="newMailModal" class="modal"><div class="modal-content"><h3>Новое письмо</h3><div class="modal-setting"><label>Кому (Ник#Тег)</label><input type="text" id="mailTo" placeholder="Пример: Пользователь#123"></div><div class="modal-setting"><label>Текст</label><textarea id="mailText" rows="3"></textarea></div><div class="modal-buttons"><button id="cancelMailBtn">Закрыть</button><button id="sendMailBtn">Отправить</button></div></div></div>
-<div id="viewMailModal" class="modal"><div class="modal-content"><h3>Письмо</h3><div id="viewMailContent" style="white-space:pre-wrap; word-break:break-word;"></div><div class="modal-buttons"><button id="closeViewMailBtn">Закрыть</button><button id="replyMailBtn">Ответить</button></div></div></div>
-<div id="replyMailModal" class="modal"><div class="modal-content"><h3>Ответ на письмо</h3><div class="modal-setting"><label>Исходное письмо</label><div id="originalMailPreview" style="background:#2c2c2e; padding:0.5rem; border-radius:1rem; margin-bottom:0.5rem; font-size:0.9rem;"></div></div><div class="modal-setting"><label>Ваш ответ</label><textarea id="replyMailText" rows="3"></textarea></div><div class="modal-buttons"><button id="cancelReplyBtn">Закрыть</button><button id="sendReplyBtn">Отправить</button></div></div></div>
-
-<div id="contextMenuModal" class="modal context-menu-modal">
-    <div class="modal-content">
-        <div id="contextMessageNick" class="context-message-nick"></div>
-        <div id="contextMessagePreview" class="context-message-preview"></div>
-        <div class="context-menu-buttons" id="contextMenuButtons"></div>
-    </div>
-</div>
-
-<div id="confirmModal" class="modal">
-    <div class="modal-content">
-        <h3>Подтверждение</h3>
-        <p id="confirmMessage" style="margin-bottom: 1rem;">Вы уверены?</p>
-        <div class="modal-buttons">
-            <button id="confirmCancelBtn">Отмена</button>
-            <button id="confirmOkBtn">Удалить</button>
-        </div>
-    </div>
-</div>
+<div id="contextMenuModal" class="modal context-menu-modal"><div class="modal-content"><div id="contextMessageNick" class="context-message-nick"></div><div id="contextMessagePreview" class="context-message-preview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
+<div id="confirmModal" class="modal"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage" style="margin-bottom:1rem;">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">Удалить</button></div></div></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
+    // ---------- Глобальные переменные ----------
     let socket = null;
-    let currentUser = { full_nick: "" };
-    let messages = [];
+    let currentUser = { full_nick: "", is_admin: false };
     let authToken = localStorage.getItem('simply_token');
     let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { accent: 'blue' };
-    let unreadMailsCount = 0;
-    let currentMails = [];
-    let currentMailForReply = null;
+    
+    // Общий чат
+    let publicMessages = [];
+    let publicPage = 1;
+    let publicTotal = 0;
+    let publicLoading = false;
     let editingMessageId = null;
     let pendingDeleteMessageId = null;
+    let contextMessageData = null;
 
+    // Приватные комнаты
+    let rooms = [];
+    let currentRoom = null; // { id, name }
+    let roomMessages = {};
+    let roomPages = {};
+    let roomTotal = {};
+    let roomLoading = {};
+    
+    // Админка
+    let usersList = [];
+
+    // ---------- Вспомогательные функции ----------
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
     function linkify(text) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;">${url}</a>`);
     }
-
-    function applyAccent(accent) {
+function applyAccent(accent) {
         const classes = ['accent-blue','accent-indigo','accent-purple','accent-pink','accent-red','accent-orange','accent-beige','accent-yellow','accent-mint','accent-teal','accent-gray'];
         document.body.classList.remove(...classes);
         if (accent === 'blue') document.body.classList.add('accent-blue');
@@ -305,12 +485,12 @@
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
-    function renderMessages() {
-        const container = document.getElementById('messagesContainer');
+    // Рендер общего чата
+    function renderPublicMessages() {
+        const container = document.getElementById('publicMessagesContainer');
         if (!container) return;
-        const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
         container.innerHTML = '';
-        messages.forEach(msg => {
+        publicMessages.forEach(msg => {
             const isOwn = currentUser && msg.full_nick === currentUser.full_nick;
             const { nick, tag } = splitFullNick(msg.full_nick);
             const msgDiv = document.createElement('div');
@@ -319,220 +499,431 @@
             msgDiv.setAttribute('data-id', msg.id);
             msgDiv.setAttribute('data-full-nick', msg.full_nick);
             msgDiv.setAttribute('data-text', msg.text);
-            if (editingMessageId === msg.id) {
-                msgDiv.innerHTML = `
-                    <div class="message-header"><div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span></div></div>
-                    <textarea id="edit-textarea-${msg.id}" class="edit-textarea" style="height: calc(1.4rem * 5 + 1rem); overflow-y: auto;">${escapeHtml(msg.text)}</textarea>
-                    <div style="display:flex; gap:8px; justify-content:flex-end;">
-                        <button class="edit-cancel" data-id="${msg.id}"><svg viewBox="0 0 24 24" stroke="white" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-                        <button class="edit-save" data-id="${msg.id}">✓</button>
+            let adminBadge = '';
+            if (msg.is_admin) adminBadge = '<span class="admin-badge">Админ</span>';
+            msgDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-nick">
+                        <span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>
+                        ${adminBadge}
                     </div>
-                    <div class="message-divider"></div>
-                `;
-            } else {
-                msgDiv.innerHTML = `
-                    <div class="message-header">
-                        <div class="message-nick">
-                            <span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>
-                        </div>
-                    </div>
-                    <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
-                    ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
-                    <div class="message-footer">
-                        ${msg.likes_count > 0 ? `<button class="like-btn ${msg.is_liked ? 'liked' : ''}" data-id="${msg.id}"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span class="likes-count">${msg.likes_count}</span></button>` : ''}
-                    </div>
-                    <div class="message-divider"></div>
-                `;
-                const actionsBtn = document.createElement('button');
-                actionsBtn.className = 'message-actions-btn';
-                actionsBtn.setAttribute('data-id', msg.id);
-                actionsBtn.setAttribute('data-full-nick', msg.full_nick);
-                actionsBtn.setAttribute('data-text', msg.text);
-                actionsBtn.innerHTML = '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>';
-                actionsBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const id = parseInt(actionsBtn.dataset.id);
-                    const full = actionsBtn.dataset.fullNick;
-                    const text = actionsBtn.dataset.text;
-                    const isOwn = full === currentUser.full_nick;
-                    showContextMenu(id, full, text, isOwn);
-                });
-                msgDiv.appendChild(actionsBtn);
-            }
+                </div>
+                <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
+                ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
+                <div class="message-footer">
+                    <button class="like-btn ${msg.is_liked ? 'liked' : ''}" data-id="${msg.id}" data-room="false"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span class="likes-count">${msg.likes_count || 0}</span></button>
+                </div>
+                <div class="message-divider"></div>
+            `;
             container.appendChild(msgDiv);
+            const actionsBtn = document.createElement('button');
+            actionsBtn.className = 'message-actions-btn';
+            actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
+            actionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, false, null);
+            });
+            msgDiv.appendChild(actionsBtn);
         });
-        document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', async (e) => { e.stopPropagation(); await toggleLike(parseInt(btn.dataset.id)); }));
-        document.querySelectorAll('.edit-save').forEach(btn => btn.addEventListener('click', async () => { const id=parseInt(btn.dataset.id), textarea=document.getElementById(`edit-textarea-${id}`), newText=textarea.value.trim(); if(newText && newText!==messages.find(m=>m.id===id)?.text){ await fetch('/edit-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:id,full_nick:currentUser.full_nick,newText})}); } editingMessageId=null; await loadHistory(); }));
-        document.querySelectorAll('.edit-cancel').forEach(btn => btn.addEventListener('click', () => { editingMessageId=null; renderMessages(); }));
-        if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
+        if (publicPage * 25 < publicTotal) {
+            const loadMore = document.createElement('button');
+            loadMore.textContent = 'Загрузить ещё';
+            loadMore.className = 'load-more-btn';
+            loadMore.onclick = () => loadPublicMessages(publicPage + 1);
+            container.appendChild(loadMore);
+        }
+        document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', async (e) => { e.stopPropagation(); const id=parseInt(btn.dataset.id); await toggleLike(id, false, null); }));
     }
 
-    async function toggleLike(messageId) {
+    async function loadPublicMessages(page = 1) {
+        if (publicLoading) return;
+        publicLoading = true;
         try {
-            const res = await fetch('/like', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ messageId, full_nick: currentUser.full_nick }) });
+            const res = await fetch(`/messages?full_nick=${encodeURIComponent(currentUser.full_nick)}&page=${page}`);
             const data = await res.json();
-            if(data.success) { const msg=messages.find(m=>m.id===messageId); if(msg){ msg.likes_count=data.likes_count; msg.is_liked=!msg.is_liked; renderMessages(); } }
-        } catch(e){ console.error(e); }
+            if (page === 1) publicMessages = data.messages;
+            else publicMessages = [...data.messages, ...publicMessages];
+            publicPage = data.page;
+            publicTotal = data.total;
+            renderPublicMessages();
+        } catch(e) { console.error(e); }
+        publicLoading = false;
     }
 
-    function showContextMenu(messageId, full_nick, text, isOwn) {
+    // Рендер списка комнат
+    async function loadRooms() {
+        const res = await fetch(`/rooms?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        rooms = await res.json();
+        const container = document.getElementById('roomsList');
+        if (!container) return;
+        if (rooms.length === 0) { container.innerHTML = '<div style="text-align:center; padding:1rem;">Нет приватных чатов</div>'; return; }
+        container.innerHTML = '';
+        rooms.forEach(room => {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'room-item';
+            roomDiv.innerHTML = `
+                <div>
+                    <div class="room-name">${escapeHtml(room.name)}</div>
+                    <div class="room-members">Создатель: ${escapeHtml(room.created_by)}</div>
+                </div>
+                <button class="join-room-btn" data-id="${room.id}" data-name="${escapeHtml(room.name)}">Войти</button>
+            `;
+            container.appendChild(roomDiv);
+        });
+        document.querySelectorAll('.join-room-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const roomId = parseInt(btn.dataset.id);
+                const roomName = btn.dataset.name;
+                openPrivateRoom(roomId, roomName);
+            });
+        });
+    }
+
+    function openPrivateRoom(roomId, roomName) {
+        currentRoom = { id: roomId, name: roomName };
+        if (!roomMessages[roomId]) roomMessages[roomId] = [];
+        if (!roomPages[roomId]) roomPages[roomId] = 1;
+        if (!roomTotal[roomId]) roomTotal[roomId] = 0;
+        renderPrivateRoomView();
+        loadRoomMessages(roomId, 1);
+        socket.emit('join room', roomId);
+    }
+
+    function renderPrivateRoomView() {
+        const container = document.getElementById('roomsList');
+        container.innerHTML = `
+            <div style="padding:1rem;">
+                <button id="backToRoomsBtn" style="background:none; border:none; color:var(--accent-color); margin-bottom:1rem;">← Назад к списку</button>
+                <h3>${escapeHtml(currentRoom.name)}</h3>
+                <div id="roomMessagesContainer" style="max-height:60vh; overflow-y:auto; margin:1rem 0;"></div>
+                <div class="input-row">
+                    <textarea id="roomMessageInput" placeholder="Сообщение..." rows="1"></textarea>
+                    <button id="sendRoomBtn" class="send-btn">↑</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('backToRoomsBtn').onclick = () => {
+            socket.emit('leave room', currentRoom.id);
+            currentRoom = null;
+            loadRooms();
+        };
+        document.getElementById('sendRoomBtn').onclick = () => sendRoomMessage();
+        const roomInput = document.getElementById('roomMessageInput');
+        roomInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendRoomMessage(); } });
+        roomInput.addEventListener('input', function() { this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,150)+'px'; });
+        renderRoomMessages(currentRoom.id);
+    }
+
+    function renderRoomMessages(roomId) {
+        const container = document.getElementById('roomMessagesContainer');
+        if (!container) return;
+        container.innerHTML = '';
+        const msgs = roomMessages[roomId] || [];
+        msgs.forEach(msg => {
+            const isOwn = currentUser && msg.full_nick === currentUser.full_nick;
+            const { nick, tag } = splitFullNick(msg.full_nick);
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-item';
+            if (isOwn) msgDiv.classList.add('own-message');
+            msgDiv.setAttribute('data-id', msg.id);
+            let adminBadge = '';
+            if (msg.is_admin) adminBadge = '<span class="admin-badge">Админ</span>';
+            msgDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>${adminBadge}</div>
+                </div>
+                <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
+                ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
+                <div class="message-footer">
+                    <button class="like-btn ${msg.is_liked ? 'liked' : ''}" data-id="${msg.id}" data-room="true" data-roomid="${roomId}"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg><span class="likes-count">${msg.likes_count || 0}</span></button>
+                </div>
+                <div class="message-divider"></div>
+            `;
+            container.appendChild(msgDiv);
+            const actionsBtn = document.createElement('button');
+            actionsBtn.className = 'message-actions-btn';
+            actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
+            actionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, true, roomId);
+            });
+            msgDiv.appendChild(actionsBtn);
+        });
+        if (roomPages[roomId] * 25 < roomTotal[roomId]) {
+            const loadMore = document.createElement('button');
+            loadMore.textContent = 'Загрузить ещё';
+            loadMore.className = 'load-more-btn';
+            loadMore.onclick = () => loadRoomMessages(roomId, roomPages[roomId] + 1);
+            container.appendChild(loadMore);
+        }
+        document.querySelectorAll('.like-btn').forEach(btn => btn.addEventListener('click', async (e) => { e.stopPropagation(); const id=parseInt(btn.dataset.id), isRoom=btn.dataset.room==='true', roomId=btn.dataset.roomid; await toggleLike(id, isRoom, roomId); }));
+    }
+
+    async function loadRoomMessages(roomId, page = 1) {
+        if (roomLoading[roomId]) return;
+        roomLoading[roomId] = true;
+        try {
+            const res = await fetch(`/room-messages?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}&page=${page}`);
+            const data = await res.json();
+            if (page === 1) roomMessages[roomId] = data.messages;
+            else roomMessages[roomId] = [...data.messages, ...roomMessages[roomId]];
+            roomPages[roomId] = data.page;
+            roomTotal[roomId] = data.total;
+            if (currentRoom && currentRoom.id === roomId) renderRoomMessages(roomId);
+        } catch(e) { console.error(e); }
+        roomLoading[roomId] = false;
+    }
+
+    function sendRoomMessage() {
+        if (!currentRoom) return;
+        const input = document.getElementById('roomMessageInput');
+        const text = input.value.trim();
+        if (!text || !socket) return;
+        socket.emit('new room message', { roomId: currentRoom.id, full_nick: currentUser.full_nick, text });
+        input.value = '';
+        input.style.height = 'auto';
+    }
+
+    // Лайки
+    async function toggleLike(messageId, isRoom, roomId) {
+        try {
+            const res = await fetch('/like', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, isRoom, roomId })
+            });
+            const data = await res.json();
+            if(data.success) {
+                if (isRoom) {
+                    const msg = roomMessages[roomId]?.find(m => m.id === messageId);
+                    if(msg) { msg.likes_count = data.likes_count; msg.is_liked = !msg.is_liked; if(currentRoom?.id === roomId) renderRoomMessages(roomId); }
+                } else {
+                    const msg = publicMessages.find(m => m.id === messageId);
+                    if(msg) { msg.likes_count = data.likes_count; msg.is_liked = !msg.is_liked; renderPublicMessages(); }
+                }
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // Контекстное меню
+    function showContextMenu(messageId, full_nick, text, isOwn, isRoom, roomId) {
         const { nick, tag } = splitFullNick(full_nick);
-        const msg = messages.find(m => m.id === messageId);
-        const isLiked = msg ? msg.is_liked : false;
+        const isAdmin = currentUser.is_admin;
         document.getElementById('contextMessageNick').innerHTML = `<span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>`;
         document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text.substring(0, 150))) + (text.length>150?'…':'');
         const container = document.getElementById('contextMenuButtons');
         container.innerHTML = `
-            <button id="ctx-like"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> ${isLiked ? 'Убрать лайк' : 'Лайкнуть'}</button>
-            <button id="ctx-copy"><svg viewBox="0 0 24 24" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
-            ${isOwn ? `<button id="ctx-edit"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>
-            <button id="ctx-delete"><svg viewBox="0 0 24 24" stroke-width="1.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
-            <button id="ctx-close"><svg viewBox="0 0 24 24" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
+            <button id="ctx-like"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg> Лайкнуть</button>
+            <button id="ctx-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
+            ${(isOwn || isAdmin) ? `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>
+            <button id="ctx-delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
+            <button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
         `;
-        document.getElementById('ctx-like')?.addEventListener('click', async () => { await toggleLike(messageId); document.getElementById('contextMenuModal').style.display = 'none'; });
-        document.getElementById('ctx-copy')?.addEventListener('click', () => { navigator.clipboard.writeText(text); document.getElementById('contextMenuModal').style.display = 'none'; });
-        document.getElementById('ctx-edit')?.addEventListener('click', () => { editingMessageId = messageId; renderMessages(); document.getElementById('contextMenuModal').style.display = 'none'; });
-        document.getElementById('ctx-delete')?.addEventListener('click', () => { pendingDeleteMessageId = messageId; document.getElementById('confirmMessage').innerText = 'Удалить сообщение?'; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('contextMenuModal').style.display = 'none'; });
-        document.getElementById('ctx-close')?.addEventListener('click', () => { document.getElementById('contextMenuModal').style.display = 'none'; });
+        document.getElementById('ctx-like').onclick = async () => { await toggleLike(messageId, isRoom, roomId); document.getElementById('contextMenuModal').style.display = 'none'; };
+        document.getElementById('ctx-copy').onclick = () => { navigator.clipboard.writeText(text); document.getElementById('contextMenuModal').style.display = 'none'; };
+        document.getElementById('ctx-edit').onclick = () => { editingMessageId = messageId; document.getElementById('contextMenuModal').style.display = 'none'; if (!isRoom) renderPublicMessages(); else if (currentRoom && currentRoom.id === roomId) renderRoomMessages(roomId); };
+        document.getElementById('ctx-delete').onclick = () => { pendingDeleteMessageId = messageId; document.getElementById('confirmMessage').innerText = 'Удалить сообщение?'; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('contextMenuModal').style.display = 'none'; };
+        document.getElementById('ctx-close').onclick = () => document.getElementById('contextMenuModal').style.display = 'none';
         document.getElementById('contextMenuModal').style.display = 'flex';
     }
 
-    async function loadHistory() {
-        try { const res = await fetch(`/messages?full_nick=${encodeURIComponent(currentUser.full_nick)}`); const data = await res.json(); messages = data; renderMessages(); } catch(e){ console.error(e); }
-    }
-
-    async function loadMails() {
-        const mailsListDiv = document.getElementById('mailsList');
-        mailsListDiv.innerHTML = 'Загрузка...';
-        const res = await fetch(`/mails?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
-        const data = await res.json();
-        currentMails = data;
-        unreadMailsCount = data.filter(m=>!m.is_read).length;
-        const mailsBtn = document.getElementById('mailsBtn');
-        if(unreadMailsCount>0) mailsBtn.classList.add('has-unread');
-        else mailsBtn.classList.remove('has-unread');
-        renderMailsList();
-    }
-    function renderMailsList() {
-        const container = document.getElementById('mailsList');
-        if(!container) return;
-        if(currentMails.length===0){ container.innerHTML='<div style="text-align:center; padding:1rem;">Нет писем</div>'; return; }
+    // Админка
+    async function loadUsersForAdmin() {
+        if (!currentUser.is_admin) return;
+        const res = await fetch(`/users?admin_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        usersList = await res.json();
+        const container = document.getElementById('usersList');
         container.innerHTML = '';
-        currentMails.forEach(mail=>{ const {nick,tag}=splitFullNick(mail.from_full_nick); const mailDiv=document.createElement('div'); mailDiv.className='mail-item';
-            if(!mail.is_read) { const dot=document.createElement('div'); dot.className='mail-unread-dot'; mailDiv.appendChild(dot); }
-            mailDiv.innerHTML+=`
-                <div class="mail-header"><span>${escapeHtml(nick)}${escapeHtml(tag)}</span><span>${new Date(mail.created_at).toLocaleString().slice(0,-3)}</span></div>
-                <div class="mail-snippet">${linkify(escapeHtml(mail.text))}</div>
-                <div class="mail-actions"><button data-id="${mail.id}" class="read-mail">Прочитать</button><button data-id="${mail.id}" class="reply-mail">Ответить</button><button data-id="${mail.id}" class="delete-mail">Удалить</button></div>
+        usersList.forEach(user => {
+            const div = document.createElement('div');
+            div.className = 'user-item';
+            div.innerHTML = `
+                <span>${escapeHtml(user.full_nick)}</span>
+                <button class="toggle-admin-btn" data-nick="${escapeHtml(user.full_nick)}" data-is-admin="${user.is_admin}">${user.is_admin ? 'Забрать админку' : 'Дать админку'}</button>
             `;
-            container.appendChild(mailDiv);
+            container.appendChild(div);
         });
-        document.querySelectorAll('.read-mail').forEach(btn=>btn.addEventListener('click',()=>openMail(parseInt(btn.dataset.id))));
-        document.querySelectorAll('.reply-mail').forEach(btn=>btn.addEventListener('click',()=>openReplyMail(parseInt(btn.dataset.id))));
-        document.querySelectorAll('.delete-mail').forEach(btn=>btn.addEventListener('click',async()=>{ const id=parseInt(btn.dataset.id); await fetch('/delete-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mailId:id,full_nick:currentUser.full_nick})}); await loadMails(); }));
+        document.querySelectorAll('.toggle-admin-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const target = btn.dataset.nick;
+                await fetch('/toggle-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_nick: currentUser.full_nick, target_full_nick: target })
+                });
+                await loadUsersForAdmin();
+            });
+        });
     }
-    async function openMail(mailId){ const mail=currentMails.find(m=>m.id===mailId); if(!mail) return; if(!mail.is_read){ await fetch('/read-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mailId,full_nick:currentUser.full_nick})}); mail.is_read=true; await loadMails(); } const {nick,tag}=splitFullNick(mail.from_full_nick); document.getElementById('viewMailContent').innerHTML=`<div class="view-mail-header"><div class="view-mail-time">${new Date(mail.created_at).toLocaleString().slice(0,-3)}</div><div class="view-mail-from">${escapeHtml(nick)}${escapeHtml(tag)}</div></div><div class="view-mail-text">${linkify(escapeHtml(mail.text))}</div>`; document.getElementById('viewMailModal').style.display='flex'; currentMailForReply=mail; }
-    function openReplyMail(mailId){ const mail=currentMails.find(m=>m.id===mailId); if(!mail) return; const {nick,tag}=splitFullNick(mail.from_full_nick); document.getElementById('originalMailPreview').innerHTML=`<strong>${escapeHtml(nick)}${escapeHtml(tag)}</strong><br>${linkify(escapeHtml(mail.text))}`; document.getElementById('replyMailText').value=''; document.getElementById('replyMailModal').style.display='flex'; currentMailForReply=mail; }
-    async function sendNewMail(to,text){ const res=await fetch('/send-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_full_nick:currentUser.full_nick,to_full_nick:to,text})}); const data=await res.json(); if(data.success){ alert('Письмо отправлено'); document.getElementById('newMailModal').style.display='none'; } else alert(data.error||'Ошибка'); }
-    async function sendReply(replyText){ if(!currentMailForReply) return; const res=await fetch('/reply-mail',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from_full_nick:currentUser.full_nick,to_full_nick:currentMailForReply.from_full_nick,replyText})}); const data=await res.json(); if(data.success){ alert('Ответ отправлен'); document.getElementById('replyMailModal').style.display='none'; await loadMails(); } else alert(data.error||'Ошибка'); }
 
-    async function changeNick(newNick){ const res=await fetch('/change-nick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,newNick})}); const data=await res.json(); if(data.success){ currentUser.full_nick=data.newFullNick; localStorage.setItem('simply_nick',newNick); await loadHistory(); updateSettingsUI(); alert('Ник изменён'); } else alert(data.error||'Ошибка'); }
-    async function changePin(oldPin,newPin){ const res=await fetch('/change-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,oldPin,newPin})}); const data=await res.json(); if(data.success) alert('PIN изменён'); else alert(data.error||'Ошибка'); }
-    function updateSettingsUI(){ const {nick,tag}=splitFullNick(currentUser.full_nick); document.getElementById('displayNickWithTag').innerHTML=`${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`; }
+    async function createRoom() {
+        const name = document.getElementById('roomNameInput').value.trim();
+        const membersStr = document.getElementById('roomMembersInput').value.trim();
+        let members = membersStr ? membersStr.split(',').map(s => s.trim()) : [];
+        if (!name) return;
+        const res = await fetch('/create-room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, created_by: currentUser.full_nick, members })
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Комната создана');
+            document.getElementById('roomNameInput').value = '';
+            document.getElementById('roomMembersInput').value = '';
+            await loadRooms();
+        } else alert('Ошибка');
+    }
 
-    async function authWithPin(nick,pin){
-        try{ const res=await fetch('/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nick,pin})}); const data=await res.json();
-            if(data.success){ currentUser.full_nick=data.full_nick; authToken=data.token; localStorage.setItem('simply_token',authToken); localStorage.setItem('simply_nick',nick); document.getElementById('loginScreen').style.display='none'; document.getElementById('appContainer').style.display='flex';
-                if(socket) socket.disconnect(); socket=io();
-                socket.on('message received',(newMsg)=>{ messages.push(newMsg); renderMessages(); });
-                socket.on('message deleted',(msgId)=>{ messages=messages.filter(m=>m.id!==msgId); renderMessages(); });
-                socket.on('message edited',({messageId,newText})=>{ const msg=messages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderMessages(); } });
-                socket.on('like updated',({messageId,likes_count,is_liked})=>{ const msg=messages.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; renderMessages(); } });
-                socket.on('nick changed',({oldFullNick,newFullNick})=>{ messages.forEach(m=>{ if(m.full_nick===oldFullNick) m.full_nick=newFullNick; }); if(currentUser.full_nick===oldFullNick) currentUser.full_nick=newFullNick; renderMessages(); updateSettingsUI(); });
-                socket.on('new mail',({to_full_nick})=>{ if(to_full_nick===currentUser.full_nick) loadMails(); });
-                await loadHistory(); await loadMails();
+    // Авторизация
+    async function authWithPin(nick, pin) {
+        try {
+            const res = await fetch('/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nick, pin }) });
+            const data = await res.json();
+            if (data.success) {
+                currentUser.full_nick = data.full_nick;
+                currentUser.is_admin = data.is_admin;
+                authToken = data.token;
+                localStorage.setItem('simply_token', authToken);
+                localStorage.setItem('simply_nick', nick);
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                if (socket) socket.disconnect();
+                socket = io();
+                socket.emit('user online', currentUser.full_nick);
+                socket.on('online count', (count) => { document.getElementById('onlineCount').innerText = count; });
+                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
+                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
+                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
+                socket.on('like updated', ({messageId,likes_count,is_liked}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; renderPublicMessages(); } });
+                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_like_updated', ({roomId, messageId, likes_count, is_liked}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                await loadPublicMessages();
+                await loadRooms();
+                if (currentUser.is_admin) {
+                    document.getElementById('adminTabBtn').style.display = 'block';
+                    await loadUsersForAdmin();
+                }
+                document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`;
                 return true;
-            } else { document.getElementById('loginError').innerText=data.error||'Ошибка входа'; return false; }
-        } catch(e){ document.getElementById('loginError').innerText='Ошибка соединения'; return false; }
+            } else { document.getElementById('loginError').innerText = data.error || 'Ошибка входа'; return false; }
+        } catch(e) { document.getElementById('loginError').innerText = 'Ошибка соединения'; return false; }
     }
-    async function verifyToken(){
-        const token=localStorage.getItem('simply_token'); if(!token) return false;
-        try{ const res=await fetch('/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}); const data=await res.json();
-            if(data.success){ currentUser.full_nick=data.full_nick; authToken=token; document.getElementById('loginScreen').style.display='none'; document.getElementById('appContainer').style.display='flex';
-                if(socket) socket.disconnect(); socket=io();
-                socket.on('message received',(newMsg)=>{ messages.push(newMsg); renderMessages(); });
-                socket.on('message deleted',(msgId)=>{ messages=messages.filter(m=>m.id!==msgId); renderMessages(); });
-                socket.on('message edited',({messageId,newText})=>{ const msg=messages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderMessages(); } });
-                socket.on('like updated',({messageId,likes_count,is_liked})=>{ const msg=messages.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; renderMessages(); } });
-                socket.on('nick changed',({oldFullNick,newFullNick})=>{ messages.forEach(m=>{ if(m.full_nick===oldFullNick) m.full_nick=newFullNick; }); if(currentUser.full_nick===oldFullNick) currentUser.full_nick=newFullNick; renderMessages(); updateSettingsUI(); });
-                socket.on('new mail',({to_full_nick})=>{ if(to_full_nick===currentUser.full_nick) loadMails(); });
-                await loadHistory(); await loadMails();
+
+    async function verifyToken() {
+        const token = localStorage.getItem('simply_token');
+        if (!token) return false;
+        try {
+            const res = await fetch('/verify', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ token }) });
+            const data = await res.json();
+            if (data.success) {
+                currentUser.full_nick = data.full_nick;
+                currentUser.is_admin = data.is_admin;
+                authToken = token;
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('appContainer').style.display = 'flex';
+                socket = io();
+                socket.emit('user online', currentUser.full_nick);
+                socket.on('online count', (count) => { document.getElementById('onlineCount').innerText = count; });
+                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
+                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
+                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
+                socket.on('like updated', ({messageId,likes_count,is_liked}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; renderPublicMessages(); } });
+                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_like_updated', ({roomId, messageId, likes_count, is_liked}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.likes_count=likes_count; msg.is_liked=is_liked; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                await loadPublicMessages();
+                await loadRooms();
+                if (currentUser.is_admin) {
+                    document.getElementById('adminTabBtn').style.display = 'block';
+                    await loadUsersForAdmin();
+                }
+                const { nick, tag } = splitFullNick(currentUser.full_nick);
+                document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:#6c6c70;">${escapeHtml(tag)}</span>`;
                 return true;
             }
-        } catch(e){}
+        } catch(e) {}
         return false;
     }
 
-    function sendMessage(){
-        const input=document.getElementById('messageInput');
-        const text=input.value;
-        if(!text.trim() || !socket || !currentUser.full_nick) return;
-        socket.emit('new message',{full_nick:currentUser.full_nick,text});
-        input.value='';
-        input.style.height='auto';
-        setTimeout(() => {
-            input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 50);
+    function sendPublicMessage() {
+        const input = document.getElementById('publicMessageInput');
+        const text = input.value.trim();
+        if (!text || !socket || !currentUser.full_nick) return;
+        socket.emit('new message', { full_nick: currentUser.full_nick, text });
+        input.value = '';
+        input.style.height = 'auto';
         input.focus();
     }
-    function autoResizeTextarea(){
-        const textarea=document.getElementById('messageInput');
-        textarea.style.height='auto';
-        textarea.style.height=Math.min(textarea.scrollHeight,150)+'px';
+
+    function autoResizeTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
     }
 
-    // Полностью запрещаем прокрутку страницы
-    document.body.addEventListener('touchmove', (e) => {
-        if (!e.target.closest('.chat-messages') && !e.target.closest('.input-row textarea') && !e.target.closest('.edit-textarea')) {
-            e.preventDefault();
-        }
-    }, { passive: false });
-
-    window.onload=async()=>{
-        applyAccent(appSettings.accent); document.getElementById('accentSelect').value=appSettings.accent; document.getElementById('accentSelect').onchange=e=>applyAccent(e.target.value);
-        const logged=await verifyToken();
-        if(!logged){ document.getElementById('loginScreen').style.display='flex'; document.getElementById('appContainer').style.display='none'; }
-        else{ document.getElementById('loginScreen').style.display='none'; document.getElementById('appContainer').style.display='flex'; updateSettingsUI(); }
-
-        document.getElementById('loginBtn').onclick=()=>{ const nick=document.getElementById('loginNick').value.trim(), pin=document.getElementById('loginPin').value; if(!nick||!pin||pin.length!==4||!/^\d+$/.test(pin)){ document.getElementById('loginError').innerText='Введите ник и 4-значный PIN'; return; } authWithPin(nick,pin); };
-        document.getElementById('sendBtn').onclick=sendMessage;
-        const msgInput=document.getElementById('messageInput'); msgInput.addEventListener('input',autoResizeTextarea);
-        msgInput.addEventListener('keypress',(e)=>{ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const start=msgInput.selectionStart, end=msgInput.selectionEnd; msgInput.value=msgInput.value.substring(0,start)+'\n'+msgInput.value.substring(end); msgInput.selectionStart=msgInput.selectionEnd=start+1; autoResizeTextarea(); } });
-        msgInput.addEventListener('focus', () => {
-            setTimeout(() => {
-                msgInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
+    // Обработка редактирования сообщений
+    function handleEditSave(messageId, isRoom, roomId, newText) {
+        fetch('/edit-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, newText })
         });
-        document.getElementById('messagesContainer').addEventListener('scroll',()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTimeout); window.scrollTimeout=setTimeout(()=>{ window.isUserScrolling=false; },200); });
+    }
 
-        const settingsModal=document.getElementById('settingsModal'); document.getElementById('settingsBtn').onclick=()=>settingsModal.style.display='flex'; document.getElementById('closeModalBtn').onclick=()=>settingsModal.style.display='none';
-        document.getElementById('changeNickBtn').onclick=()=>document.getElementById('changeNickModal').style.display='flex'; document.getElementById('changePinBtn').onclick=()=>document.getElementById('changePinModal').style.display='flex';
-        document.getElementById('applyNickBtn').onclick=async()=>{ const nn=document.getElementById('newNickInput').value.trim(); if(nn) await changeNick(nn); document.getElementById('changeNickModal').style.display='none'; document.getElementById('newNickInput').value=''; };
-        document.getElementById('cancelNickBtn').onclick=()=>document.getElementById('changeNickModal').style.display='none';
-        document.getElementById('applyPinBtn').onclick=async()=>{ const old=document.getElementById('oldPinInput').value, newP=document.getElementById('newPinInput').value; if(old&&newP&&newP.length===4&&/^\d+$/.test(newP)){ await changePin(old,newP); document.getElementById('changePinModal').style.display='none'; document.getElementById('oldPinInput').value=''; document.getElementById('newPinInput').value=''; } else alert('PIN должен быть 4 цифры'); };
-        document.getElementById('cancelPinBtn').onclick=()=>document.getElementById('changePinModal').style.display='none';
-        document.getElementById('mailsBtn').onclick=async()=>{ document.getElementById('mailsModal').style.display='flex'; await loadMails(); };
-        document.getElementById('closeMailsBtn').onclick=()=>document.getElementById('mailsModal').style.display='none';
-        document.getElementById('newMailBtn').onclick=()=>document.getElementById('newMailModal').style.display='flex';
-        document.getElementById('cancelMailBtn').onclick=()=>document.getElementById('newMailModal').style.display='none';
-        document.getElementById('sendMailBtn').onclick=async()=>{ const to=document.getElementById('mailTo').value.trim(), text=document.getElementById('mailText').value.trim(); if(!to||!text){ alert('Заполните поля'); return; } await sendNewMail(to,text); document.getElementById('mailTo').value=''; document.getElementById('mailText').value=''; document.getElementById('newMailModal').style.display='none'; await loadMails(); };
-        document.getElementById('closeViewMailBtn').onclick=()=>document.getElementById('viewMailModal').style.display='none';
-        document.getElementById('replyMailBtn').onclick=()=>{ document.getElementById('viewMailModal').style.display='none'; if(currentMailForReply){ const {nick,tag}=splitFullNick(currentMailForReply.from_full_nick); document.getElementById('originalMailPreview').innerHTML=`<strong>${escapeHtml(nick)}${escapeHtml(tag)}</strong><br>${linkify(escapeHtml(currentMailForReply.text))}`; document.getElementById('replyMailText').value=''; document.getElementById('replyMailModal').style.display='flex'; } };
-        document.getElementById('cancelReplyBtn').onclick=()=>document.getElementById('replyMailModal').style.display='none';
-        document.getElementById('sendReplyBtn').onclick=async()=>{ const reply=document.getElementById('replyMailText').value.trim(); if(!reply){ alert('Введите текст ответа'); return; } await sendReply(reply); document.getElementById('replyMailModal').style.display='none'; await loadMails(); };
-        document.getElementById('confirmOkBtn').onclick=async()=>{ if(pendingDeleteMessageId){ await fetch('/delete-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({full_nick:currentUser.full_nick,messageId:pendingDeleteMessageId})}); pendingDeleteMessageId=null; } document.getElementById('confirmModal').style.display='none'; };
-        document.getElementById('confirmCancelBtn').onclick=()=>{ pendingDeleteMessageId=null; document.getElementById('confirmModal').style.display='none'; };
+    // Переключение вкладок
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`${tabId}Tab`).classList.add('active');
+        document.querySelector(`.top-tab[data-tab="${tabId}"]`).classList.add('active');
+        if (tabId === 'private' && currentRoom) { currentRoom = null; loadRooms(); }
+        if (tabId === 'admin' && currentUser.is_admin) loadUsersForAdmin();
+    }
+
+    // Инициализация
+    window.onload = async () => {
+        applyAccent(appSettings.accent);
+        document.getElementById('accentSelect').value = appSettings.accent;
+        document.getElementById('accentSelect').onchange = e => applyAccent(e.target.value);
+        const logged = await verifyToken();
+        if (!logged) {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('appContainer').style.display = 'none';
+        } else {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'flex';
+        }
+        document.getElementById('loginBtn').onclick = () => {
+            const nick = document.getElementById('loginNick').value.trim();
+            const pin = document.getElementById('loginPin').value;
+            if (!nick || !pin || pin.length !== 4 || !/^\d+$/.test(pin)) { document.getElementById('loginError').innerText = 'Введите ник и 4-значный PIN'; return; }
+            authWithPin(nick, pin);
+        };
+        document.getElementById('sendPublicBtn').onclick = sendPublicMessage;
+        const publicInput = document.getElementById('publicMessageInput');
+        publicInput.addEventListener('input', () => autoResizeTextarea(publicInput));
+        publicInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPublicMessage(); } });
+        document.querySelectorAll('.top-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+        document.getElementById('settingsBtn').onclick = () => document.getElementById('settingsModal').style.display = 'flex';
+        document.getElementById('closeModalBtn').onclick = () => document.getElementById('settingsModal').style.display = 'none';
+        document.getElementById('changeNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'flex';
+        document.getElementById('changePinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'flex';
+        document.getElementById('applyNickBtn').onclick = async () => { const nn = document.getElementById('newNickInput').value.trim(); if(nn) await changeNick(nn); document.getElementById('changeNickModal').style.display = 'none'; document.getElementById('newNickInput').value = ''; };
+        document.getElementById('cancelNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'none';
+        document.getElementById('applyPinBtn').onclick = async () => { const old=document.getElementById('oldPinInput').value, newP=document.getElementById('newPinInput').value; if(old&&newP&&newP.length===4&&/^\d+$/.test(newP)){ await changePin(old,newP); document.getElementById('changePinModal').style.display='none'; document.getElementById('oldPinInput').value=''; document.getElementById('newPinInput').value=''; } else alert('PIN должен быть 4 цифры'); };
+        document.getElementById('cancelPinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'none';
+        document.getElementById('grantAdminBtn').onclick = async () => { const target = document.getElementById('adminNickInput').value.trim(); if(target){ await fetch('/toggle-admin', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ admin_nick: currentUser.full_nick, target_full_nick: target }) }); await loadUsersForAdmin(); document.getElementById('adminNickInput').value=''; } };
+        document.getElementById('createRoomBtn').onclick = createRoom;
+        document.getElementById('confirmOkBtn').onclick = async () => { if(pendingDeleteMessageId){ await fetch('/delete-message', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ full_nick: currentUser.full_nick, messageId: pendingDeleteMessageId, isAdmin: currentUser.is_admin }) }); pendingDeleteMessageId=null; } document.getElementById('confirmModal').style.display='none'; };
+        document.getElementById('confirmCancelBtn').onclick = () => { pendingDeleteMessageId=null; document.getElementById('confirmModal').style.display='none'; };
     };
+
+    async function changeNick(newNick) { /* реализация */ }
+    async function changePin(oldPin, newPin) { /* реализация */ }
 </script>
 </body>
 </html>
