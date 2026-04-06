@@ -151,10 +151,8 @@
         }
         .message-actions-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
         .reply-context {
-            background: var(--input-bg);
-            padding: 0.5rem;
             margin-bottom: 6px;
-            border-radius: 0.8rem;
+            padding-left: 8px;
             border-left: 2px solid var(--accent-color);
             cursor: pointer;
         }
@@ -162,7 +160,6 @@
             font-size: 0.7rem;
             color: var(--accent-color);
             font-weight: 600;
-            margin-bottom: 2px;
         }
         .reply-context .reply-text {
             font-size: 0.8rem;
@@ -240,15 +237,13 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-bottom: 1rem;
         }
         .room-item {
-            background: var(--input-bg);
-            border-radius: 1rem;
-            padding: 0.8rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
+            padding: 0.5rem 0;
         }
         .room-info {
             display: flex;
@@ -268,6 +263,12 @@
             border-radius: 2rem;
             color: white;
             cursor: pointer;
+        }
+        .room-divider {
+            margin-top: 8px;
+            height: 1px;
+            background-color: rgba(84,84,88,0.4);
+            width: 100%;
         }
         .create-room-fab {
             position: fixed;
@@ -548,7 +549,7 @@
 <div id="confirmModal" class="modal"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage" style="margin-bottom:1rem;">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">Удалить</button></div></div></div>
 <div id="membersModal" class="modal members-modal"><div class="modal-content"><h3>Участники комнаты</h3><div id="membersList" class="members-list"></div><div class="modal-setting" style="display: flex; gap: 8px; align-items: center;"><button id="openAddMemberBtn" class="add-member-btn">+</button></div><button id="closeMembersBtn" class="join-room-btn" style="margin-top:0.5rem;">Закрыть</button></div></div>
 <div id="addMemberModal" class="modal"><div class="modal-content"><h3>Добавить участника</h3><div class="modal-setting"><label>Ник#Тег</label><input type="text" id="addMemberNick" placeholder="Например: Пользователь#123"></div><div class="modal-buttons"><button id="cancelAddMemberBtn">Отмена</button><button id="confirmAddMemberBtn">Добавить</button></div></div></div>
-<div id="reactionPickerModal" class="modal"><div class="modal-content"><h3>Выберите реакцию</h3><div class="reactions-picker" id="reactionsPicker"></div><button id="closeReactionPickerBtn" class="modal-close" style="background:#2c2c2e; border:none; padding:0.5rem; border-radius:1rem;">Закрыть</button></div></div>
+<div id="reactionPickerModal" class="modal"><div class="modal-content"><h3>Выберите реакцию</h3><div class="reactions-picker" id="reactionsPicker"></div><button id="closeReactionPickerBtn" class="modal-close" style="background:#2c2c2e; border:none; padding:0.5rem; border-radius:1rem; color:white;">Закрыть</button></div></div>
 <div id="createRoomModal" class="modal"><div class="modal-content"><h3>Создать приватный чат</h3><div class="modal-setting"><label>Название комнаты</label><input type="text" id="newRoomName" placeholder="Название"></div><div class="modal-setting"><label>Участники (ник#тег через запятую)</label><input type="text" id="newRoomMembers" placeholder="Пример: Ваниш#131, Пользователь#123"></div><div class="modal-buttons"><button id="cancelCreateRoomBtn">Закрыть</button><button id="confirmCreateRoomBtn">Создать</button></div></div></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -743,6 +744,7 @@
                     <div class="room-members-count">Участников: ${room.members_count}</div>
                 </div>
                 <button class="join-room-btn" data-id="${room.id}" data-name="${escapeHtml(room.name)}">Открыть</button>
+                <div class="room-divider"></div>
             `;
             container.appendChild(roomDiv);
         });
