@@ -118,6 +118,8 @@
             flex-direction: column;
             width: 100%;
             position: relative;
+            background: transparent;
+            transition: background-color 0.3s;
         }
         .message-header {
             display: flex;
@@ -149,14 +151,24 @@
         }
         .message-actions-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
         .reply-context {
+            background: var(--input-bg);
+            padding: 0.5rem;
+            margin-bottom: 6px;
+            border-radius: 0.8rem;
+            border-left: 2px solid var(--accent-color);
+            cursor: pointer;
+        }
+        .reply-context .reply-nick {
             font-size: 0.7rem;
             color: var(--accent-color);
-            background: rgba(10,132,255,0.1);
-            padding: 0.2rem 0.5rem;
-            border-radius: 1rem;
-            margin-bottom: 4px;
-            display: inline-block;
-            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        .reply-context .reply-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         .message-text { 
             font-size:1rem; line-height:1.4; color:var(--text-primary); 
@@ -553,7 +565,7 @@
     let currentReactionRoomId = null;
     let isReactionForRoom = false;
     let contextMessageData = null;
-    let replyingTo = null; // { messageId, full_nick, text }
+    let replyingTo = null;
 
     let rooms = [];
     let currentRoom = null;
@@ -595,11 +607,17 @@
             msgDiv.className = 'message-item';
             if (isOwn) msgDiv.classList.add('own-message');
             msgDiv.setAttribute('data-id', msg.id);
+            msgDiv.setAttribute('data-full-nick', msg.full_nick);
             let adminStar = '';
             if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
             let replyHtml = '';
             if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
-                replyHtml = `<div class="reply-context" data-message="${msg.reply_to_id}">↳ Ответ для ${escapeHtml(msg.reply_nick)}: ${escapeHtml(msg.reply_text.substring(0, 50))}${msg.reply_text.length>50?'…':''}</div>`;
+                replyHtml = `
+                    <div class="reply-context" data-message="${msg.reply_to_id}">
+                        <div class="reply-nick">${escapeHtml(msg.reply_nick)}</div>
+                        <div class="reply-text">${escapeHtml(msg.reply_text)}</div>
+                    </div>
+                `;
             }
             let reactionsHtml = '';
             if (msg.reactions && msg.reactions.length) {
@@ -651,8 +669,7 @@
         document.querySelectorAll('.reply-context').forEach(el => {
             el.addEventListener('click', () => {
                 const targetId = parseInt(el.dataset.message);
-                const targetMsg = publicMessages.find(m => m.id === targetId);
-                if (targetMsg) scrollToMessage(targetId);
+                scrollToMessage(targetId);
             });
         });
         document.querySelectorAll('.message-nick').forEach(el => {
@@ -795,11 +812,18 @@
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message-item';
             if (isOwn) msgDiv.classList.add('own-message');
+            msgDiv.setAttribute('data-id', msg.id);
+            msgDiv.setAttribute('data-full-nick', msg.full_nick);
             let adminStar = '';
             if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
             let replyHtml = '';
             if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
-                replyHtml = `<div class="reply-context" data-message="${msg.reply_to_id}">↳ Ответ для ${escapeHtml(msg.reply_nick)}: ${escapeHtml(msg.reply_text.substring(0, 50))}${msg.reply_text.length>50?'…':''}</div>`;
+                replyHtml = `
+                    <div class="reply-context" data-message="${msg.reply_to_id}">
+                        <div class="reply-nick">${escapeHtml(msg.reply_nick)}</div>
+                        <div class="reply-text">${escapeHtml(msg.reply_text)}</div>
+                    </div>
+                `;
             }
             let reactionsHtml = '';
             if (msg.reactions && msg.reactions.length) {
@@ -851,8 +875,7 @@
         document.querySelectorAll('.reply-context').forEach(el => {
             el.addEventListener('click', () => {
                 const targetId = parseInt(el.dataset.message);
-                const targetMsg = roomMessages[roomId]?.find(m => m.id === targetId);
-                if (targetMsg) scrollToMessageInRoom(targetId);
+                scrollToMessageInRoom(targetId);
             });
         });
         document.querySelectorAll('.message-nick').forEach(el => {
@@ -960,7 +983,7 @@
     }
 
     function showReplyIndicator(reply) {
-        const indicator = document.getElementById('replyIndicator');
+        let indicator = document.getElementById('replyIndicator');
         if (!indicator) {
             const div = document.createElement('div');
             div.id = 'replyIndicator';
@@ -999,15 +1022,44 @@
                 if (socket) socket.disconnect();
                 socket = io();
                 socket.emit('user online', currentUser.full_nick);
-                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
-                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
-                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
-                socket.on('reaction updated', ({messageId, reactions}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; renderPublicMessages(); } });
-                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
-                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                socket.on('message received', (newMsg) => { 
+                    publicMessages.push(newMsg); 
+                    renderPublicMessages(); 
+                });
+                socket.on('message deleted', (msgId) => { 
+                    publicMessages = publicMessages.filter(m=>m.id!==msgId); 
+                    renderPublicMessages(); 
+                });
+                socket.on('message edited', ({messageId,newText}) => { 
+                    const msg = publicMessages.find(m=>m.id===messageId); 
+                    if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } 
+                });
+                socket.on('reaction updated', ({messageId, reactions}) => { 
+                    const msg = publicMessages.find(m=>m.id===messageId); 
+                    if(msg){ msg.reactions = reactions; renderPublicMessages(); } 
+                });
+                socket.on('room message received', ({roomId, message}) => { 
+                    if(!roomMessages[roomId]) roomMessages[roomId]=[]; 
+                    roomMessages[roomId].push(message); 
+                    if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); 
+                });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { 
+                    if(roomMessages[roomId]) { 
+                        roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); 
+                        if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); 
+                    } 
+                });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { 
+                    const msg = roomMessages[roomId]?.find(m=>m.id===messageId); 
+                    if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } 
+                });
+                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { 
+                    const msg = roomMessages[roomId]?.find(m=>m.id===messageId); 
+                    if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } 
+                });
+                socket.on('room_created', () => { 
+                    if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); 
+                });
                 await loadPublicMessages();
                 await loadRooms();
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
@@ -1031,15 +1083,44 @@
                 document.getElementById('appContainer').style.display = 'flex';
                 socket = io();
                 socket.emit('user online', currentUser.full_nick);
-                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
-                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
-                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
-                socket.on('reaction updated', ({messageId, reactions}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; renderPublicMessages(); } });
-                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
-                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
-                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
+                socket.on('message received', (newMsg) => { 
+                    publicMessages.push(newMsg); 
+                    renderPublicMessages(); 
+                });
+                socket.on('message deleted', (msgId) => { 
+                    publicMessages = publicMessages.filter(m=>m.id!==msgId); 
+                    renderPublicMessages(); 
+                });
+                socket.on('message edited', ({messageId,newText}) => { 
+                    const msg = publicMessages.find(m=>m.id===messageId); 
+                    if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } 
+                });
+                socket.on('reaction updated', ({messageId, reactions}) => { 
+                    const msg = publicMessages.find(m=>m.id===messageId); 
+                    if(msg){ msg.reactions = reactions; renderPublicMessages(); } 
+                });
+                socket.on('room message received', ({roomId, message}) => { 
+                    if(!roomMessages[roomId]) roomMessages[roomId]=[]; 
+                    roomMessages[roomId].push(message); 
+                    if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); 
+                });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { 
+                    if(roomMessages[roomId]) { 
+                        roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); 
+                        if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); 
+                    } 
+                });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { 
+                    const msg = roomMessages[roomId]?.find(m=>m.id===messageId); 
+                    if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } 
+                });
+                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { 
+                    const msg = roomMessages[roomId]?.find(m=>m.id===messageId); 
+                    if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } 
+                });
+                socket.on('room_created', () => { 
+                    if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); 
+                });
                 await loadPublicMessages();
                 await loadRooms();
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
