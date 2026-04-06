@@ -20,7 +20,6 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Таблица пользователей
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -32,10 +31,8 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Добавляем колонку is_admin, если её нет
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;`);
   
-  // Таблица сообщений (общий чат)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -45,7 +42,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Таблица лайков (общий чат)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS likes (
       id SERIAL PRIMARY KEY,
@@ -55,7 +51,6 @@ async function initDB() {
       UNIQUE(message_id, full_nick)
     );
   `);
-  // Таблица приватных комнат
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id SERIAL PRIMARY KEY,
@@ -64,7 +59,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Таблица участников приватных комнат
   await pool.query(`
     CREATE TABLE IF NOT EXISTS room_members (
       id SERIAL PRIMARY KEY,
@@ -74,7 +68,6 @@ async function initDB() {
       UNIQUE(room_id, full_nick)
     );
   `);
-  // Таблица сообщений в приватных комнатах
   await pool.query(`
     CREATE TABLE IF NOT EXISTS room_messages (
       id SERIAL PRIMARY KEY,
@@ -85,7 +78,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Таблица лайков в приватных комнатах
   await pool.query(`
     CREATE TABLE IF NOT EXISTS room_likes (
       id SERIAL PRIMARY KEY,
@@ -95,7 +87,8 @@ async function initDB() {
       UNIQUE(message_id, full_nick)
     );
   `);
-  // Создаём админа по умолчанию (Ваниш#131), если его нет
+
+  // Админ по умолчанию
   const adminFull = 'Ваниш#131';
   const adminNick = 'Ваниш';
   const adminTag = '#131';
@@ -109,7 +102,6 @@ async function initDB() {
     );
     console.log('✅ Администратор Ваниш#131 создан (PIN: 0000)');
   } else {
-    // Убедимся, что у него есть права админа
     await pool.query('UPDATE users SET is_admin = TRUE WHERE full_nick = $1', [adminFull]);
   }
   console.log('✅ База данных готова');
@@ -130,7 +122,7 @@ async function isAdmin(full_nick) {
   return res.rows.length > 0 && res.rows[0].is_admin;
 }
 
-// Авторизация (с PIN)
+// ========== АВТОРИЗАЦИЯ ==========
 app.post('/auth', async (req, res) => {
   const { nick, pin } = req.body;
   if (!nick || nick.trim() === '' || !pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
@@ -174,7 +166,6 @@ app.post('/verify', async (req, res) => {
   else res.json({ success: false });
 });
 
-// Смена ника (без PIN)
 app.post('/change-nick', async (req, res) => {
   const { token, newNick } = req.body;
   if (!token || !newNick || newNick.trim() === '') {
@@ -202,7 +193,6 @@ app.post('/change-nick', async (req, res) => {
   res.json({ success: true, newFullNick });
 });
 
-// Смена PIN
 app.post('/change-pin', async (req, res) => {
   const { token, oldPin, newPin } = req.body;
   if (!token || !oldPin || !newPin || newPin.length !== 4 || !/^\d+$/.test(newPin)) {
@@ -321,12 +311,26 @@ app.get('/rooms', async (req, res) => {
   const { full_nick } = req.query;
   if (!full_nick) return res.status(400).json([]);
   const result = await pool.query(`
-    SELECT r.id, r.name, r.created_by,
-           EXISTS(SELECT 1 FROM room_members WHERE room_id = r.id AND full_nick = $1) as is_member
+    SELECT r.id, r.name, r.created_by
     FROM rooms r
     WHERE r.created_by = $1 OR EXISTS(SELECT 1 FROM room_members WHERE room_id = r.id AND full_nick = $1)
   `, [full_nick]);
   res.json(result.rows);
+});
+
+app.get('/room-members', async (req, res) => {
+  const { roomId, full_nick } = req.query;
+  if (!roomId || !full_nick) return res.status(400).json([]);
+  // Проверяем, есть ли пользователь в комнате
+  const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
+  if (member.rows.length === 0) return res.status(403).json([]);
+  const members = await pool.query(`
+    SELECT u.full_nick, u.is_admin
+    FROM room_members rm
+    JOIN users u ON rm.full_nick = u.full_nick
+    WHERE rm.room_id = $1
+  `, [roomId]);
+  res.json(members.rows);
 });
 
 app.post('/create-room', async (req, res) => {
@@ -427,7 +431,7 @@ app.post('/edit-room-message', async (req, res) => {
   }
 });
 
-// Админ: список пользователей
+// ========== АДМИНИСТРИРОВАНИЕ ==========
 app.get('/users', async (req, res) => {
   const { admin_nick } = req.query;
   if (!admin_nick) return res.status(400).json([]);
@@ -450,7 +454,7 @@ app.post('/toggle-admin', async (req, res) => {
   res.json({ success: true, is_admin: newStatus });
 });
 
-// Онлайн
+// ========== ОНЛАЙН ==========
 const onlineUsers = new Set();
 io.on('connection', (socket) => {
   let currentFullNick = null;
@@ -465,6 +469,7 @@ io.on('connection', (socket) => {
       io.emit('online count', onlineUsers.size);
     }
   });
+  
   // Общий чат
   socket.on('new message', async (data) => {
     const { full_nick, text } = data;
@@ -487,6 +492,7 @@ io.on('connection', (socket) => {
     };
     io.emit('message received', newMsg);
   });
+  
   // Приватные комнаты
   socket.on('join room', (roomId) => {
     socket.join(`room_${roomId}`);
