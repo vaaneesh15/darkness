@@ -5,9 +5,6 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -16,20 +13,6 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
-
-// Настройка хранилища для аудио
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = './uploads';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.webm`);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
-app.use('/uploads', express.static('uploads'));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -54,8 +37,8 @@ async function initDB() {
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
       full_nick VARCHAR(55) NOT NULL,
-      text TEXT,
-      audio_url TEXT,
+      text TEXT NOT NULL,
+      reply_to_id INTEGER DEFAULT NULL,
       edited BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT NOW()
     );
@@ -92,8 +75,8 @@ async function initDB() {
       id SERIAL PRIMARY KEY,
       room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
       full_nick VARCHAR(55) NOT NULL,
-      text TEXT,
-      audio_url TEXT,
+      text TEXT NOT NULL,
+      reply_to_id INTEGER DEFAULT NULL,
       edited BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT NOW()
     );
@@ -227,22 +210,14 @@ app.post('/change-pin', async (req, res) => {
   res.json({ success: true });
 });
 
-// ========== ЗАГРУЗКА АУДИО ==========
-app.post('/upload-audio', upload.single('audio'), (req, res) => {
-  if (!req.file) return res.status(400).json({ success: false, error: 'Нет файла' });
-  const audioUrl = `/uploads/${req.file.filename}`;
-  res.json({ success: true, audioUrl });
-});
-
 // ========== ОБЩИЙ ЧАТ ==========
 app.get('/messages', async (req, res) => {
-  const { full_nick, page = 1 } = req.query;
-  const limit = 25;
-  const offset = (page - 1) * limit;
+  const { full_nick } = req.query;
   const result = await pool.query(`
-    SELECT m.id, m.full_nick, m.text, m.audio_url, m.edited, m.created_at,
+    SELECT m.id, m.full_nick, m.text, m.reply_to_id, m.edited, m.created_at,
            u.is_admin,
-           COALESCE(r.reactions, '[]'::json) as reactions
+           COALESCE(r.reactions, '[]'::json) as reactions,
+           rep.full_nick as reply_nick, rep.text as reply_text
     FROM messages m
     LEFT JOIN users u ON m.full_nick = u.full_nick
     LEFT JOIN (
@@ -254,11 +229,10 @@ app.get('/messages', async (req, res) => {
       ) sub
       GROUP BY message_id
     ) r ON m.id = r.message_id
+    LEFT JOIN messages rep ON m.reply_to_id = rep.id
     ORDER BY m.created_at ASC
-    LIMIT $1 OFFSET $2
-  `, [limit, offset]);
-  const total = await pool.query('SELECT COUNT(*) FROM messages');
-  res.json({ messages: result.rows, total: parseInt(total.rows[0].count), page: parseInt(page) });
+  `);
+  res.json(result.rows);
 });
 
 app.post('/add-reaction', async (req, res) => {
@@ -416,16 +390,15 @@ app.post('/remove-room-member', async (req, res) => {
 });
 
 app.get('/room-messages', async (req, res) => {
-  const { roomId, full_nick, page = 1 } = req.query;
+  const { roomId, full_nick } = req.query;
   if (!roomId || !full_nick) return res.status(400).json([]);
   const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
   if (member.rows.length === 0) return res.status(403).json([]);
-  const limit = 25;
-  const offset = (page - 1) * limit;
   const result = await pool.query(`
-    SELECT rm.id, rm.full_nick, rm.text, rm.audio_url, rm.edited, rm.created_at,
+    SELECT rm.id, rm.full_nick, rm.text, rm.reply_to_id, rm.edited, rm.created_at,
            u.is_admin,
-           COALESCE(r.reactions, '[]'::json) as reactions
+           COALESCE(r.reactions, '[]'::json) as reactions,
+           rep.full_nick as reply_nick, rep.text as reply_text
     FROM room_messages rm
     LEFT JOIN users u ON rm.full_nick = u.full_nick
     LEFT JOIN (
@@ -437,12 +410,11 @@ app.get('/room-messages', async (req, res) => {
       ) sub
       GROUP BY message_id
     ) r ON rm.id = r.message_id
+    LEFT JOIN room_messages rep ON rm.reply_to_id = rep.id
     WHERE rm.room_id = $1
     ORDER BY rm.created_at ASC
-    LIMIT $2 OFFSET $3
-  `, [roomId, limit, offset]);
-  const total = await pool.query('SELECT COUNT(*) FROM room_messages WHERE room_id = $1', [roomId]);
-  res.json({ messages: result.rows, total: parseInt(total.rows[0].count), page: parseInt(page) });
+  `, [roomId]);
+  res.json(result.rows);
 });
 
 app.post('/delete-room-message', async (req, res) => {
@@ -522,19 +494,19 @@ io.on('connection', (socket) => {
   });
   
   socket.on('new message', async (data) => {
-    const { full_nick, text, audioUrl } = data;
-    if (!full_nick || (!text && !audioUrl)) return;
+    const { full_nick, text, reply_to_id } = data;
+    if (!full_nick || !text || text.trim() === '') return;
     const user = await pool.query('SELECT is_admin FROM users WHERE full_nick = $1', [full_nick]);
     const is_admin = user.rows.length > 0 ? user.rows[0].is_admin : false;
     const result = await pool.query(
-      'INSERT INTO messages (full_nick, text, audio_url) VALUES ($1, $2, $3) RETURNING id, created_at',
-      [full_nick, text || null, audioUrl || null]
+      'INSERT INTO messages (full_nick, text, reply_to_id) VALUES ($1, $2, $3) RETURNING id, created_at',
+      [full_nick, text.trim(), reply_to_id || null]
     );
     const newMsg = {
       id: result.rows[0].id,
       full_nick,
-      text: text || null,
-      audio_url: audioUrl || null,
+      text: text.trim(),
+      reply_to_id: reply_to_id || null,
       edited: false,
       created_at: result.rows[0].created_at,
       is_admin,
@@ -550,21 +522,21 @@ io.on('connection', (socket) => {
     socket.leave(`room_${roomId}`);
   });
   socket.on('new room message', async (data) => {
-    const { roomId, full_nick, text, audioUrl } = data;
-    if (!roomId || !full_nick || (!text && !audioUrl)) return;
+    const { roomId, full_nick, text, reply_to_id } = data;
+    if (!roomId || !full_nick || !text || text.trim() === '') return;
     const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
     if (member.rows.length === 0) return;
     const user = await pool.query('SELECT is_admin FROM users WHERE full_nick = $1', [full_nick]);
     const is_admin = user.rows.length > 0 ? user.rows[0].is_admin : false;
     const result = await pool.query(
-      'INSERT INTO room_messages (room_id, full_nick, text, audio_url) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
-      [roomId, full_nick, text || null, audioUrl || null]
+      'INSERT INTO room_messages (room_id, full_nick, text, reply_to_id) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
+      [roomId, full_nick, text.trim(), reply_to_id || null]
     );
     const newMsg = {
       id: result.rows[0].id,
       full_nick,
-      text: text || null,
-      audio_url: audioUrl || null,
+      text: text.trim(),
+      reply_to_id: reply_to_id || null,
       edited: false,
       created_at: result.rows[0].created_at,
       is_admin,
