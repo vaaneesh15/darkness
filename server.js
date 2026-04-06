@@ -216,14 +216,18 @@ app.get('/messages', async (req, res) => {
   const result = await pool.query(`
     SELECT m.id, m.full_nick, m.text, m.edited, m.created_at,
            u.is_admin,
-           (SELECT json_agg(json_build_object('reaction', reaction, 'count', cnt)) FROM (
-              SELECT reaction, COUNT(*) as cnt
-              FROM message_reactions
-              WHERE message_id = m.id
-              GROUP BY reaction
-            ) r) as reactions
+           COALESCE(r.reactions, '[]'::json) as reactions
     FROM messages m
     LEFT JOIN users u ON m.full_nick = u.full_nick
+    LEFT JOIN (
+      SELECT message_id, json_agg(json_build_object('reaction', reaction, 'count', cnt)) as reactions
+      FROM (
+        SELECT message_id, reaction, COUNT(*) as cnt
+        FROM message_reactions
+        GROUP BY message_id, reaction
+      ) sub
+      GROUP BY message_id
+    ) r ON m.id = r.message_id
     ORDER BY m.created_at ASC
     LIMIT $1 OFFSET $2
   `, [limit, offset]);
@@ -235,7 +239,6 @@ app.post('/add-reaction', async (req, res) => {
   const { messageId, full_nick, reaction, isRoom, roomId } = req.body;
   if (!messageId || !full_nick || !reaction) return res.status(400).json({ success: false });
   const table = isRoom ? 'room_reactions' : 'message_reactions';
-  const msgTable = isRoom ? 'room_messages' : 'messages';
   try {
     await pool.query(
       `INSERT INTO ${table} (message_id, full_nick, reaction) VALUES ($1, $2, $3)`,
@@ -396,14 +399,18 @@ app.get('/room-messages', async (req, res) => {
   const result = await pool.query(`
     SELECT rm.id, rm.full_nick, rm.text, rm.edited, rm.created_at,
            u.is_admin,
-           (SELECT json_agg(json_build_object('reaction', reaction, 'count', cnt)) FROM (
-              SELECT reaction, COUNT(*) as cnt
-              FROM room_reactions
-              WHERE message_id = rm.id
-              GROUP BY reaction
-            ) r) as reactions
+           COALESCE(r.reactions, '[]'::json) as reactions
     FROM room_messages rm
     LEFT JOIN users u ON rm.full_nick = u.full_nick
+    LEFT JOIN (
+      SELECT message_id, json_agg(json_build_object('reaction', reaction, 'count', cnt)) as reactions
+      FROM (
+        SELECT message_id, reaction, COUNT(*) as cnt
+        FROM room_reactions
+        GROUP BY message_id, reaction
+      ) sub
+      GROUP BY message_id
+    ) r ON rm.id = r.message_id
     WHERE rm.room_id = $1
     ORDER BY rm.created_at ASC
     LIMIT $2 OFFSET $3
