@@ -43,16 +43,6 @@ async function initDB() {
     );
   `);
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS likes (
-      id SERIAL PRIMARY KEY,
-      message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-      full_nick VARCHAR(55) NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(message_id, full_nick)
-    );
-  `);
-  // Таблица реакций (эмодзи)
-  await pool.query(`
     CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
       message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
@@ -62,7 +52,6 @@ async function initDB() {
       UNIQUE(message_id, full_nick, reaction)
     );
   `);
-  // Для комнат
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id SERIAL PRIMARY KEY,
@@ -101,7 +90,6 @@ async function initDB() {
     );
   `);
 
-  // Админ по умолчанию
   const adminFull = 'Ваниш#131';
   const adminNick = 'Ваниш';
   const adminTag = '#131';
@@ -227,8 +215,6 @@ app.get('/messages', async (req, res) => {
   const offset = (page - 1) * limit;
   const result = await pool.query(`
     SELECT m.id, m.full_nick, m.text, m.edited, m.created_at,
-           COALESCE(l.likes_count, 0) as likes_count,
-           EXISTS(SELECT 1 FROM message_reactions WHERE message_id = m.id AND full_nick = $1) as is_liked,
            u.is_admin,
            (SELECT json_agg(json_build_object('reaction', reaction, 'count', cnt)) FROM (
               SELECT reaction, COUNT(*) as cnt
@@ -237,15 +223,10 @@ app.get('/messages', async (req, res) => {
               GROUP BY reaction
             ) r) as reactions
     FROM messages m
-    LEFT JOIN (
-      SELECT message_id, COUNT(*) as likes_count
-      FROM message_reactions
-      GROUP BY message_id
-    ) l ON m.id = l.message_id
     LEFT JOIN users u ON m.full_nick = u.full_nick
     ORDER BY m.created_at ASC
-    LIMIT $2 OFFSET $3
-  `, [full_nick || '', limit, offset]);
+    LIMIT $1 OFFSET $2
+  `, [limit, offset]);
   const total = await pool.query('SELECT COUNT(*) FROM messages');
   res.json({ messages: result.rows, total: parseInt(total.rows[0].count), page: parseInt(page) });
 });
@@ -260,21 +241,19 @@ app.post('/add-reaction', async (req, res) => {
       `INSERT INTO ${table} (message_id, full_nick, reaction) VALUES ($1, $2, $3)`,
       [messageId, full_nick, reaction]
     );
-    // Получаем обновлённый список реакций
     const reactionsRes = await pool.query(
       `SELECT reaction, COUNT(*) as count FROM ${table} WHERE message_id = $1 GROUP BY reaction`,
       [messageId]
     );
     const reactions = reactionsRes.rows;
     if (isRoom) {
-      io.to(`room_${roomId}`).emit('reaction updated', { roomId, messageId, reactions });
+      io.to(`room_${roomId}`).emit('room_reaction_updated', { roomId, messageId, reactions });
     } else {
       io.emit('reaction updated', { messageId, reactions });
     }
     res.json({ success: true, reactions });
   } catch (err) {
     if (err.code === '23505') {
-      // Удаляем реакцию (если уже есть такая)
       await pool.query(
         `DELETE FROM ${table} WHERE message_id = $1 AND full_nick = $2 AND reaction = $3`,
         [messageId, full_nick, reaction]
@@ -285,7 +264,7 @@ app.post('/add-reaction', async (req, res) => {
       );
       const reactions = reactionsRes.rows;
       if (isRoom) {
-        io.to(`room_${roomId}`).emit('reaction updated', { roomId, messageId, reactions });
+        io.to(`room_${roomId}`).emit('room_reaction_updated', { roomId, messageId, reactions });
       } else {
         io.emit('reaction updated', { messageId, reactions });
       }
@@ -425,10 +404,10 @@ app.get('/room-messages', async (req, res) => {
             ) r) as reactions
     FROM room_messages rm
     LEFT JOIN users u ON rm.full_nick = u.full_nick
-    WHERE rm.room_id = $2
+    WHERE rm.room_id = $1
     ORDER BY rm.created_at ASC
-    LIMIT $3 OFFSET $4
-  `, [full_nick, roomId, limit, offset]);
+    LIMIT $2 OFFSET $3
+  `, [roomId, limit, offset]);
   const total = await pool.query('SELECT COUNT(*) FROM room_messages WHERE room_id = $1', [roomId]);
   res.json({ messages: result.rows, total: parseInt(total.rows[0].count), page: parseInt(page) });
 });
@@ -446,7 +425,7 @@ app.post('/delete-room-message', async (req, res) => {
   if (!canDelete) return res.json({ success: false });
   const result = await pool.query('DELETE FROM room_messages WHERE id = $1 RETURNING id', [messageId]);
   if (result.rowCount > 0) {
-    io.emit('room_message_deleted', { roomId, messageId });
+    io.to(`room_${roomId}`).emit('room_message_deleted', { roomId, messageId });
     res.json({ success: true });
   } else {
     res.json({ success: false });
@@ -463,14 +442,14 @@ app.post('/edit-room-message', async (req, res) => {
     [newText.trim(), messageId, full_nick]
   );
   if (result.rowCount > 0) {
-    io.emit('room_message_edited', { roomId, messageId, newText: newText.trim() });
+    io.to(`room_${roomId}`).emit('room_message_edited', { roomId, messageId, newText: newText.trim() });
     res.json({ success: true });
   } else {
     res.json({ success: false });
   }
 });
 
-// ========== АДМИНИСТРИРОВАНИЕ (без отдельной вкладки) ==========
+// ========== АДМИНИСТРИРОВАНИЕ ==========
 app.get('/users', async (req, res) => {
   const { admin_nick } = req.query;
   if (!admin_nick) return res.status(400).json([]);
@@ -509,7 +488,6 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Общий чат
   socket.on('new message', async (data) => {
     const { full_nick, text } = data;
     if (!full_nick || !text || text.trim() === '') return;
@@ -531,7 +509,6 @@ io.on('connection', (socket) => {
     io.emit('message received', newMsg);
   });
   
-  // Приватные комнаты
   socket.on('join room', (roomId) => {
     socket.join(`room_${roomId}`);
   });
