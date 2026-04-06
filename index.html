@@ -147,6 +147,15 @@
             width: 24px; height: 24px; border-radius: 12px;
         }
         .message-actions-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .reply-context {
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            background: rgba(10,132,255,0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 1rem;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
         .message-text { 
             font-size:1rem; line-height:1.4; color:var(--text-primary); 
             white-space:pre-wrap; word-break:break-word; 
@@ -154,40 +163,6 @@
         .message-text a {
             color: var(--accent-color);
             text-decoration: underline;
-        }
-        .audio-message {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--input-bg);
-            padding: 0.4rem 0.8rem;
-            border-radius: 2rem;
-            width: fit-content;
-        }
-        .audio-play-btn {
-            background: var(--accent-color);
-            border: none;
-            width: 2rem;
-            height: 2rem;
-            border-radius: 2rem;
-            color: white;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .audio-progress {
-            width: 150px;
-            height: 3px;
-            background: var(--border-light);
-            border-radius: 3px;
-            position: relative;
-        }
-        .audio-progress-fill {
-            width: 0%;
-            height: 100%;
-            background: var(--accent-color);
-            border-radius: 3px;
         }
         .message-footer {
             display: flex;
@@ -244,14 +219,6 @@
             height: 1px;
             background-color: rgba(84,84,88,0.4);
             width: 100%;
-        }
-        .load-more-btn {
-            background: none;
-            border: none;
-            color: var(--accent-color);
-            cursor: pointer;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
         }
 
         .rooms-list {
@@ -451,37 +418,9 @@
             font-family:inherit; line-height:1.4; max-height:150px; overflow-y: auto;
             scroll-margin-bottom: 80px;
         }
-        .send-btn, .record-btn {
+        .send-btn {
             background:var(--accent-color); border:none; width:2.5rem; height:2.5rem; border-radius:2rem;
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
-        }
-        .record-btn {
-            background: var(--accent-color);
-        }
-        .recording-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            background: var(--input-bg);
-            border-top: 1px solid var(--border-light);
-        }
-        .recording-bars {
-            display: flex;
-            gap: 3px;
-            align-items: center;
-            height: 24px;
-        }
-        .bar {
-            width: 3px;
-            background: var(--accent-color);
-            transition: height 0.1s;
-        }
-        .pause-play-btn {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -509,13 +448,7 @@
         <div class="input-wrapper">
             <div class="input-row">
                 <textarea id="publicMessageInput" placeholder="Сообщение..." rows="1"></textarea>
-                <button class="send-btn" id="sendPublicTextBtn" style="display: none;">↑</button>
-                <button class="record-btn" id="publicRecordBtn">🎤</button>
-            </div>
-            <div id="publicRecordingControls" class="recording-controls" style="display: none;">
-                <div class="recording-bars" id="publicRecordingBars"></div>
-                <button class="pause-play-btn" id="publicPauseBtn">⏸️</button>
-                <button class="send-btn" id="publicSendVoiceBtn">📤</button>
+                <button class="send-btn" id="sendPublicBtn">↑</button>
             </div>
         </div>
     </div>
@@ -573,123 +506,25 @@
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-    // ---------- Глобальные переменные ----------
     let socket = null;
     let currentUser = { full_nick: "", is_admin: false };
     let authToken = localStorage.getItem('simply_token');
     let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { accent: 'blue' };
     
     let publicMessages = [];
-    let publicPage = 1;
-    let publicTotal = 0;
-    let publicLoading = false;
     let editingMessageId = null;
     let pendingDeleteMessageId = null;
     let currentReactionMessage = null;
     let currentReactionRoomId = null;
     let isReactionForRoom = false;
     let contextMessageData = null;
+    let replyingTo = null; // { messageId, full_nick, text }
 
     let rooms = [];
     let currentRoom = null;
     let roomMessages = {};
-    let roomPages = {};
-    let roomTotal = {};
-    let roomLoading = {};
     let onlineUsersSet = new Set();
 
-    // Переменные для записи голоса (общий чат)
-    let mediaRecorderPublic = null;
-    let audioChunksPublic = [];
-    let isRecordingPublic = false;
-    let isPausedPublic = false;
-    let streamPublic = null;
-    let recordingIntervalPublic = null;
-
-    // Для приватных комнат – аналогично, но с динамическими ID
-    let mediaRecorderRoom = null;
-    let audioChunksRoom = [];
-    let isRecordingRoom = false;
-    let isPausedRoom = false;
-    let streamRoom = null;
-    let recordingIntervalRoom = null;
-
-    // Функции для голосовых сообщений (общий чат)
-    async function startRecordingPublic() {
-        try {
-            streamPublic = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderPublic = new MediaRecorder(streamPublic);
-            audioChunksPublic = [];
-            mediaRecorderPublic.ondataavailable = event => audioChunksPublic.push(event.data);
-            mediaRecorderPublic.onstop = async () => {
-                const audioBlob = new Blob(audioChunksPublic, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-                const res = await fetch('/upload-audio', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    socket.emit('new message', { full_nick: currentUser.full_nick, audioUrl: data.audioUrl });
-                }
-                if (streamPublic) streamPublic.getTracks().forEach(track => track.stop());
-                document.getElementById('publicRecordingControls').style.display = 'none';
-                document.getElementById('sendPublicTextBtn').style.display = 'none';
-                document.getElementById('publicRecordBtn').style.display = 'block';
-                if (recordingIntervalPublic) clearInterval(recordingIntervalPublic);
-            };
-            mediaRecorderPublic.start(100);
-            isRecordingPublic = true;
-            isPausedPublic = false;
-            document.getElementById('publicPauseBtn').innerHTML = '⏸️';
-            startRecordingAnimationPublic();
-        } catch(e) { alert('Нет доступа к микрофону'); }
-    }
-
-    function startRecordingAnimationPublic() {
-        const barsContainer = document.getElementById('publicRecordingBars');
-        barsContainer.innerHTML = '';
-        for (let i = 0; i < 20; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'bar';
-            bar.style.height = '5px';
-            barsContainer.appendChild(bar);
-        }
-        recordingIntervalPublic = setInterval(() => {
-            if (!isRecordingPublic || isPausedPublic) return;
-            document.querySelectorAll('#publicRecordingBars .bar').forEach(bar => {
-                const h = Math.random() * 20 + 5;
-                bar.style.height = h + 'px';
-                bar.style.backgroundColor = 'var(--accent-color)';
-            });
-        }, 100);
-    }
-
-    function pauseRecordingPublic() {
-        if (mediaRecorderPublic && isRecordingPublic && !isPausedPublic) {
-            mediaRecorderPublic.pause();
-            isPausedPublic = true;
-            document.getElementById('publicPauseBtn').innerHTML = '▶️';
-            document.querySelectorAll('#publicRecordingBars .bar').forEach(bar => bar.style.backgroundColor = '#6c6c70');
-        }
-    }
-    function resumeRecordingPublic() {
-        if (mediaRecorderPublic && isRecordingPublic && isPausedPublic) {
-            mediaRecorderPublic.resume();
-            isPausedPublic = false;
-            document.getElementById('publicPauseBtn').innerHTML = '⏸️';
-        }
-    }
-    function stopRecordingPublic() {
-        if (mediaRecorderPublic && isRecordingPublic) {
-            mediaRecorderPublic.stop();
-            isRecordingPublic = false;
-            isPausedPublic = false;
-        }
-    }
-
-    // Аналогичные функции для приватных комнат (упростим, но для полноты оставим)
-    // В данном примере я реализую только для общего чата, для приватных аналогично.
-
-    // ---------- Вспомогательные функции ----------
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
     function linkify(text) {
@@ -714,7 +549,6 @@
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
     }
 
-    // Рендер сообщений (общий чат)
     function renderPublicMessages() {
         const container = document.getElementById('publicMessagesContainer');
         if (!container) return;
@@ -729,6 +563,10 @@
             msgDiv.setAttribute('data-id', msg.id);
             let adminStar = '';
             if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
+            let replyHtml = '';
+            if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
+                replyHtml = `<div class="reply-context">↳ Ответ для ${escapeHtml(msg.reply_nick)}: ${escapeHtml(msg.reply_text.substring(0, 50))}${msg.reply_text.length>50?'…':''}</div>`;
+            }
             let reactionsHtml = '';
             if (msg.reactions && msg.reactions.length) {
                 reactionsHtml = '<div class="reactions-container">';
@@ -737,12 +575,6 @@
                 });
                 reactionsHtml += '</div>';
             }
-            let contentHtml = '';
-            if (msg.text) {
-                contentHtml = `<div class="message-text">${linkify(escapeHtml(msg.text))}</div>`;
-            } else if (msg.audio_url) {
-                contentHtml = `<div class="audio-message"><button class="audio-play-btn" data-url="${msg.audio_url}">▶️</button><div class="audio-progress"><div class="audio-progress-fill"></div></div><span>Голосовое сообщение</span></div>`;
-            }
             msgDiv.innerHTML = `
                 <div class="message-header">
                     <div class="message-nick">
@@ -750,7 +582,8 @@
                         ${adminStar}
                     </div>
                 </div>
-                ${contentHtml}
+                ${replyHtml}
+                <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 ${reactionsHtml}
                 <div class="message-footer">
                     <button class="reaction-btn" data-message="${msg.id}" data-room="false"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
@@ -764,17 +597,10 @@
             actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
             actionsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showContextMenu(msg.id, msg.full_nick, msg.text || '', isOwn, false, null);
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, false, null);
             });
             msgDiv.appendChild(actionsBtn);
         });
-        if (publicPage * 25 < publicTotal) {
-            const loadMore = document.createElement('button');
-            loadMore.textContent = 'Загрузить ещё';
-            loadMore.className = 'load-more-btn';
-            loadMore.onclick = () => loadPublicMessages(publicPage + 1);
-            container.appendChild(loadMore);
-        }
         document.querySelectorAll('.reaction-btn').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const messageId = parseInt(btn.dataset.message);
@@ -788,40 +614,16 @@
             const messageId = parseInt(btn.dataset.message);
             addReaction(messageId, reaction, false, null);
         }));
-        document.querySelectorAll('.audio-play-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const url = btn.dataset.url;
-                const audio = new Audio(url);
-                const progressFill = btn.parentElement.querySelector('.audio-progress-fill');
-                audio.play();
-                audio.addEventListener('timeupdate', () => {
-                    const percent = (audio.currentTime / audio.duration) * 100;
-                    progressFill.style.width = percent + '%';
-                });
-                btn.textContent = '⏸️';
-                audio.addEventListener('ended', () => { btn.textContent = '▶️'; progressFill.style.width = '0%'; });
-                btn.onclick = () => {
-                    if (audio.paused) audio.play();
-                    else audio.pause();
-                };
-            });
-        });
         if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
     }
 
-    async function loadPublicMessages(page = 1) {
-        if (publicLoading) return;
-        publicLoading = true;
+    async function loadPublicMessages() {
         try {
-            const res = await fetch(`/messages?full_nick=${encodeURIComponent(currentUser.full_nick)}&page=${page}`);
+            const res = await fetch(`/messages?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
             const data = await res.json();
-            if (page === 1) publicMessages = data.messages;
-            else publicMessages = [...data.messages, ...publicMessages];
-            publicPage = data.page;
-            publicTotal = data.total;
+            publicMessages = data;
             renderPublicMessages();
         } catch(e) { console.error(e); }
-        publicLoading = false;
     }
 
     async function addReaction(messageId, reaction, isRoom, roomId) {
@@ -890,10 +692,8 @@
     function openPrivateRoom(roomId, roomName) {
         currentRoom = { id: roomId, name: roomName };
         if (!roomMessages[roomId]) roomMessages[roomId] = [];
-        if (!roomPages[roomId]) roomPages[roomId] = 1;
-        if (!roomTotal[roomId]) roomTotal[roomId] = 0;
         renderPrivateRoomView();
-        loadRoomMessages(roomId, 1);
+        loadRoomMessages(roomId);
         socket.emit('join room', roomId);
     }
 
@@ -909,13 +709,7 @@
             <div class="input-wrapper">
                 <div class="input-row">
                     <textarea id="roomMessageInput" placeholder="Сообщение..." rows="1"></textarea>
-                    <button class="send-btn" id="sendRoomTextBtn" style="display: none;">↑</button>
-                    <button class="record-btn" id="roomRecordBtn">🎤</button>
-                </div>
-                <div id="roomRecordingControls" class="recording-controls" style="display: none;">
-                    <div class="recording-bars" id="roomRecordingBars"></div>
-                    <button class="pause-play-btn" id="roomPauseBtn">⏸️</button>
-                    <button class="send-btn" id="roomSendVoiceBtn">📤</button>
+                    <button class="send-btn" id="sendRoomBtn">↑</button>
                 </div>
             </div>
         `;
@@ -925,96 +719,12 @@
             switchTab('private');
             loadRooms();
         };
-        document.getElementById('sendRoomTextBtn').onclick = () => sendRoomMessageText();
-        document.getElementById('roomRecordBtn').onclick = () => startRecordingRoom();
-        document.getElementById('roomPauseBtn').onclick = () => {
-            if (isRecordingRoom && !isPausedRoom) pauseRecordingRoom();
-            else if (isRecordingRoom && isPausedRoom) resumeRecordingRoom();
-        };
-        document.getElementById('roomSendVoiceBtn').onclick = () => stopRecordingRoom();
+        document.getElementById('sendRoomBtn').onclick = () => sendRoomMessage();
         document.getElementById('showMembersBtn').onclick = () => showRoomMembers(currentRoom.id);
         const roomInput = document.getElementById('roomMessageInput');
-        roomInput.addEventListener('input', () => {
-            if (roomInput.value.trim().length > 0) {
-                document.getElementById('sendRoomTextBtn').style.display = 'flex';
-                document.getElementById('roomRecordBtn').style.display = 'none';
-            } else {
-                document.getElementById('sendRoomTextBtn').style.display = 'none';
-                document.getElementById('roomRecordBtn').style.display = 'block';
-            }
-        });
-        roomInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendRoomMessageText(); } });
+        roomInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendRoomMessage(); } });
         roomInput.addEventListener('input', function() { this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,150)+'px'; });
         renderRoomMessages(currentRoom.id);
-    }
-
-    // Реализация записи для приватных комнат (упрощённая, аналогична общей)
-    async function startRecordingRoom() {
-        try {
-            streamRoom = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRoom = new MediaRecorder(streamRoom);
-            audioChunksRoom = [];
-            mediaRecorderRoom.ondataavailable = event => audioChunksRoom.push(event.data);
-            mediaRecorderRoom.onstop = async () => {
-                const audioBlob = new Blob(audioChunksRoom, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('audio', audioBlob);
-                const res = await fetch('/upload-audio', { method: 'POST', body: formData });
-                const data = await res.json();
-                if (data.success) {
-                    socket.emit('new room message', { roomId: currentRoom.id, full_nick: currentUser.full_nick, audioUrl: data.audioUrl });
-                }
-                if (streamRoom) streamRoom.getTracks().forEach(track => track.stop());
-                document.getElementById('roomRecordingControls').style.display = 'none';
-                document.getElementById('roomRecordBtn').style.display = 'block';
-                if (recordingIntervalRoom) clearInterval(recordingIntervalRoom);
-            };
-            mediaRecorderRoom.start(100);
-            isRecordingRoom = true;
-            isPausedRoom = false;
-            document.getElementById('roomPauseBtn').innerHTML = '⏸️';
-            startRecordingAnimationRoom();
-        } catch(e) { alert('Нет доступа к микрофону'); }
-    }
-    function startRecordingAnimationRoom() {
-        const barsContainer = document.getElementById('roomRecordingBars');
-        barsContainer.innerHTML = '';
-        for (let i = 0; i < 20; i++) {
-            const bar = document.createElement('div');
-            bar.className = 'bar';
-            bar.style.height = '5px';
-            barsContainer.appendChild(bar);
-        }
-        recordingIntervalRoom = setInterval(() => {
-            if (!isRecordingRoom || isPausedRoom) return;
-            document.querySelectorAll('#roomRecordingBars .bar').forEach(bar => {
-                const h = Math.random() * 20 + 5;
-                bar.style.height = h + 'px';
-                bar.style.backgroundColor = 'var(--accent-color)';
-            });
-        }, 100);
-    }
-    function pauseRecordingRoom() {
-        if (mediaRecorderRoom && isRecordingRoom && !isPausedRoom) {
-            mediaRecorderRoom.pause();
-            isPausedRoom = true;
-            document.getElementById('roomPauseBtn').innerHTML = '▶️';
-            document.querySelectorAll('#roomRecordingBars .bar').forEach(bar => bar.style.backgroundColor = '#6c6c70');
-        }
-    }
-    function resumeRecordingRoom() {
-        if (mediaRecorderRoom && isRecordingRoom && isPausedRoom) {
-            mediaRecorderRoom.resume();
-            isPausedRoom = false;
-            document.getElementById('roomPauseBtn').innerHTML = '⏸️';
-        }
-    }
-    function stopRecordingRoom() {
-        if (mediaRecorderRoom && isRecordingRoom) {
-            mediaRecorderRoom.stop();
-            isRecordingRoom = false;
-            isPausedRoom = false;
-        }
     }
 
     function renderRoomMessages(roomId) {
@@ -1031,6 +741,10 @@
             if (isOwn) msgDiv.classList.add('own-message');
             let adminStar = '';
             if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
+            let replyHtml = '';
+            if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
+                replyHtml = `<div class="reply-context">↳ Ответ для ${escapeHtml(msg.reply_nick)}: ${escapeHtml(msg.reply_text.substring(0, 50))}${msg.reply_text.length>50?'…':''}</div>`;
+            }
             let reactionsHtml = '';
             if (msg.reactions && msg.reactions.length) {
                 reactionsHtml = '<div class="reactions-container">';
@@ -1039,17 +753,12 @@
                 });
                 reactionsHtml += '</div>';
             }
-            let contentHtml = '';
-            if (msg.text) {
-                contentHtml = `<div class="message-text">${linkify(escapeHtml(msg.text))}</div>`;
-            } else if (msg.audio_url) {
-                contentHtml = `<div class="audio-message"><button class="audio-play-btn" data-url="${msg.audio_url}">▶️</button><div class="audio-progress"><div class="audio-progress-fill"></div></div><span>Голосовое сообщение</span></div>`;
-            }
             msgDiv.innerHTML = `
                 <div class="message-header">
                     <div class="message-nick"><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>${adminStar}</div>
                 </div>
-                ${contentHtml}
+                ${replyHtml}
+                <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 ${reactionsHtml}
                 <div class="message-footer">
                     <button class="reaction-btn" data-message="${msg.id}" data-room="true"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
@@ -1063,17 +772,10 @@
             actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
             actionsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showContextMenu(msg.id, msg.full_nick, msg.text || '', isOwn, true, roomId);
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, true, roomId);
             });
             msgDiv.appendChild(actionsBtn);
         });
-        if (roomPages[roomId] * 25 < roomTotal[roomId]) {
-            const loadMore = document.createElement('button');
-            loadMore.textContent = 'Загрузить ещё';
-            loadMore.className = 'load-more-btn';
-            loadMore.onclick = () => loadRoomMessages(roomId, roomPages[roomId] + 1);
-            container.appendChild(loadMore);
-        }
         document.querySelectorAll('.reaction-btn').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const messageId = parseInt(btn.dataset.message);
@@ -1088,40 +790,16 @@
             const messageId = parseInt(btn.dataset.message);
             addReaction(messageId, reaction, true, roomId);
         }));
-        document.querySelectorAll('.audio-play-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const url = btn.dataset.url;
-                const audio = new Audio(url);
-                const progressFill = btn.parentElement.querySelector('.audio-progress-fill');
-                audio.play();
-                audio.addEventListener('timeupdate', () => {
-                    const percent = (audio.currentTime / audio.duration) * 100;
-                    progressFill.style.width = percent + '%';
-                });
-                btn.textContent = '⏸️';
-                audio.addEventListener('ended', () => { btn.textContent = '▶️'; progressFill.style.width = '0%'; });
-                btn.onclick = () => {
-                    if (audio.paused) audio.play();
-                    else audio.pause();
-                };
-            });
-        });
         if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
     }
 
-    async function loadRoomMessages(roomId, page = 1) {
-        if (roomLoading[roomId]) return;
-        roomLoading[roomId] = true;
+    async function loadRoomMessages(roomId) {
         try {
-            const res = await fetch(`/room-messages?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}&page=${page}`);
+            const res = await fetch(`/room-messages?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
             const data = await res.json();
-            if (page === 1) roomMessages[roomId] = data.messages;
-            else roomMessages[roomId] = [...data.messages, ...roomMessages[roomId]];
-            roomPages[roomId] = data.page;
-            roomTotal[roomId] = data.total;
+            roomMessages[roomId] = data;
             if (currentRoom && currentRoom.id === roomId) renderRoomMessages(roomId);
         } catch(e) { console.error(e); }
-        roomLoading[roomId] = false;
     }
 
     async function showRoomMembers(roomId) {
@@ -1155,16 +833,23 @@
         document.getElementById('membersModal').style.display = 'flex';
     }
 
-    function sendRoomMessageText() {
+    function sendRoomMessage() {
         if (!currentRoom) return;
         const input = document.getElementById('roomMessageInput');
-        const text = input.value.trim();
-        if (!text || !socket) return;
-        socket.emit('new room message', { roomId: currentRoom.id, full_nick: currentUser.full_nick, text });
+        let text = input.value.trim();
+        if (!text && !replyingTo) return;
+        if (!text && replyingTo) {
+            replyingTo = null;
+            return;
+        }
+        const payload = { roomId: currentRoom.id, full_nick: currentUser.full_nick, text };
+        if (replyingTo) {
+            payload.reply_to_id = replyingTo.messageId;
+            replyingTo = null;
+        }
+        socket.emit('new room message', payload);
         input.value = '';
         input.style.height = 'auto';
-        document.getElementById('sendRoomTextBtn').style.display = 'none';
-        document.getElementById('roomRecordBtn').style.display = 'block';
     }
 
     function showContextMenu(messageId, full_nick, text, isOwn, isRoom, roomId) {
@@ -1174,12 +859,19 @@
         document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text.substring(0, 150))) + (text.length>150?'…':'');
         const container = document.getElementById('contextMenuButtons');
         container.innerHTML = `
+            <button id="ctx-reply"><span>↩️</span> Ответить</button>
             <button id="ctx-react"><span>😊</span> Реакция</button>
             <button id="ctx-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
             ${(isOwn || isAdminUser) ? `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>
             <button id="ctx-delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
             <button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
         `;
+        document.getElementById('ctx-reply').onclick = () => {
+            replyingTo = { messageId, full_nick, text };
+            const input = document.getElementById(isRoom ? 'roomMessageInput' : 'publicMessageInput');
+            input.focus();
+            document.getElementById('contextMenuModal').style.display = 'none';
+        };
         document.getElementById('ctx-react').onclick = () => {
             currentReactionMessage = messageId;
             isReactionForRoom = isRoom;
@@ -1262,15 +954,22 @@
         return false;
     }
 
-    function sendPublicMessageText() {
+    function sendPublicMessage() {
         const input = document.getElementById('publicMessageInput');
-        const text = input.value.trim();
-        if (!text || !socket || !currentUser.full_nick) return;
-        socket.emit('new message', { full_nick: currentUser.full_nick, text });
+        let text = input.value.trim();
+        if (!text && !replyingTo) return;
+        if (!text && replyingTo) {
+            replyingTo = null;
+            return;
+        }
+        const payload = { full_nick: currentUser.full_nick, text };
+        if (replyingTo) {
+            payload.reply_to_id = replyingTo.messageId;
+            replyingTo = null;
+        }
+        socket.emit('new message', payload);
         input.value = '';
         input.style.height = 'auto';
-        document.getElementById('sendPublicTextBtn').style.display = 'none';
-        document.getElementById('publicRecordBtn').style.display = 'block';
         input.focus();
     }
 
@@ -1332,27 +1031,10 @@
             if (!nick || !pin || pin.length !== 4 || !/^\d+$/.test(pin)) { document.getElementById('loginError').innerText = 'Введите ник и 4-значный PIN'; return; }
             authWithPin(nick, pin);
         };
-        // Общий чат
+        document.getElementById('sendPublicBtn').onclick = sendPublicMessage;
         const publicInput = document.getElementById('publicMessageInput');
-        publicInput.addEventListener('input', () => {
-            autoResizeTextarea(publicInput);
-            if (publicInput.value.trim().length > 0) {
-                document.getElementById('sendPublicTextBtn').style.display = 'flex';
-                document.getElementById('publicRecordBtn').style.display = 'none';
-            } else {
-                document.getElementById('sendPublicTextBtn').style.display = 'none';
-                document.getElementById('publicRecordBtn').style.display = 'block';
-            }
-        });
-        publicInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPublicMessageText(); } });
-        document.getElementById('sendPublicTextBtn').onclick = sendPublicMessageText;
-        document.getElementById('publicRecordBtn').onclick = () => startRecordingPublic();
-        document.getElementById('publicPauseBtn').onclick = () => {
-            if (isRecordingPublic && !isPausedPublic) pauseRecordingPublic();
-            else if (isRecordingPublic && isPausedPublic) resumeRecordingPublic();
-        };
-        document.getElementById('publicSendVoiceBtn').onclick = () => stopRecordingPublic();
-
+        publicInput.addEventListener('input', () => autoResizeTextarea(publicInput));
+        publicInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPublicMessage(); } });
         document.querySelectorAll('.top-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
         document.getElementById('changeNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'flex';
         document.getElementById('changePinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'flex';
