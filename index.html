@@ -379,7 +379,7 @@
             flex:1; padding:0.7rem; border-radius:1rem; font-weight:590; cursor:pointer; border:none;
             font-size:0.9rem; background: #2c2c2e; color: white;
         }
-        .modal-buttons button:last-child { background: var(--accent-color); color:white; }
+        .modal-buttons button:last-child { background: #2c2c2e; color: white; } /* теперь все кнопки одинаковые */
 
         .context-menu-buttons {
             display: flex;
@@ -534,7 +534,7 @@
             background:var(--accent-color); border:none; width:2.5rem; height:2.5rem; border-radius:2rem;
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
         }
-        /* Индикаторы ответа и редактирования */
+        /* Индикаторы ответа и редактирования — как ответ в сообщении */
         .reply-indicator, .edit-indicator {
             margin: 0.5rem 1rem 0;
             background: var(--input-bg);
@@ -547,6 +547,7 @@
             padding: 0.5rem 0.8rem;
             position: relative;
         }
+        /* Тонкая полоска-разделитель сверху (как между сообщениями) */
         .reply-indicator::before, .edit-indicator::before {
             content: '';
             position: absolute;
@@ -1519,7 +1520,6 @@
             document.getElementById('confirmModal').style.display = 'none';
         };
         document.getElementById('confirmCancelBtn').onclick = () => { pendingDeleteMessageId = null; document.getElementById('confirmModal').style.display = 'none'; };
-        // Подтверждение выхода из комнаты
         document.getElementById('confirmLeaveBtn').onclick = async () => {
             if (pendingLeaveRoomId) {
                 await leaveRoom(pendingLeaveRoomId);
