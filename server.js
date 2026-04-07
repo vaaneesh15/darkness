@@ -300,14 +300,14 @@ io.on('connection', (socket) => {
         newMsg.reply_text = replyMsg.rows[0].text;
       }
     }
-    // Отправляем сообщение всем в комнате
     io.to(`chat_${chatId}`).emit('chat message received', { chatId, message: newMsg });
-    
-    // Отправляем уведомление всем, кроме отправителя
+
+    // Отправляем уведомление всем в чате, кроме отправителя
     const chatName = CHATS.find(c => c.id === chatId)?.name || `Чат ${chatId}`;
-    socket.broadcast.to(`chat_${chatId}`).emit('show notification', {
+    socket.to(`chat_${chatId}`).emit('show notification', {
       title: `Новое сообщение в ${chatName}`,
-      body: `${full_nick}: ${text.substring(0, 100)}`
+      body: `${full_nick}: ${text.substring(0, 100)}`,
+      chatId: chatId
     });
   });
 });
