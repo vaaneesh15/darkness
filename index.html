@@ -6,11 +6,9 @@
     <meta name="theme-color" content="#1c1c1e" id="themeColorMeta">
     <title>ChatX</title>
     
-    <!-- PWA manifest и фавикон -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     
-    <!-- OneSignal SDK (только для регистрации Service Worker, отправка уведомлений через браузерный Notification API) -->
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
       window.OneSignalDeferred = window.OneSignalDeferred || [];
@@ -18,7 +16,6 @@
         await OneSignal.init({
           appId: "22366383-4ee8-4a91-b727-1c11e6bdc218",
         });
-        // Запрашиваем разрешение, если ещё не дано
         const permission = await OneSignal.Notifications.permission;
         if (permission === 'default') {
           await OneSignal.Slidedown.promptPush();
@@ -46,7 +43,6 @@
             width: 100%;
             transition: background-color 0.2s, color 0.2s;
         }
-        /* Тёмная тема: обычная */
         body.theme-dark-regular {
             --bg-page: #121212;
             --text-primary: #ffffff;
@@ -54,7 +50,6 @@
             --border-light: rgba(84,84,88,0.4);
             --input-bg: #1c1c1e;
         }
-        /* Тёмная тема: чёрная */
         body.theme-dark-black {
             --bg-page: #000000;
             --text-primary: #ffffff;
@@ -62,7 +57,6 @@
             --border-light: rgba(84,84,88,0.4);
             --input-bg: #0c0c0e;
         }
-        /* Акценты */
         body.accent-blue { --accent-color: #0a84ff; --accent-rgb: 10, 132, 255; }
         body.accent-purple { --accent-color: #9b4dff; --accent-rgb: 155, 77, 255; }
         body.accent-pink { --accent-color: #ff2d55; --accent-rgb: 255, 45, 85; }
@@ -699,7 +693,6 @@
     </div>
 </div>
 
-<!-- Модальные окна -->
 <div id="changeNickModal" class="modal"><div class="modal-content"><h3>Смена ника</h3><div class="modal-setting"><label>Новый ник</label><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickBtn">Закрыть</button><button id="applyNickBtn">Применить</button></div></div></div>
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-buttons"><button id="cancelPinBtn">Закрыть</button><button id="applyPinBtn">Применить</button></div></div></div>
 <div id="contextMenuModal" class="modal context-menu-modal"><div class="modal-content"><div id="contextMessageNick" class="context-message-nick"></div><div id="contextMessagePreview" class="context-message-preview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
@@ -1236,12 +1229,10 @@
                 socket = io();
                 socket.emit('user online', currentUser.full_nick);
                 
-                // Запрос разрешения на уведомления
                 if (Notification.permission === 'default') {
                     Notification.requestPermission();
                 }
                 
-                // Обработчики сокетов
                 socket.on('chat message received', ({chatId, message}) => {
                     if (!chatMessages[chatId]) chatMessages[chatId] = [];
                     chatMessages[chatId].push(message);
@@ -1268,8 +1259,8 @@
                     if (currentChatId === chatId) updateChatTypingIndicator(null);
                 });
                 
-                // Обработчик уведомлений (клиентская отправка)
                 socket.on('show notification', (data) => {
+                    if (currentChatId === data.chatId) return;
                     if (appSettings.notifications && Notification.permission === 'granted') {
                         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                             navigator.serviceWorker.ready.then(registration => {
@@ -1368,7 +1359,9 @@
                 socket.on('chat stop typing', ({chatId}) => {
                     if (currentChatId === chatId) updateChatTypingIndicator(null);
                 });
+                
                 socket.on('show notification', (data) => {
+                    if (currentChatId === data.chatId) return;
                     if (appSettings.notifications && Notification.permission === 'granted') {
                         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                             navigator.serviceWorker.ready.then(registration => {
