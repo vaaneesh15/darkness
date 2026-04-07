@@ -51,7 +51,7 @@ async function initDB() {
       UNIQUE(message_id, full_nick, reaction)
     );
   `);
-  console.log('✅ База данных готова (только общий чат)');
+  console.log('✅ База данных готова');
 }
 initDB();
 
@@ -165,8 +165,7 @@ app.get('/messages', async (req, res) => {
 });
 
 app.post('/add-reaction', async (req, res) => {
-  const { messageId, full_nick, reaction, isRoom } = req.body;
-  if (isRoom) return res.status(400).json({ success: false, error: 'Комнаты удалены' });
+  const { messageId, full_nick, reaction } = req.body;
   if (!messageId || !full_nick || !reaction) return res.status(400).json({ success: false });
   try {
     await pool.query(
@@ -245,7 +244,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('stop typing', ({ roomId, full_nick }) => {
+  socket.on('stop typing', ({ roomId }) => {
     if (roomId === 'public') {
       socket.to('public').emit('user stop typing', { roomId: 'public' });
     }
