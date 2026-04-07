@@ -51,62 +51,7 @@ async function initDB() {
       UNIQUE(message_id, full_nick, reaction)
     );
   `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS rooms (
-      id SERIAL PRIMARY KEY,
-      name VARCHAR(100) NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
-  // Удаляем колонку created_by, если она существует
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='rooms' AND column_name='created_by') THEN
-        ALTER TABLE rooms DROP COLUMN created_by;
-      END IF;
-    END $$;
-  `);
-  // Добавляем колонку password_hash, если её нет
-  await pool.query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='rooms' AND column_name='password_hash') THEN
-        ALTER TABLE rooms ADD COLUMN password_hash TEXT NOT NULL DEFAULT '';
-      END IF;
-    END $$;
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS room_members (
-      id SERIAL PRIMARY KEY,
-      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-      full_nick VARCHAR(55) NOT NULL,
-      joined_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(room_id, full_nick)
-    );
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS room_messages (
-      id SERIAL PRIMARY KEY,
-      room_id INTEGER NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-      full_nick VARCHAR(55) NOT NULL,
-      text TEXT NOT NULL,
-      reply_to_id INTEGER DEFAULT NULL,
-      edited BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS room_reactions (
-      id SERIAL PRIMARY KEY,
-      message_id INTEGER NOT NULL REFERENCES room_messages(id) ON DELETE CASCADE,
-      full_nick VARCHAR(55) NOT NULL,
-      reaction VARCHAR(10) NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      UNIQUE(message_id, full_nick, reaction)
-    );
-  `);
-  console.log('✅ База данных готова');
+  console.log('✅ База данных готова (только общий чат)');
 }
 initDB();
 
@@ -119,7 +64,6 @@ async function isFullNickUnique(fullNick) {
   return res.rows.length === 0;
 }
 
-// Авторизация
 app.post('/auth', async (req, res) => {
   const { nick, pin } = req.body;
   if (!nick || nick.trim() === '' || !pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
@@ -134,10 +78,7 @@ app.post('/auth', async (req, res) => {
     await pool.query('UPDATE users SET token = $1 WHERE id = $2', [token, existing.rows[0].id]);
     return res.json({ success: true, full_nick: existing.rows[0].full_nick, token });
   } else {
-    let tag;
-    let full_nick;
-    let unique = false;
-    let attempts = 0;
+    let tag, full_nick, unique = false, attempts = 0;
     while (!unique && attempts < 20) {
       tag = generateTag();
       full_nick = `${cleanNick}${tag}`;
@@ -182,9 +123,6 @@ app.post('/change-nick', async (req, res) => {
   await pool.query('UPDATE users SET nick = $1, full_nick = $2 WHERE token = $3', [newNick, newFullNick, token]);
   await pool.query('UPDATE messages SET full_nick = $1 WHERE full_nick = $2', [newFullNick, oldFullNick]);
   await pool.query('UPDATE message_reactions SET full_nick = $1 WHERE full_nick = $2', [newFullNick, oldFullNick]);
-  await pool.query('UPDATE room_messages SET full_nick = $1 WHERE full_nick = $2', [newFullNick, oldFullNick]);
-  await pool.query('UPDATE room_reactions SET full_nick = $1 WHERE full_nick = $2', [newFullNick, oldFullNick]);
-  await pool.query('UPDATE room_members SET full_nick = $1 WHERE full_nick = $2', [newFullNick, oldFullNick]);
   io.emit('nick changed', { oldFullNick, newFullNick });
   res.json({ success: true, newFullNick });
 });
@@ -203,7 +141,6 @@ app.post('/change-pin', async (req, res) => {
   res.json({ success: true });
 });
 
-// ========== ОБЩИЙ ЧАТ ==========
 app.get('/messages', async (req, res) => {
   const { full_nick } = req.query;
   const result = await pool.query(`
@@ -228,41 +165,33 @@ app.get('/messages', async (req, res) => {
 });
 
 app.post('/add-reaction', async (req, res) => {
-  const { messageId, full_nick, reaction, isRoom, roomId } = req.body;
+  const { messageId, full_nick, reaction, isRoom } = req.body;
+  if (isRoom) return res.status(400).json({ success: false, error: 'Комнаты удалены' });
   if (!messageId || !full_nick || !reaction) return res.status(400).json({ success: false });
-  const table = isRoom ? 'room_reactions' : 'message_reactions';
   try {
     await pool.query(
-      `INSERT INTO ${table} (message_id, full_nick, reaction) VALUES ($1, $2, $3)`,
+      `INSERT INTO message_reactions (message_id, full_nick, reaction) VALUES ($1, $2, $3)`,
       [messageId, full_nick, reaction]
     );
     const reactionsRes = await pool.query(
-      `SELECT reaction, COUNT(*) as count FROM ${table} WHERE message_id = $1 GROUP BY reaction`,
+      `SELECT reaction, COUNT(*) as count FROM message_reactions WHERE message_id = $1 GROUP BY reaction`,
       [messageId]
     );
     const reactions = reactionsRes.rows;
-    if (isRoom) {
-      io.to(`room_${roomId}`).emit('room_reaction_updated', { roomId, messageId, reactions });
-    } else {
-      io.emit('reaction updated', { messageId, reactions });
-    }
+    io.emit('reaction updated', { messageId, reactions });
     res.json({ success: true, reactions });
   } catch (err) {
     if (err.code === '23505') {
       await pool.query(
-        `DELETE FROM ${table} WHERE message_id = $1 AND full_nick = $2 AND reaction = $3`,
+        `DELETE FROM message_reactions WHERE message_id = $1 AND full_nick = $2 AND reaction = $3`,
         [messageId, full_nick, reaction]
       );
       const reactionsRes = await pool.query(
-        `SELECT reaction, COUNT(*) as count FROM ${table} WHERE message_id = $1 GROUP BY reaction`,
+        `SELECT reaction, COUNT(*) as count FROM message_reactions WHERE message_id = $1 GROUP BY reaction`,
         [messageId]
       );
       const reactions = reactionsRes.rows;
-      if (isRoom) {
-        io.to(`room_${roomId}`).emit('room_reaction_updated', { roomId, messageId, reactions });
-      } else {
-        io.emit('reaction updated', { messageId, reactions });
-      }
+      io.emit('reaction updated', { messageId, reactions });
       res.json({ success: true, reactions });
     } else {
       res.status(500).json({ success: false });
@@ -302,116 +231,6 @@ app.post('/edit-message', async (req, res) => {
   }
 });
 
-// ========== КОМНАТЫ (ПУБЛИЧНЫЕ С ПАРОЛЕМ) ==========
-app.post('/join-room', async (req, res) => {
-  const { name, password, full_nick } = req.body;
-  if (!name || !password || !full_nick) {
-    return res.status(400).json({ success: false, error: 'Не указано название, пароль или пользователь' });
-  }
-  // Проверяем, существует ли комната
-  const roomExists = await pool.query('SELECT id, password_hash FROM rooms WHERE name = $1', [name]);
-  if (roomExists.rows.length > 0) {
-    // Проверка пароля
-    const valid = await bcrypt.compare(password, roomExists.rows[0].password_hash);
-    if (!valid) {
-      return res.json({ success: false, error: 'Неверный пароль' });
-    }
-    const roomId = roomExists.rows[0].id;
-    // Добавляем пользователя в участники (если ещё не добавлен)
-    await pool.query('INSERT INTO room_members (room_id, full_nick) VALUES ($1, $2) ON CONFLICT DO NOTHING', [roomId, full_nick]);
-    return res.json({ success: true, roomId });
-  } else {
-    // Создаём новую комнату
-    const passwordHash = await bcrypt.hash(password, 10);
-    const newRoom = await pool.query('INSERT INTO rooms (name, password_hash) VALUES ($1, $2) RETURNING id', [name, passwordHash]);
-    const roomId = newRoom.rows[0].id;
-    await pool.query('INSERT INTO room_members (room_id, full_nick) VALUES ($1, $2)', [roomId, full_nick]);
-    io.emit('room_created', { roomId, name });
-    return res.json({ success: true, roomId });
-  }
-});
-
-app.get('/rooms', async (req, res) => {
-  const { full_nick } = req.query;
-  if (!full_nick) return res.status(400).json([]);
-  const result = await pool.query(`
-    SELECT r.id, r.name
-    FROM rooms r
-    JOIN room_members rm ON r.id = rm.room_id
-    WHERE rm.full_nick = $1
-  `, [full_nick]);
-  res.json(result.rows);
-});
-
-app.post('/leave-room', async (req, res) => {
-  const { roomId, full_nick } = req.body;
-  if (!roomId || !full_nick) return res.status(400).json({ success: false });
-  await pool.query('DELETE FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
-  // Не удаляем комнату, даже если участников не осталось
-  res.json({ success: true });
-});
-
-app.get('/room-messages', async (req, res) => {
-  const { roomId, full_nick } = req.query;
-  if (!roomId || !full_nick) return res.status(400).json([]);
-  // Проверяем, имеет ли пользователь доступ к комнате
-  const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
-  if (member.rows.length === 0) return res.status(403).json([]);
-  const result = await pool.query(`
-    SELECT rm.id, rm.full_nick, rm.text, rm.reply_to_id, rm.edited, rm.created_at,
-           COALESCE(r.reactions, '[]'::json) as reactions,
-           rep.full_nick as reply_nick, rep.text as reply_text,
-           (SELECT array_agg(reaction) FROM room_reactions WHERE message_id = rm.id AND full_nick = $2) as user_reactions
-    FROM room_messages rm
-    LEFT JOIN LATERAL (
-      SELECT json_agg(json_build_object('reaction', reaction, 'count', cnt)) as reactions
-      FROM (
-        SELECT reaction, COUNT(*) as cnt
-        FROM room_reactions
-        WHERE message_id = rm.id
-        GROUP BY reaction
-      ) sub
-    ) r ON true
-    LEFT JOIN room_messages rep ON rm.reply_to_id = rep.id
-    WHERE rm.room_id = $1
-    ORDER BY rm.created_at ASC
-  `, [roomId, full_nick]);
-  res.json(result.rows);
-});
-
-app.post('/delete-room-message', async (req, res) => {
-  const { messageId, full_nick, roomId } = req.body;
-  if (!messageId || !full_nick || !roomId) return res.status(400).json({ success: false });
-  const msg = await pool.query('SELECT full_nick FROM room_messages WHERE id = $1', [messageId]);
-  if (msg.rows.length === 0) return res.json({ success: false });
-  if (msg.rows[0].full_nick !== full_nick) return res.json({ success: false });
-  const result = await pool.query('DELETE FROM room_messages WHERE id = $1 RETURNING id', [messageId]);
-  if (result.rowCount > 0) {
-    io.to(`room_${roomId}`).emit('room_message_deleted', { roomId, messageId });
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
-});
-
-app.post('/edit-room-message', async (req, res) => {
-  const { messageId, full_nick, newText, roomId } = req.body;
-  if (!messageId || !full_nick || !newText || newText.trim() === '') {
-    return res.status(400).json({ success: false });
-  }
-  const result = await pool.query(
-    'UPDATE room_messages SET text = $1, edited = TRUE WHERE id = $2 AND full_nick = $3 RETURNING id',
-    [newText.trim(), messageId, full_nick]
-  );
-  if (result.rowCount > 0) {
-    io.to(`room_${roomId}`).emit('room_message_edited', { roomId, messageId, newText: newText.trim() });
-    res.json({ success: true });
-  } else {
-    res.json({ success: false });
-  }
-});
-
-// ========== ОНЛАЙН, ПЕЧАТЬ ==========
 const onlineUsers = new Set();
 io.on('connection', (socket) => {
   let currentFullNick = null;
@@ -420,20 +239,16 @@ io.on('connection', (socket) => {
     socket.join('public');
   });
 
-  socket.on('join typing room', (roomId) => {
-    socket.join(`typing_${roomId}`);
-  });
-
-  socket.on('leave typing room', (roomId) => {
-    socket.leave(`typing_${roomId}`);
-  });
-
   socket.on('typing', ({ roomId, full_nick }) => {
-    socket.to(roomId === 'public' ? 'public' : `room_${roomId}`).emit('user typing', { roomId, full_nick });
+    if (roomId === 'public') {
+      socket.to('public').emit('user typing', { roomId: 'public', full_nick });
+    }
   });
 
   socket.on('stop typing', ({ roomId, full_nick }) => {
-    socket.to(roomId === 'public' ? 'public' : `room_${roomId}`).emit('user stop typing', { roomId, full_nick });
+    if (roomId === 'public') {
+      socket.to('public').emit('user stop typing', { roomId: 'public' });
+    }
   });
 
   socket.on('user online', (full_nick) => {
@@ -447,14 +262,6 @@ io.on('connection', (socket) => {
       onlineUsers.delete(currentFullNick);
       io.emit('online count', onlineUsers.size);
     }
-  });
-
-  socket.on('join room', (roomId) => {
-    socket.join(`room_${roomId}`);
-  });
-
-  socket.on('leave room', (roomId) => {
-    socket.leave(`room_${roomId}`);
   });
 
   socket.on('new message', async (data) => {
@@ -482,35 +289,6 @@ io.on('connection', (socket) => {
       }
     }
     io.to('public').emit('message received', newMsg);
-  });
-
-  socket.on('new room message', async (data) => {
-    const { roomId, full_nick, text, reply_to_id } = data;
-    if (!roomId || !full_nick || !text || text.trim() === '') return;
-    const member = await pool.query('SELECT id FROM room_members WHERE room_id = $1 AND full_nick = $2', [roomId, full_nick]);
-    if (member.rows.length === 0) return;
-    const result = await pool.query(
-      'INSERT INTO room_messages (room_id, full_nick, text, reply_to_id) VALUES ($1, $2, $3, $4) RETURNING id, created_at',
-      [roomId, full_nick, text.trim(), reply_to_id || null]
-    );
-    const newMsg = {
-      id: result.rows[0].id,
-      full_nick,
-      text: text.trim(),
-      reply_to_id: reply_to_id || null,
-      edited: false,
-      created_at: result.rows[0].created_at,
-      reactions: [],
-      user_reactions: []
-    };
-    if (reply_to_id) {
-      const replyMsg = await pool.query('SELECT full_nick, text FROM room_messages WHERE id = $1', [reply_to_id]);
-      if (replyMsg.rows.length) {
-        newMsg.reply_nick = replyMsg.rows[0].full_nick;
-        newMsg.reply_text = replyMsg.rows[0].text;
-      }
-    }
-    io.to(`room_${roomId}`).emit('room message received', { roomId, message: newMsg });
   });
 });
 
