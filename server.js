@@ -20,7 +20,6 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Таблица пользователей
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -32,7 +31,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Таблица сообщений трёх общих чатов
   await pool.query(`
     CREATE TABLE IF NOT EXISTS global_chat_messages (
       id SERIAL PRIMARY KEY,
@@ -44,7 +42,6 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-  // Таблица реакций
   await pool.query(`
     CREATE TABLE IF NOT EXISTS global_chat_reactions (
       id SERIAL PRIMARY KEY,
@@ -55,7 +52,7 @@ async function initDB() {
       UNIQUE(message_id, full_nick, reaction)
     );
   `);
-  console.log('✅ База данных готова (три общих чата)');
+  console.log('✅ База данных готова');
 }
 initDB();
 
