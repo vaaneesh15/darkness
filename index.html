@@ -13,6 +13,11 @@
         await OneSignal.init({
           appId: "22366383-4ee8-4a91-b727-1c11e6bdc218",
         });
+        // Запрашиваем разрешение, если ещё не дано
+        const permission = await OneSignal.Notifications.permission;
+        if (permission === 'default') {
+          await OneSignal.Slidedown.promptPush();
+        }
       });
     </script>
     <style>
