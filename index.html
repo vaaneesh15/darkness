@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-        <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#1c1c1e" id="themeColorMeta">
     <title>ChatX</title>
@@ -18,13 +18,13 @@
         await OneSignal.init({
           appId: "22366383-4ee8-4a91-b727-1c11e6bdc218",
         });
-        // Запрашиваем разрешение, если ещё не дано
         const permission = await OneSignal.Notifications.permission;
         if (permission === 'default') {
           await OneSignal.Slidedown.promptPush();
         }
       });
     </script>
+    
     <style>
         * {
             margin: 0;
@@ -45,7 +45,6 @@
             width: 100%;
             transition: background-color 0.2s, color 0.2s;
         }
-        /* Тёмная тема: обычная */
         body.theme-dark-regular {
             --bg-page: #121212;
             --text-primary: #ffffff;
@@ -53,7 +52,6 @@
             --border-light: rgba(84,84,88,0.4);
             --input-bg: #1c1c1e;
         }
-        /* Тёмная тема: чёрная */
         body.theme-dark-black {
             --bg-page: #000000;
             --text-primary: #ffffff;
@@ -61,7 +59,6 @@
             --border-light: rgba(84,84,88,0.4);
             --input-bg: #0c0c0e;
         }
-        /* Акценты */
         body.accent-blue { --accent-color: #0a84ff; --accent-rgb: 10, 132, 255; }
         body.accent-purple { --accent-color: #9b4dff; --accent-rgb: 155, 77, 255; }
         body.accent-pink { --accent-color: #ff2d55; --accent-rgb: 255, 45, 85; }
@@ -786,7 +783,16 @@
         updateStatusBarColor();
     }
 
-    // Фоновая загрузка всех чатов
+    // Установка external_user_id для OneSignal
+    async function setOneSignalUserId(userId) {
+        if (window.OneSignalDeferred) {
+            window.OneSignalDeferred.push(async function(OneSignal) {
+                await OneSignal.login(userId);
+                console.log('OneSignal external_user_id установлен:', userId);
+            });
+        }
+    }
+
     async function loadAllChatsMessages() {
         for (const chat of CHATS) {
             try {
@@ -1230,6 +1236,10 @@
                 authToken = data.token;
                 localStorage.setItem('simply_token', authToken);
                 localStorage.setItem('simply_nick', nick);
+                
+                // Устанавливаем external_user_id для OneSignal
+                await setOneSignalUserId(currentUser.full_nick);
+                
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
                 if (socket) socket.disconnect();
@@ -1239,16 +1249,7 @@
                     if (!chatMessages[chatId]) chatMessages[chatId] = [];
                     chatMessages[chatId].push(message);
                     if (currentChatId === chatId) renderChatMessages(chatId);
-                    if (appSettings.notifications && window.OneSignalDeferred && chatId !== currentChatId) {
-                        const chatName = CHATS.find(c => c.id === chatId)?.name || `Чат ${chatId}`;
-                        OneSignalDeferred.push(async function(OneSignal) {
-                            await OneSignal.sendNotification({
-                                title: `Новое сообщение в ${chatName}`,
-                                message: `${message.full_nick}: ${message.text.substring(0, 100)}`,
-                                url: window.location.href
-                            });
-                        });
-                    }
+                    // Уведомления теперь отправляет сервер, клиент не делает ничего
                 });
                 socket.on('chat message deleted', ({chatId, messageId}) => {
                     if (chatMessages[chatId]) {
@@ -1270,7 +1271,6 @@
                 socket.on('chat stop typing', ({chatId}) => {
                     if (currentChatId === chatId) updateChatTypingIndicator(null);
                 });
-                // Фоновая загрузка всех чатов
                 await loadAllChatsMessages();
                 renderChatsList();
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
@@ -1293,6 +1293,7 @@
                 document.getElementById('notificationsToggle').onchange = (e) => {
                     appSettings.notifications = e.target.checked;
                     localStorage.setItem('simply_settings', JSON.stringify(appSettings));
+                    // Серверные уведомления не зависят от этой настройки, только клиентские отключены
                 };
                 document.getElementById('darkThemeSelect').onchange = (e) => {
                     appSettings.darkThemeVariant = e.target.value;
@@ -1315,6 +1316,9 @@
             if (data.success) {
                 currentUser.full_nick = data.full_nick;
                 authToken = token;
+                
+                await setOneSignalUserId(currentUser.full_nick);
+                
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
                 socket = io();
@@ -1323,16 +1327,6 @@
                     if (!chatMessages[chatId]) chatMessages[chatId] = [];
                     chatMessages[chatId].push(message);
                     if (currentChatId === chatId) renderChatMessages(chatId);
-                    if (appSettings.notifications && window.OneSignalDeferred && chatId !== currentChatId) {
-                        const chatName = CHATS.find(c => c.id === chatId)?.name || `Чат ${chatId}`;
-                        OneSignalDeferred.push(async function(OneSignal) {
-                            await OneSignal.sendNotification({
-                                title: `Новое сообщение в ${chatName}`,
-                                message: `${message.full_nick}: ${message.text.substring(0, 100)}`,
-                                url: window.location.href
-                            });
-                        });
-                    }
                 });
                 socket.on('chat message deleted', ({chatId, messageId}) => {
                     if (chatMessages[chatId]) {
@@ -1407,6 +1401,7 @@
         if (data.success) {
             currentUser.full_nick = data.newFullNick;
             localStorage.setItem('simply_nick', newNick);
+            await setOneSignalUserId(currentUser.full_nick);
             const { nick, tag } = splitFullNick(currentUser.full_nick);
             document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(nick)}<span style="color:var(--text-secondary);">${escapeHtml(tag)}</span>`;
             alert('Ник изменён');
