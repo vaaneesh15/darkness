@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#1c1c1e">
     <title>ChatX</title>
     <style>
         * {
@@ -30,18 +31,19 @@
             --border-light: rgba(84,84,88,0.4);
             --accent-color: #0a84ff;
             --input-bg: #1c1c1e;
+            --accent-rgb: 10, 132, 255;
         }
-        body.accent-blue { --accent-color: #0a84ff; }
-        body.accent-indigo { --accent-color: #4f46e5; }
-        body.accent-purple { --accent-color: #8b5cf6; }
-        body.accent-pink { --accent-color: #ec4899; }
-        body.accent-red { --accent-color: #ef4444; }
-        body.accent-orange { --accent-color: #f97316; }
-        body.accent-beige { --accent-color: #d4a373; }
-        body.accent-yellow { --accent-color: #eab308; }
-        body.accent-mint { --accent-color: #10b981; }
-        body.accent-teal { --accent-color: #14b89a; }
-        body.accent-gray { --accent-color: #9ca3af; }
+        body.accent-blue { --accent-color: #0a84ff; --accent-rgb: 10, 132, 255; }
+        body.accent-indigo { --accent-color: #4f46e5; --accent-rgb: 79, 70, 229; }
+        body.accent-purple { --accent-color: #8b5cf6; --accent-rgb: 139, 92, 246; }
+        body.accent-pink { --accent-color: #ec4899; --accent-rgb: 236, 72, 153; }
+        body.accent-red { --accent-color: #ef4444; --accent-rgb: 239, 68, 68; }
+        body.accent-orange { --accent-color: #f97316; --accent-rgb: 249, 115, 22; }
+        body.accent-beige { --accent-color: #d4a373; --accent-rgb: 212, 163, 115; }
+        body.accent-yellow { --accent-color: #eab308; --accent-rgb: 234, 179, 8; }
+        body.accent-mint { --accent-color: #10b981; --accent-rgb: 16, 185, 129; }
+        body.accent-teal { --accent-color: #14b89a; --accent-rgb: 20, 184, 154; }
+        body.accent-gray { --accent-color: #9ca3af; --accent-rgb: 156, 163, 175; }
 
         button:active { opacity: 0.6; transition: opacity 0.05s; }
 
@@ -80,17 +82,17 @@
             padding-top: env(safe-area-inset-top, 0);
             border-bottom: 1px solid var(--border-light);
             display: flex;
-            gap: 0.5rem;
+            gap: 0.25rem;
             overflow-x: auto;
             white-space: nowrap;
             flex-shrink: 0;
-            padding-left: 1rem;
+            padding-left: 0.75rem;
             padding-bottom: 0.5rem;
         }
         .top-tab {
             background: none;
             border: none;
-            padding: 0.5rem 1.2rem;
+            padding: 0.5rem 1rem;
             font-size: 1rem;
             font-weight: 500;
             color: var(--text-secondary);
@@ -100,7 +102,7 @@
         }
         .top-tab.active {
             color: var(--accent-color);
-            background: var(--accent-light);
+            background: rgba(128,128,128,0.2);
         }
 
         .tab-content {
@@ -129,6 +131,9 @@
             background: transparent;
             transition: background-color 0.3s;
         }
+        .message-item.highlight {
+            background-color: rgba(var(--accent-rgb), 0.4);
+        }
         .message-header {
             display: flex;
             align-items: baseline;
@@ -143,11 +148,6 @@
             gap: 0;
             cursor: pointer;
         }
-        .admin-star {
-            margin-left: 6px;
-            font-size: 0.7rem;
-            color: #f5b042;
-        }
         .nick-main { color: var(--text-secondary); }
         .own-message .nick-main { color: var(--accent-color); }
         .nick-tag { color:#6c6c70; font-weight:400; font-size:0.7rem; }
@@ -155,9 +155,27 @@
             position: absolute; right: 0; top: 0;
             background: none; border: none; cursor: pointer; color: var(--text-secondary);
             display: inline-flex; align-items: center; justify-content: center;
-            width: 24px; height: 24px; border-radius: 12px;
+            width: 28px; height: 28px; border-radius: 14px;
         }
-        .message-actions-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .message-actions-btn:active { opacity: 0.6; }
+        .message-actions-btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; }
+        .reply-context {
+            margin-bottom: 6px;
+            padding-left: 8px;
+            border-left: 2px solid var(--accent-color);
+            cursor: pointer;
+        }
+        .reply-context .reply-nick {
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        .reply-context .reply-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
         .message-text { 
             font-size:1rem; line-height:1.4; color:var(--text-primary); 
             white-space:pre-wrap; word-break:break-word; 
@@ -226,6 +244,217 @@
             width: 100%;
         }
 
+        .rooms-list {
+            padding: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            flex: 1;
+        }
+        .room-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .room-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 4px;
+        }
+        .room-name {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        .room-members-count {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .join-room-btn {
+            background: var(--accent-color);
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .create-room-fab {
+            position: fixed;
+            bottom: 5rem;
+            right: 1rem;
+            background: var(--accent-color);
+            width: 3rem;
+            height: 3rem;
+            border-radius: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+        .create-room-fab svg {
+            width: 1.5rem;
+            height: 1.5rem;
+            stroke: white;
+            stroke-width: 2;
+        }
+
+        .room-header {
+            background: var(--input-bg);
+            border-bottom: 1px solid var(--border-light);
+            padding: 0.7rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--accent-color);
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .room-title {
+            flex: 1;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .room-members-count-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .modal {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background-color:rgba(0,0,0,0.7); backdrop-filter:blur(12px); z-index:1000;
+            justify-content:center; align-items:center;
+        }
+        .modal-content {
+            background:#1c1c1e; border-radius:2rem; padding:1.5rem; width:90%; max-width:340px;
+            border:0.5px solid var(--border-light); box-shadow:0 8px 20px rgba(0,0,0,0.3);
+        }
+        .modal-content h3 { margin-bottom:1rem; font-size:1.3rem; font-weight:590; color:white; }
+        .modal-setting { margin-bottom:1.2rem; }
+        .modal-setting label { display:block; margin-bottom:0.4rem; font-weight:500; font-size:0.9rem; color:#8e8e93; }
+        .modal-setting input, .modal-setting select, .modal-setting textarea {
+            width:100%; padding:0.6rem 1rem; background:#2c2c2e; border:0.5px solid var(--border-light);
+            border-radius:1rem; font-size:1rem; color:white; outline:none;
+        }
+        .modal-buttons { display:flex; gap:10px; margin-top:1rem; }
+        .modal-buttons button {
+            flex:1; padding:0.7rem; border-radius:1rem; font-weight:590; cursor:pointer; border:none;
+            font-size:0.9rem; background: #2c2c2e; color: white;
+        }
+        .modal-buttons button:first-child { background: #2c2c2e; color: white; }
+        .modal-buttons button:last-child { background: var(--accent-color); color:white; }
+
+        /* контекстное меню */
+        .context-menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .context-menu-buttons button {
+            background: #2c2c2e;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 1rem;
+            font-size: 1rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .context-menu-buttons button:active {
+            background: #3a3a3c;
+        }
+        .context-menu-buttons svg {
+            width: 1.2rem;
+            height: 1.2rem;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+        }
+        .context-message-nick {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .context-message-preview {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 0.5rem 0;
+            border-top: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .reactions-picker {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            justify-items: center;
+            margin-bottom: 1rem;
+        }
+        .reactions-picker button {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.3rem;
+            border-radius: 1rem;
+        }
+
+        .members-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 0.5px solid var(--border-light);
+        }
+        .remove-member-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .add-member-btn {
+            background: var(--accent-color);
+            border: none;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 2rem;
+            color: white;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
         .settings-container { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.8rem; }
         .setting-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
         .setting-label { font-weight: 500; font-size: 1rem; color: var(--text-primary); }
@@ -260,52 +489,41 @@
             flex:1; background:transparent; border:none; padding:0.75rem 0; font-size:1rem;
             color:var(--text-primary); outline:none; resize: none; 
             font-family:inherit; line-height:1.4; max-height:150px; overflow-y: auto;
-            scroll-margin-bottom: 80px;
         }
         .send-btn {
             background:var(--accent-color); border:none; width:2.5rem; height:2.5rem; border-radius:2rem;
             color:white; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center;
         }
-
-        .context-menu-modal .modal-content {
-            max-width: 300px;
-        }
-        .context-message-preview {
-            background: #2c2c2e;
-            border-radius: 1rem;
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-            word-break: break-word;
-        }
-        .context-message-nick {
-            font-size: 0.75rem;
-            margin-bottom: 0.25rem;
-            color: var(--text-secondary);
-        }
-        .context-menu-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .context-menu-buttons button {
-            background: #2c2c2e;
-            border: none;
-            padding: 0.7rem;
-            border-radius: 1rem;
-            color: white;
-            font-size: 0.9rem;
-            cursor: pointer;
+        .reply-indicator {
+            margin: 0.5rem 1rem 0;
+            padding-left: 8px;
+            border-left: 2px solid var(--accent-color);
             display: flex;
             align-items: center;
-            gap: 10px;
-            width: 100%;
+            justify-content: space-between;
+            gap: 8px;
         }
-        .context-menu-buttons button svg {
-            width: 1.2rem;
-            height: 1.2rem;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 1.5;
+        .reply-indicator .reply-content {
+            flex: 1;
+        }
+        .reply-indicator .reply-nick {
+            font-size: 0.7rem;
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+        .reply-indicator .reply-text {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cancel-reply {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -323,7 +541,8 @@
 
 <div id="appContainer" class="app-container" style="display: none;">
     <div class="top-tab-bar">
-        <button class="top-tab active" data-tab="public">Общий чат</button>
+        <button class="top-tab active" data-tab="public">Общий</button>
+        <button class="top-tab" data-tab="private">Приватные</button>
         <button class="top-tab" data-tab="settings">Настройки</button>
     </div>
 
@@ -334,6 +553,16 @@
                 <textarea id="publicMessageInput" placeholder="Сообщение..." rows="1"></textarea>
                 <button class="send-btn" id="sendPublicBtn">↑</button>
             </div>
+        </div>
+    </div>
+
+    <div id="privateTab" class="tab-content">
+        <div id="roomsList" class="rooms-list">Загрузка...</div>
+        <div class="create-room-fab" id="createRoomFab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
         </div>
     </div>
 
@@ -373,19 +602,30 @@
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4" inputmode="numeric"></div><div class="modal-buttons"><button id="cancelPinBtn">Закрыть</button><button id="applyPinBtn">Применить</button></div></div></div>
 <div id="contextMenuModal" class="modal context-menu-modal"><div class="modal-content"><div id="contextMessageNick" class="context-message-nick"></div><div id="contextMessagePreview" class="context-message-preview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
 <div id="confirmModal" class="modal"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage" style="margin-bottom:1rem;">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">Удалить</button></div></div></div>
+<div id="membersModal" class="modal members-modal"><div class="modal-content"><h3>Участники комнаты</h3><div id="membersList" class="members-list"></div><div class="modal-setting" style="display: flex; gap: 8px; align-items: center;"><button id="openAddMemberBtn" class="add-member-btn">+</button></div><button id="closeMembersBtn" class="join-room-btn" style="margin-top:0.5rem;">Закрыть</button></div></div>
+<div id="addMemberModal" class="modal"><div class="modal-content"><h3>Добавить участника</h3><div class="modal-setting"><label>Ник#Тег</label><input type="text" id="addMemberNick" placeholder="Например: Пользователь#123"></div><div class="modal-buttons"><button id="cancelAddMemberBtn">Отмена</button><button id="confirmAddMemberBtn">Добавить</button></div></div></div>
 <div id="reactionPickerModal" class="modal"><div class="modal-content"><h3>Выберите реакцию</h3><div class="reactions-picker" id="reactionsPicker"></div><button id="closeReactionPickerBtn" class="modal-close" style="background:#2c2c2e; border:none; padding:0.5rem; border-radius:1rem; color:white;">Закрыть</button></div></div>
+<div id="createRoomModal" class="modal"><div class="modal-content"><h3>Создать приватный чат</h3><div class="modal-setting"><label>Название комнаты</label><input type="text" id="newRoomName" placeholder="Название"></div><div class="modal-setting"><label>Участники (ник#тег через запятую)</label><input type="text" id="newRoomMembers" placeholder="Пример: Ваниш#131, Пользователь#123"></div><div class="modal-buttons"><button id="cancelCreateRoomBtn">Закрыть</button><button id="confirmCreateRoomBtn">Создать</button></div></div></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
     let socket = null;
-    let currentUser = { full_nick: "", is_admin: false };
+    let currentUser = { full_nick: "" };
     let authToken = localStorage.getItem('simply_token');
     let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { accent: 'blue' };
     
     let publicMessages = [];
-    let editingMessageId = null;
+    let editingMessage = null; // { id, isRoom, roomId, text }
     let pendingDeleteMessageId = null;
     let currentReactionMessage = null;
+    let currentReactionRoomId = null;
+    let isReactionForRoom = false;
+    let contextMessageData = null;
+    let replyingTo = null;
+
+    let rooms = [];
+    let currentRoom = null;
+    let roomMessages = {};
 
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
@@ -393,22 +633,24 @@
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;">${url}</a>`);
     }
+    function hexToRgb(hex) {
+        let c = hex.substring(1);
+        if (c.length === 3) c = c.split('').map(ch => ch+ch).join('');
+        const intVal = parseInt(c, 16);
+        return [(intVal >> 16) & 255, (intVal >> 8) & 255, intVal & 255];
+    }
     function applyAccent(accent) {
         const classes = ['accent-blue','accent-indigo','accent-purple','accent-pink','accent-red','accent-orange','accent-beige','accent-yellow','accent-mint','accent-teal','accent-gray'];
         document.body.classList.remove(...classes);
-        if (accent === 'blue') document.body.classList.add('accent-blue');
-        else if (accent === 'indigo') document.body.classList.add('accent-indigo');
-        else if (accent === 'purple') document.body.classList.add('accent-purple');
-        else if (accent === 'pink') document.body.classList.add('accent-pink');
-        else if (accent === 'red') document.body.classList.add('accent-red');
-        else if (accent === 'orange') document.body.classList.add('accent-orange');
-        else if (accent === 'beige') document.body.classList.add('accent-beige');
-        else if (accent === 'yellow') document.body.classList.add('accent-yellow');
-        else if (accent === 'mint') document.body.classList.add('accent-mint');
-        else if (accent === 'teal') document.body.classList.add('accent-teal');
-        else if (accent === 'gray') document.body.classList.add('accent-gray');
+        document.body.classList.add(`accent-${accent}`);
         appSettings.accent = accent;
         localStorage.setItem('simply_settings', JSON.stringify(appSettings));
+        // обновить rgb переменную
+        const color = getComputedStyle(document.body).getPropertyValue('--accent-color').trim();
+        if (color) {
+            const rgb = hexToRgb(color);
+            document.body.style.setProperty('--accent-rgb', rgb.join(','));
+        }
     }
 
     function renderPublicMessages() {
@@ -424,8 +666,15 @@
             if (isOwn) msgDiv.classList.add('own-message');
             msgDiv.setAttribute('data-id', msg.id);
             msgDiv.setAttribute('data-full-nick', msg.full_nick);
-            let adminStar = '';
-            if (msg.is_admin) adminStar = '<span class="admin-star">★</span>';
+            let replyHtml = '';
+            if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
+                replyHtml = `
+                    <div class="reply-context" data-message="${msg.reply_to_id}">
+                        <div class="reply-nick">${escapeHtml(msg.reply_nick)}</div>
+                        <div class="reply-text">${escapeHtml(msg.reply_text)}</div>
+                    </div>
+                `;
+            }
             let reactionsHtml = '';
             if (msg.reactions && msg.reactions.length) {
                 reactionsHtml = '<div class="reactions-container">';
@@ -439,12 +688,12 @@
                 <div class="message-header">
                     <div class="message-nick">
                         <span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>
-                        ${adminStar}
                     </div>
                 </div>
+                ${replyHtml}
                 <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 <div class="message-footer">
-                    <button class="reaction-btn" data-message="${msg.id}"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
+                    <button class="reaction-btn" data-message="${msg.id}" data-room="false"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
                     ${reactionsHtml}
                     ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
                 </div>
@@ -456,21 +705,35 @@
             actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
             actionsBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn);
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, false, null);
             });
             msgDiv.appendChild(actionsBtn);
         });
+        attachReactionEvents();
+        if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
+    }
+
+    function attachReactionEvents() {
         document.querySelectorAll('.reaction-btn').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            currentReactionMessage = parseInt(btn.dataset.message);
+            const messageId = parseInt(btn.dataset.message);
+            currentReactionMessage = messageId;
+            isReactionForRoom = btn.dataset.room === 'true';
+            currentReactionRoomId = isReactionForRoom ? currentRoom?.id : null;
             showReactionPicker();
         }));
         document.querySelectorAll('.reaction-badge').forEach(btn => btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const reaction = btn.dataset.reaction;
             const messageId = parseInt(btn.dataset.message);
-            addReaction(messageId, reaction);
+            addReaction(messageId, reaction, isReactionForRoom, currentReactionRoomId);
         }));
+        document.querySelectorAll('.reply-context').forEach(el => {
+            el.addEventListener('click', () => {
+                const targetId = parseInt(el.dataset.message);
+                scrollToMessage(targetId);
+            });
+        });
         document.querySelectorAll('.message-nick').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -478,7 +741,6 @@
                 if (fullNick) navigator.clipboard.writeText(fullNick);
             });
         });
-        if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
     }
 
     async function loadPublicMessages() {
@@ -490,17 +752,35 @@
         } catch(e) { console.error(e); }
     }
 
-    async function addReaction(messageId, reaction) {
+    async function addReaction(messageId, reaction, isRoom, roomId) {
         try {
             const res = await fetch('/add-reaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, reaction })
+                body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, reaction, isRoom, roomId })
             });
             const data = await res.json();
             if (data.success) {
-                const msg = publicMessages.find(m => m.id === messageId);
-                if (msg) { msg.reactions = data.reactions; renderPublicMessages(); }
+                if (isRoom) {
+                    const msg = roomMessages[roomId]?.find(m => m.id === messageId);
+                    if (msg) {
+                        msg.reactions = data.reactions;
+                        // обновить user_reactions
+                        if (!msg.user_reactions) msg.user_reactions = [];
+                        if (msg.user_reactions.includes(reaction)) msg.user_reactions = msg.user_reactions.filter(r => r !== reaction);
+                        else msg.user_reactions.push(reaction);
+                        if (currentRoom?.id === roomId) renderRoomMessages(roomId);
+                    }
+                } else {
+                    const msg = publicMessages.find(m => m.id === messageId);
+                    if (msg) {
+                        msg.reactions = data.reactions;
+                        if (!msg.user_reactions) msg.user_reactions = [];
+                        if (msg.user_reactions.includes(reaction)) msg.user_reactions = msg.user_reactions.filter(r => r !== reaction);
+                        else msg.user_reactions.push(reaction);
+                        renderPublicMessages();
+                    }
+                }
             }
         } catch(e) { console.error(e); }
     }
@@ -513,7 +793,7 @@
             const btn = document.createElement('button');
             btn.textContent = emoji;
             btn.onclick = () => {
-                addReaction(currentReactionMessage, emoji);
+                addReaction(currentReactionMessage, emoji, isReactionForRoom, currentReactionRoomId);
                 document.getElementById('reactionPickerModal').style.display = 'none';
             };
             pickerDiv.appendChild(btn);
@@ -521,28 +801,320 @@
         document.getElementById('reactionPickerModal').style.display = 'flex';
     }
 
-    function showContextMenu(messageId, full_nick, text, isOwn) {
+    async function loadRooms() {
+        const res = await fetch(`/rooms?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        rooms = await res.json();
+        const container = document.getElementById('roomsList');
+        if (!container) return;
+        if (rooms.length === 0) { container.innerHTML = '<div style="text-align:center; padding:1rem;">Нет приватных чатов</div>'; return; }
+        container.innerHTML = '';
+        rooms.forEach(room => {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'room-item';
+            roomDiv.innerHTML = `
+                <div class="room-info">
+                    <div class="room-name">${escapeHtml(room.name)}</div>
+                    <div class="room-members-count">Участников: ${room.members_count}</div>
+                </div>
+                <button class="join-room-btn" data-id="${room.id}" data-name="${escapeHtml(room.name)}">Открыть</button>
+            `;
+            container.appendChild(roomDiv);
+        });
+        document.querySelectorAll('.join-room-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const roomId = parseInt(btn.dataset.id);
+                const roomName = btn.dataset.name;
+                openPrivateRoom(roomId, roomName);
+            });
+        });
+    }
+
+    function openPrivateRoom(roomId, roomName) {
+        currentRoom = { id: roomId, name: roomName };
+        if (!roomMessages[roomId]) roomMessages[roomId] = [];
+        renderPrivateRoomView();
+        loadRoomMessages(roomId);
+        socket.emit('join room', roomId);
+    }
+
+    function renderPrivateRoomView() {
+        const container = document.getElementById('privateTab');
+        container.innerHTML = `
+            <div class="room-header">
+                <button class="back-btn" id="backToRoomsBtn">←</button>
+                <div class="room-title">${escapeHtml(currentRoom.name)}</div>
+                <button class="room-members-count-btn" id="showMembersBtn">👥 ${roomMessages[currentRoom.id]?.membersCount || 0}</button>
+            </div>
+            <div class="chat-messages" id="roomMessagesContainer"></div>
+            <div class="input-wrapper">
+                <div class="input-row">
+                    <textarea id="roomMessageInput" placeholder="Сообщение..." rows="1"></textarea>
+                    <button class="send-btn" id="sendRoomBtn">↑</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('backToRoomsBtn').onclick = () => {
+            if (currentRoom) socket.emit('leave room', currentRoom.id);
+            currentRoom = null;
+            editingMessage = null;
+            switchTab('private');
+            loadRooms();
+        };
+        document.getElementById('sendRoomBtn').onclick = () => sendRoomMessage();
+        document.getElementById('showMembersBtn').onclick = () => showRoomMembers(currentRoom.id);
+        const roomInput = document.getElementById('roomMessageInput');
+        roomInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const start=roomInput.selectionStart, end=roomInput.selectionEnd; roomInput.value=roomInput.value.substring(0,start)+'\n'+roomInput.value.substring(end); roomInput.selectionStart=roomInput.selectionEnd=start+1; autoResizeTextarea(roomInput); } });
+        roomInput.addEventListener('input', function() { autoResizeTextarea(this); });
+        renderRoomMessages(currentRoom.id);
+    }
+
+    function renderRoomMessages(roomId) {
+        const container = document.getElementById('roomMessagesContainer');
+        if (!container) return;
+        const wasNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+        container.innerHTML = '';
+        const msgs = roomMessages[roomId] || [];
+        msgs.forEach(msg => {
+            const isOwn = currentUser && msg.full_nick === currentUser.full_nick;
+            const { nick, tag } = splitFullNick(msg.full_nick);
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-item';
+            if (isOwn) msgDiv.classList.add('own-message');
+            msgDiv.setAttribute('data-id', msg.id);
+            msgDiv.setAttribute('data-full-nick', msg.full_nick);
+            let replyHtml = '';
+            if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
+                replyHtml = `
+                    <div class="reply-context" data-message="${msg.reply_to_id}">
+                        <div class="reply-nick">${escapeHtml(msg.reply_nick)}</div>
+                        <div class="reply-text">${escapeHtml(msg.reply_text)}</div>
+                    </div>
+                `;
+            }
+            let reactionsHtml = '';
+            if (msg.reactions && msg.reactions.length) {
+                reactionsHtml = '<div class="reactions-container">';
+                msg.reactions.forEach(r => {
+                    const userReacted = msg.user_reactions && msg.user_reactions.includes(r.reaction);
+                    reactionsHtml += `<button class="reaction-badge ${userReacted ? 'user-reacted' : ''}" data-reaction="${r.reaction}" data-message="${msg.id}"><span>${r.reaction}</span> <span class="reaction-count">${r.count}</span></button>`;
+                });
+                reactionsHtml += '</div>';
+            }
+            msgDiv.innerHTML = `
+                <div class="message-header">
+                    <div class="message-nick">
+                        <span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>
+                    </div>
+                </div>
+                ${replyHtml}
+                <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
+                <div class="message-footer">
+                    <button class="reaction-btn" data-message="${msg.id}" data-room="true"><svg viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
+                    ${reactionsHtml}
+                    ${msg.edited ? '<div class="edited-badge">изменено</div>' : ''}
+                </div>
+                <div class="message-divider"></div>
+            `;
+            container.appendChild(msgDiv);
+            const actionsBtn = document.createElement('button');
+            actionsBtn.className = 'message-actions-btn';
+            actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
+            actionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showContextMenu(msg.id, msg.full_nick, msg.text, isOwn, true, roomId);
+            });
+            msgDiv.appendChild(actionsBtn);
+        });
+        attachReactionEvents();
+        if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
+    }
+
+    async function loadRoomMessages(roomId) {
+        try {
+            const res = await fetch(`/room-messages?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+            const data = await res.json();
+            roomMessages[roomId] = data;
+            const membersRes = await fetch(`/room-members?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+            const members = await membersRes.json();
+            roomMessages[roomId].membersCount = members.length;
+            if (currentRoom && currentRoom.id === roomId) {
+                const btn = document.getElementById('showMembersBtn');
+                if (btn) btn.innerHTML = `👥 ${members.length}`;
+                renderRoomMessages(roomId);
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function showRoomMembers(roomId) {
+        const res = await fetch(`/room-members?roomId=${roomId}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        const members = await res.json();
+        const container = document.getElementById('membersList');
+        container.innerHTML = '';
+        members.forEach(member => {
+            const div = document.createElement('div');
+            div.className = 'member-item';
+            div.innerHTML = `
+                <div>${escapeHtml(member.full_nick)}</div>
+                <button class="remove-member-btn" data-nick="${escapeHtml(member.full_nick)}">−</button>
+            `;
+            container.appendChild(div);
+        });
+        document.querySelectorAll('.remove-member-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const targetNick = btn.dataset.nick;
+                if (confirm('Удалить пользователя из чата?')) {
+                    await fetch('/remove-room-member', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ roomId, full_nick: targetNick, admin_nick: currentUser.full_nick })
+                    });
+                    showRoomMembers(roomId);
+                }
+            });
+        });
+        document.getElementById('membersModal').style.display = 'flex';
+    }
+
+    function sendPublicMessage() {
+        const input = document.getElementById('publicMessageInput');
+        let text = input.value.trim();
+        if (!text && !replyingTo && !editingMessage) return;
+        if (editingMessage) {
+            editMessage(editingMessage.id, text, editingMessage.isRoom, editingMessage.roomId);
+            editingMessage = null;
+            input.value = '';
+            autoResizeTextarea(input);
+            return;
+        }
+        if (!text && replyingTo) {
+            replyingTo = null;
+            hideReplyIndicator();
+            return;
+        }
+        const payload = { full_nick: currentUser.full_nick, text };
+        if (replyingTo) {
+            payload.reply_to_id = replyingTo.messageId;
+            replyingTo = null;
+            hideReplyIndicator();
+        }
+        socket.emit('new message', payload);
+        input.value = '';
+        autoResizeTextarea(input);
+        input.focus();
+    }
+
+    function sendRoomMessage() {
+        if (!currentRoom) return;
+        const input = document.getElementById('roomMessageInput');
+        let text = input.value.trim();
+        if (!text && !replyingTo && !editingMessage) return;
+        if (editingMessage && editingMessage.isRoom && editingMessage.roomId === currentRoom.id) {
+            editMessage(editingMessage.id, text, true, currentRoom.id);
+            editingMessage = null;
+            input.value = '';
+            autoResizeTextarea(input);
+            return;
+        }
+        if (!text && replyingTo) {
+            replyingTo = null;
+            hideReplyIndicator();
+            return;
+        }
+        const payload = { roomId: currentRoom.id, full_nick: currentUser.full_nick, text };
+        if (replyingTo) {
+            payload.reply_to_id = replyingTo.messageId;
+            replyingTo = null;
+            hideReplyIndicator();
+        }
+        socket.emit('new room message', payload);
+        input.value = '';
+        autoResizeTextarea(input);
+        input.focus();
+    }
+
+    async function editMessage(messageId, newText, isRoom, roomId) {
+        const url = isRoom ? '/edit-room-message' : '/edit-message';
+        const body = isRoom ? { messageId, full_nick: currentUser.full_nick, newText, roomId } : { messageId, full_nick: currentUser.full_nick, newText };
+        const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!data.success) alert('Не удалось отредактировать');
+    }
+
+    function showContextMenu(messageId, full_nick, text, isOwn, isRoom, roomId) {
         const { nick, tag } = splitFullNick(full_nick);
         document.getElementById('contextMessageNick').innerHTML = `<span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span>`;
-        document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text));
+        document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text.substring(0, 150))) + (text.length>150?'…':'');
         const container = document.getElementById('contextMenuButtons');
         container.innerHTML = `
-            <button id="ctx-react"><svg viewBox="0 0 24 24" stroke-width="1.5"><circle cx="12" cy="12" r="1.5"/><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6-4.8-6 4.8 2.4-7.2-6-4.8h7.6z"/></svg> Реакция</button>
-            <button id="ctx-copy"><svg viewBox="0 0 24 24" stroke-width="1.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
-            ${isOwn ? `<button id="ctx-edit"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>` : ''}
-            ${isOwn ? `<button id="ctx-delete"><svg viewBox="0 0 24 24" stroke-width="1.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
-            <button id="ctx-close"><svg viewBox="0 0 24 24" stroke-width="1.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
+            <button id="ctx-react"><span>😊</span> Реакция</button>
+            <button id="ctx-reply"><span>↩️</span> Ответить</button>
+            ${isOwn ? `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg> Редактировать</button>` : ''}
+            <button id="ctx-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Скопировать</button>
+            ${isOwn ? `<button id="ctx-delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>` : ''}
+            <button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Закрыть</button>
         `;
         document.getElementById('ctx-react').onclick = () => {
             currentReactionMessage = messageId;
+            isReactionForRoom = isRoom;
+            currentReactionRoomId = roomId;
             showReactionPicker();
             document.getElementById('contextMenuModal').style.display = 'none';
         };
+        document.getElementById('ctx-reply').onclick = () => {
+            replyingTo = { messageId, full_nick, text };
+            showReplyIndicator(replyingTo);
+            document.getElementById('contextMenuModal').style.display = 'none';
+            const input = document.getElementById(isRoom ? 'roomMessageInput' : 'publicMessageInput');
+            input.focus();
+        };
         document.getElementById('ctx-copy').onclick = () => { navigator.clipboard.writeText(text); document.getElementById('contextMenuModal').style.display = 'none'; };
-        document.getElementById('ctx-edit').onclick = () => { editingMessageId = messageId; document.getElementById('contextMenuModal').style.display = 'none'; renderPublicMessages(); };
-        document.getElementById('ctx-delete').onclick = () => { pendingDeleteMessageId = messageId; document.getElementById('confirmMessage').innerText = 'Удалить сообщение?'; document.getElementById('confirmModal').style.display = 'flex'; document.getElementById('contextMenuModal').style.display = 'none'; };
+        if (isOwn) {
+            document.getElementById('ctx-edit').onclick = () => {
+                editingMessage = { id: messageId, isRoom, roomId, text };
+                const input = document.getElementById(isRoom ? 'roomMessageInput' : 'publicMessageInput');
+                input.value = text;
+                input.focus();
+                document.getElementById('contextMenuModal').style.display = 'none';
+            };
+            document.getElementById('ctx-delete').onclick = () => {
+                pendingDeleteMessageId = messageId;
+                contextMessageData = { isRoom, roomId };
+                document.getElementById('confirmMessage').innerText = 'Удалить сообщение?';
+                document.getElementById('confirmModal').style.display = 'flex';
+                document.getElementById('contextMenuModal').style.display = 'none';
+            };
+        }
         document.getElementById('ctx-close').onclick = () => document.getElementById('contextMenuModal').style.display = 'none';
         document.getElementById('contextMenuModal').style.display = 'flex';
+    }
+
+    function showReplyIndicator(reply) {
+        let indicator = document.getElementById('replyIndicator');
+        if (!indicator) {
+            const div = document.createElement('div');
+            div.id = 'replyIndicator';
+            div.className = 'reply-indicator';
+            div.innerHTML = `
+                <div class="reply-content">
+                    <div class="reply-nick">${escapeHtml(reply.full_nick)}</div>
+                    <div class="reply-text">${escapeHtml(reply.text)}</div>
+                </div>
+                <button class="cancel-reply">✕</button>
+            `;
+            const wrapper = document.querySelector('.input-wrapper');
+            wrapper.parentNode.insertBefore(div, wrapper);
+            div.querySelector('.cancel-reply').onclick = () => { replyingTo = null; div.remove(); };
+        } else {
+            indicator.querySelector('.reply-nick').innerHTML = escapeHtml(reply.full_nick);
+            indicator.querySelector('.reply-text').innerHTML = escapeHtml(reply.text);
+            indicator.style.display = 'flex';
+            indicator.querySelector('.cancel-reply').onclick = () => { replyingTo = null; indicator.style.display = 'none'; };
+        }
+    }
+
+    function hideReplyIndicator() {
+        const indicator = document.getElementById('replyIndicator');
+        if (indicator) indicator.style.display = 'none';
     }
 
     async function authWithPin(nick, pin) {
@@ -551,7 +1123,6 @@
             const data = await res.json();
             if (data.success) {
                 currentUser.full_nick = data.full_nick;
-                currentUser.is_admin = data.is_admin;
                 authToken = data.token;
                 localStorage.setItem('simply_token', authToken);
                 localStorage.setItem('simply_nick', nick);
@@ -560,23 +1131,17 @@
                 if (socket) socket.disconnect();
                 socket = io();
                 socket.emit('user online', currentUser.full_nick);
-                socket.on('message received', (newMsg) => { 
-                    publicMessages.push(newMsg); 
-                    renderPublicMessages(); 
-                });
-                socket.on('message deleted', (msgId) => { 
-                    publicMessages = publicMessages.filter(m=>m.id!==msgId); 
-                    renderPublicMessages(); 
-                });
-                socket.on('message edited', ({messageId,newText}) => { 
-                    const msg = publicMessages.find(m=>m.id===messageId); 
-                    if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } 
-                });
-                socket.on('reaction updated', ({messageId, reactions}) => { 
-                    const msg = publicMessages.find(m=>m.id===messageId); 
-                    if(msg){ msg.reactions = reactions; renderPublicMessages(); } 
-                });
+                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
+                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
+                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
+                socket.on('reaction updated', ({messageId, reactions}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; renderPublicMessages(); } });
+                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
                 await loadPublicMessages();
+                await loadRooms();
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:#6c6c70;">${escapeHtml(t)}</span>`;
                 return true;
@@ -592,45 +1157,28 @@
             const data = await res.json();
             if (data.success) {
                 currentUser.full_nick = data.full_nick;
-                currentUser.is_admin = data.is_admin;
                 authToken = token;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
                 socket = io();
                 socket.emit('user online', currentUser.full_nick);
-                socket.on('message received', (newMsg) => { 
-                    publicMessages.push(newMsg); 
-                    renderPublicMessages(); 
-                });
-                socket.on('message deleted', (msgId) => { 
-                    publicMessages = publicMessages.filter(m=>m.id!==msgId); 
-                    renderPublicMessages(); 
-                });
-                socket.on('message edited', ({messageId,newText}) => { 
-                    const msg = publicMessages.find(m=>m.id===messageId); 
-                    if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } 
-                });
-                socket.on('reaction updated', ({messageId, reactions}) => { 
-                    const msg = publicMessages.find(m=>m.id===messageId); 
-                    if(msg){ msg.reactions = reactions; renderPublicMessages(); } 
-                });
+                socket.on('message received', (newMsg) => { publicMessages.push(newMsg); renderPublicMessages(); });
+                socket.on('message deleted', (msgId) => { publicMessages = publicMessages.filter(m=>m.id!==msgId); renderPublicMessages(); });
+                socket.on('message edited', ({messageId,newText}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; renderPublicMessages(); } });
+                socket.on('reaction updated', ({messageId, reactions}) => { const msg = publicMessages.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; renderPublicMessages(); } });
+                socket.on('room message received', ({roomId, message}) => { if(!roomMessages[roomId]) roomMessages[roomId]=[]; roomMessages[roomId].push(message); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); });
+                socket.on('room_message_deleted', ({roomId, messageId}) => { if(roomMessages[roomId]) { roomMessages[roomId]=roomMessages[roomId].filter(m=>m.id!==messageId); if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_message_edited', ({roomId, messageId, newText}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.text=newText; msg.edited=true; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_reaction_updated', ({roomId, messageId, reactions}) => { const msg = roomMessages[roomId]?.find(m=>m.id===messageId); if(msg){ msg.reactions = reactions; if(currentRoom && currentRoom.id===roomId) renderRoomMessages(roomId); } });
+                socket.on('room_created', () => { if(document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms(); });
                 await loadPublicMessages();
+                await loadRooms();
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:#6c6c70;">${escapeHtml(t)}</span>`;
                 return true;
             }
         } catch(e) {}
         return false;
-    }
-
-    function sendPublicMessage() {
-        const input = document.getElementById('publicMessageInput');
-        const text = input.value.trim();
-        if (!text || !socket || !currentUser.full_nick) return;
-        socket.emit('new message', { full_nick: currentUser.full_nick, text });
-        input.value = '';
-        autoResizeTextarea(input);
-        input.focus();
     }
 
     function autoResizeTextarea(textarea) {
@@ -643,6 +1191,7 @@
         document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
         document.getElementById(`${tabId}Tab`).classList.add('active');
         document.querySelector(`.top-tab[data-tab="${tabId}"]`).classList.add('active');
+        if (tabId === 'private' && !currentRoom) loadRooms();
     }
 
     async function changeNick(newNick) {
@@ -661,6 +1210,7 @@
             alert('Ник изменён');
         } else alert(data.error || 'Ошибка');
     }
+
     async function changePin(oldPin, newPin) {
         const res = await fetch('/change-pin', {
             method: 'POST',
@@ -670,6 +1220,23 @@
         const data = await res.json();
         if (data.success) alert('PIN изменён');
         else alert(data.error || 'Ошибка');
+    }
+
+    function scrollToMessage(messageId) {
+        const element = document.querySelector(`.message-item[data-id="${messageId}"]`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('highlight');
+            setTimeout(() => element.classList.remove('highlight'), 1000);
+        }
+    }
+    function scrollToMessageInRoom(messageId) {
+        const element = document.querySelector(`#roomMessagesContainer .message-item[data-id="${messageId}"]`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.classList.add('highlight');
+            setTimeout(() => element.classList.remove('highlight'), 1000);
+        }
     }
 
     window.onload = async () => {
@@ -693,7 +1260,7 @@
         document.getElementById('sendPublicBtn').onclick = sendPublicMessage;
         const publicInput = document.getElementById('publicMessageInput');
         publicInput.addEventListener('input', () => autoResizeTextarea(publicInput));
-        publicInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); const start=publicInput.selectionStart, end=publicInput.selectionEnd; publicInput.value=publicInput.value.substring(0,start)+'\n'+publicInput.value.substring(end); publicInput.selectionStart=publicInput.selectionEnd=start+1; autoResizeTextarea(publicInput); } });
+        publicInput.addEventListener('keypress', (e) => { if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendPublicMessage(); } });
         document.querySelectorAll('.top-tab').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
         document.getElementById('changeNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'flex';
         document.getElementById('changePinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'flex';
@@ -701,13 +1268,53 @@
         document.getElementById('cancelNickBtn').onclick = () => document.getElementById('changeNickModal').style.display = 'none';
         document.getElementById('applyPinBtn').onclick = async () => { const old=document.getElementById('oldPinInput').value, newP=document.getElementById('newPinInput').value; if(old&&newP&&newP.length===4&&/^\d+$/.test(newP)){ await changePin(old,newP); document.getElementById('changePinModal').style.display='none'; document.getElementById('oldPinInput').value=''; document.getElementById('newPinInput').value=''; } else alert('PIN должен быть 4 цифры'); };
         document.getElementById('cancelPinBtn').onclick = () => document.getElementById('changePinModal').style.display = 'none';
+        document.getElementById('createRoomFab').onclick = () => document.getElementById('createRoomModal').style.display = 'flex';
+        document.getElementById('cancelCreateRoomBtn').onclick = () => document.getElementById('createRoomModal').style.display = 'none';
+        document.getElementById('confirmCreateRoomBtn').onclick = async () => {
+            const name = document.getElementById('newRoomName').value.trim();
+            const membersStr = document.getElementById('newRoomMembers').value.trim();
+            let members = membersStr ? membersStr.split(',').map(s => s.trim()) : [];
+            if (!name) return;
+            const res = await fetch('/create-room', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, created_by: currentUser.full_nick, members })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Комната создана');
+                document.getElementById('createRoomModal').style.display = 'none';
+                document.getElementById('newRoomName').value = '';
+                document.getElementById('newRoomMembers').value = '';
+                if (document.querySelector('.top-tab[data-tab="private"]').classList.contains('active')) loadRooms();
+            } else alert('Ошибка');
+        };
+        document.getElementById('openAddMemberBtn').onclick = () => document.getElementById('addMemberModal').style.display = 'flex';
+        document.getElementById('confirmAddMemberBtn').onclick = async () => {
+            const nick = document.getElementById('addMemberNick').value.trim();
+            if (nick && currentRoom) {
+                await fetch('/add-room-member', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomId: currentRoom.id, full_nick: nick, admin_nick: currentUser.full_nick })
+                });
+                document.getElementById('addMemberModal').style.display = 'none';
+                document.getElementById('addMemberNick').value = '';
+                showRoomMembers(currentRoom.id);
+            } else alert('Введите ник#тег');
+        };
+        document.getElementById('cancelAddMemberBtn').onclick = () => document.getElementById('addMemberModal').style.display = 'none';
+        document.getElementById('closeMembersBtn').onclick = () => document.getElementById('membersModal').style.display = 'none';
         document.getElementById('closeReactionPickerBtn').onclick = () => document.getElementById('reactionPickerModal').style.display = 'none';
         document.getElementById('confirmOkBtn').onclick = async () => {
             if (pendingDeleteMessageId) {
-                await fetch('/delete-message', {
+                const isRoom = contextMessageData?.isRoom || false;
+                const roomId = contextMessageData?.roomId || null;
+                const url = isRoom ? '/delete-room-message' : '/delete-message';
+                await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messageId: pendingDeleteMessageId, full_nick: currentUser.full_nick })
+                    body: JSON.stringify({ messageId: pendingDeleteMessageId, full_nick: currentUser.full_nick, roomId })
                 });
                 pendingDeleteMessageId = null;
             }
