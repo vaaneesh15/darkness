@@ -105,7 +105,7 @@
             position: relative;
             background: transparent;
         }
-        .message-item .message-text.highlight {
+        .message-item.highlight .message-text {
             color: var(--accent-color);
         }
         .message-header {
@@ -359,10 +359,12 @@
         }
         .modal-buttons { display:flex; gap:10px; margin-top:1rem; }
         .modal-buttons button {
-            flex:1; padding:0.7rem; border-radius:1rem; font-weight:590; cursor:pointer; border:none;
+            flex:1; padding:0.7rem; border-radius:1rem; font-weight:590; cursor:pointer; border:1px solid var(--border-light);
             font-size:0.9rem; background: var(--bg-page); color: var(--text-primary);
         }
-        .modal-buttons button:last-child { background: var(--accent-color); color:white; }
+        .modal-buttons button:active {
+            background: rgba(128,128,128,0.2);
+        }
 
         .context-menu-buttons {
             display: flex;
@@ -427,19 +429,11 @@
             flex-direction: column;
             gap: 0;
         }
-        .setting-group {
-            margin-bottom: 1rem;
-        }
-        .setting-group-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.3rem;
-        }
         .setting-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.6rem 0;
+            flex-direction: column;
+            gap: 10px;
+            padding: 1rem 0;
             border-bottom: 1px solid var(--border-light);
         }
         .setting-row:last-of-type {
@@ -449,23 +443,31 @@
             font-size: 1rem;
             color: var(--text-primary);
         }
+        .setting-value {
+            width: 100%;
+        }
         .nick-readonly {
-            background: var(--input-bg);
+            background: var(--bg-page);
             border: 1px solid var(--border-light);
             border-radius: 1rem;
-            padding: 0.4rem 0.8rem;
+            padding: 0.6rem 1rem;
             color: var(--text-primary);
-            font-size: 0.9rem;
-            display: inline-block;
+            font-size: 1rem;
+            width: 100%;
+            text-align: left;
         }
         .setting-row button {
-            background: var(--input-bg);
+            background: var(--bg-page);
             border: 1px solid var(--border-light);
             border-radius: 1rem;
-            padding: 0.4rem 1rem;
+            padding: 0.6rem 1rem;
             color: var(--text-primary);
             font-size: 0.9rem;
             cursor: pointer;
+            width: 100%;
+        }
+        .setting-row button:active {
+            background: rgba(128,128,128,0.2);
         }
         .switch {
             position: relative;
@@ -506,6 +508,11 @@
         input:checked + .slider:before {
             transform: translateX(24px);
         }
+        .setting-row-inline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -526,9 +533,10 @@
     <div class="input-wrapper">
         <div class="input-row">
             <button class="settings-icon" id="openSettingsBtn">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none">
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" fill="none"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" fill="none"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.04.04A10 10 0 0 0 12 17.66a10 10 0 0 0 6.36-2.62l.04-.04Z" />
+                    <path d="M16.5 9.4a10 10 0 0 0-9-5.4 10 10 0 0 0-9 5.4" />
                 </svg>
             </button>
             <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
@@ -542,39 +550,43 @@
     <div class="modal-content">
         <h3>Настройки</h3>
         <div class="settings-container">
-            <div class="setting-group">
-                <div class="setting-group-title">Ваш ник</div>
-                <div class="setting-row" style="justify-content: flex-start; gap: 12px;">
-                    <div id="displayNickWithTag" class="nick-readonly"></div>
+            <div class="setting-row">
+                <div class="setting-label">Ваш ник</div>
+                <div class="setting-value">
+                    <div class="nick-readonly" id="displayNickWithTag"></div>
                 </div>
-                <div class="setting-row" style="justify-content: flex-end;">
-                    <button id="changeNickBtn">Изменить</button>
-                </div>
+                <button id="changeNickBtn">Изменить</button>
             </div>
             <div class="setting-row">
-                <span class="setting-label">PIN</span>
+                <div class="setting-label">PIN</div>
                 <button id="changePinBtn">Сменить</button>
             </div>
             <div class="setting-row">
-                <span class="setting-label">Показать дату</span>
-                <label class="switch">
-                    <input type="checkbox" id="showDateToggle">
-                    <span class="slider"></span>
-                </label>
+                <div class="setting-row-inline">
+                    <span class="setting-label">Показать дату</span>
+                    <label class="switch">
+                        <input type="checkbox" id="showDateToggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
             <div class="setting-row">
-                <span class="setting-label">Реакции</span>
-                <label class="switch">
-                    <input type="checkbox" id="showReactionsToggle" checked>
-                    <span class="slider"></span>
-                </label>
+                <div class="setting-row-inline">
+                    <span class="setting-label">Реакции</span>
+                    <label class="switch">
+                        <input type="checkbox" id="showReactionsToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
             <div class="setting-row">
-                <span class="setting-label">Уведомления</span>
-                <label class="switch">
-                    <input type="checkbox" id="notificationsToggle" checked>
-                    <span class="slider"></span>
-                </label>
+                <div class="setting-row-inline">
+                    <span class="setting-label">Уведомления</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notificationsToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
         <div class="modal-buttons" style="margin-top: 1rem;">
@@ -606,7 +618,7 @@
     let currentReactionMessage = null;
     let replyingTo = null;
     let typingTimeout = null;
-    let periodicUpdateInterval = null;
+    let refreshInterval = null;
 
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
@@ -989,22 +1001,17 @@
         const element = document.querySelector(`.message-item[data-id="${messageId}"] .message-text`);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('highlight');
-            setTimeout(() => element.classList.remove('highlight'), 1000);
+            const messageItem = element.closest('.message-item');
+            if (messageItem) messageItem.classList.add('highlight');
+            setTimeout(() => {
+                if (messageItem) messageItem.classList.remove('highlight');
+            }, 1000);
         }
     }
 
     function autoResizeTextarea(textarea) {
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-    }
-
-    // Периодическое обновление сообщений
-    function startPeriodicUpdates() {
-        if (periodicUpdateInterval) clearInterval(periodicUpdateInterval);
-        periodicUpdateInterval = setInterval(() => {
-            loadMessages();
-        }, 5000);
     }
 
     async function authWithPin(nick, pin) {
@@ -1032,7 +1039,8 @@
                 socket.on('message received', (newMsg) => {
                     messages.push(newMsg);
                     renderMessages();
-                    if (appSettings.notifications && newMsg.full_nick !== currentUser.full_nick && Notification.permission === 'granted') {
+                    // Показываем уведомление, только если вкладка НЕ активна (document.hidden)
+                    if (appSettings.notifications && newMsg.full_nick !== currentUser.full_nick && Notification.permission === 'granted' && document.hidden) {
                         const { nick, tag } = splitFullNick(newMsg.full_nick);
                         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                             navigator.serviceWorker.ready.then(registration => {
@@ -1069,7 +1077,12 @@
                 });
                 
                 await loadMessages();
-                startPeriodicUpdates();
+                
+                // Запускаем фоновое обновление каждые 5 секунд
+                if (refreshInterval) clearInterval(refreshInterval);
+                refreshInterval = setInterval(() => {
+                    loadMessages();
+                }, 5000);
                 
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:var(--text-secondary);">${escapeHtml(t)}</span>`;
@@ -1127,7 +1140,7 @@
                 socket.on('message received', (newMsg) => {
                     messages.push(newMsg);
                     renderMessages();
-                    if (appSettings.notifications && newMsg.full_nick !== currentUser.full_nick && Notification.permission === 'granted') {
+                    if (appSettings.notifications && newMsg.full_nick !== currentUser.full_nick && Notification.permission === 'granted' && document.hidden) {
                         const { nick, tag } = splitFullNick(newMsg.full_nick);
                         if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
                             navigator.serviceWorker.ready.then(registration => {
@@ -1164,7 +1177,11 @@
                 });
                 
                 await loadMessages();
-                startPeriodicUpdates();
+                
+                if (refreshInterval) clearInterval(refreshInterval);
+                refreshInterval = setInterval(() => {
+                    loadMessages();
+                }, 5000);
                 
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:var(--text-secondary);">${escapeHtml(t)}</span>`;
