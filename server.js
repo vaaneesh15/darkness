@@ -5,7 +5,6 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
-const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,35 +18,6 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
-
-// OneSignal (App API Key)
-const ONESIGNAL_APP_ID = '22366383-4ee8-4a91-b727-1c11e6bdc218';
-const ONESIGNAL_API_KEY = 'os_v2_app_ei3gha2o5bfjdnzhdqi6npocdcmfgbj53tueub5b652yjinbuneqr47iv2nqfnzpk5u3erklw73gp2lgl3gc54khnvqulaqf52qcg5i';
-
-async function sendOneSignalNotification(title, message, excludeUserId = null) {
-  const data = {
-    app_id: ONESIGNAL_APP_ID,
-    contents: { en: message },
-    headings: { en: title },
-    included_segments: ['Subscribed Users']
-  };
-  if (excludeUserId) {
-    data.filters = [
-      { field: 'tag', key: 'external_user_id', relation: '!=', value: excludeUserId }
-    ];
-  }
-  try {
-    const response = await axios.post('https://onesignal.com/api/v1/notifications', data, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${ONESIGNAL_API_KEY}`
-      }
-    });
-    console.log(`✅ Уведомление отправлено: ${title}`, response.data.id);
-  } catch (err) {
-    console.error('❌ Ошибка отправки уведомления:', err.response?.data || err.message);
-  }
-}
 
 async function initDB() {
   await pool.query(`
@@ -195,7 +165,8 @@ app.get('/messages', async (req, res) => {
 });
 
 app.post('/add-reaction', async (req, res) => {
-  const { messageId, full_nick, reaction } = req.body;
+  const { messageId, full_nick, reaction, isRoom } = req.body;
+  if (isRoom) return res.status(400).json({ success: false });
   if (!messageId || !full_nick || !reaction) return res.status(400).json({ success: false });
   try {
     await pool.query(
@@ -264,6 +235,22 @@ const onlineUsers = new Set();
 io.on('connection', (socket) => {
   let currentFullNick = null;
 
+  socket.on('join public', () => {
+    socket.join('public');
+  });
+
+  socket.on('typing', ({ roomId, full_nick }) => {
+    if (roomId === 'public') {
+      socket.to('public').emit('user typing', { roomId: 'public', full_nick });
+    }
+  });
+
+  socket.on('stop typing', ({ roomId, full_nick }) => {
+    if (roomId === 'public') {
+      socket.to('public').emit('user stop typing', { roomId: 'public' });
+    }
+  });
+
   socket.on('user online', (full_nick) => {
     currentFullNick = full_nick;
     onlineUsers.add(full_nick);
@@ -275,13 +262,6 @@ io.on('connection', (socket) => {
       onlineUsers.delete(currentFullNick);
       io.emit('online count', onlineUsers.size);
     }
-  });
-
-  socket.on('typing', (full_nick) => {
-    socket.broadcast.emit('user typing', full_nick);
-  });
-  socket.on('stop typing', () => {
-    socket.broadcast.emit('user stop typing');
   });
 
   socket.on('new message', async (data) => {
@@ -308,14 +288,7 @@ io.on('connection', (socket) => {
         newMsg.reply_text = replyMsg.rows[0].text;
       }
     }
-    io.emit('message received', newMsg);
-
-    // Отправка уведомления (исключая отправителя)
-    await sendOneSignalNotification(
-      `Новое сообщение`,
-      `${full_nick}: ${text.substring(0, 100)}`,
-      full_nick
-    );
+    io.to('public').emit('message received', newMsg);
   });
 });
 
