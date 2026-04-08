@@ -105,8 +105,8 @@
             position: relative;
             background: transparent;
         }
-        .message-item.highlight {
-            background-color: rgba(var(--accent-rgb), 0.3);
+        .message-item .message-text.highlight {
+            color: var(--accent-color);
         }
         .message-header {
             display: flex;
@@ -153,6 +153,7 @@
         .message-text { 
             font-size:1rem; line-height:1.4; color:var(--text-primary); 
             white-space:pre-wrap; word-break:break-word; 
+            transition: color 0.2s;
         }
         .message-text a {
             color: var(--accent-color);
@@ -426,11 +427,19 @@
             flex-direction: column;
             gap: 0;
         }
+        .setting-group {
+            margin-bottom: 1rem;
+        }
+        .setting-group-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.3rem;
+        }
         .setting-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.8rem 0;
+            padding: 0.6rem 0;
             border-bottom: 1px solid var(--border-light);
         }
         .setting-row:last-of-type {
@@ -447,6 +456,7 @@
             padding: 0.4rem 0.8rem;
             color: var(--text-primary);
             font-size: 0.9rem;
+            display: inline-block;
         }
         .setting-row button {
             background: var(--input-bg);
@@ -517,9 +527,8 @@
         <div class="input-row">
             <button class="settings-icon" id="openSettingsBtn">
                 <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" fill="none">
-                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.04.04A10 10 0 0 0 12 17.66a10 10 0 0 0 6.36-2.62l.04-.04Z" />
-                    <path d="M16.5 9.4a10 10 0 0 0-9-5.4 10 10 0 0 0-9 5.4" />
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" fill="none"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" fill="none"/>
                 </svg>
             </button>
             <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
@@ -533,10 +542,12 @@
     <div class="modal-content">
         <h3>Настройки</h3>
         <div class="settings-container">
-            <div class="setting-row">
-                <span class="setting-label">Ваш ник</span>
-                <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="setting-group">
+                <div class="setting-group-title">Ваш ник</div>
+                <div class="setting-row" style="justify-content: flex-start; gap: 12px;">
                     <div id="displayNickWithTag" class="nick-readonly"></div>
+                </div>
+                <div class="setting-row" style="justify-content: flex-end;">
                     <button id="changeNickBtn">Изменить</button>
                 </div>
             </div>
@@ -595,6 +606,7 @@
     let currentReactionMessage = null;
     let replyingTo = null;
     let typingTimeout = null;
+    let periodicUpdateInterval = null;
 
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
@@ -987,6 +999,14 @@
         textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
     }
 
+    // Периодическое обновление сообщений
+    function startPeriodicUpdates() {
+        if (periodicUpdateInterval) clearInterval(periodicUpdateInterval);
+        periodicUpdateInterval = setInterval(() => {
+            loadMessages();
+        }, 5000);
+    }
+
     async function authWithPin(nick, pin) {
         try {
             const res = await fetch('/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ nick, pin }) });
@@ -1049,6 +1069,8 @@
                 });
                 
                 await loadMessages();
+                startPeriodicUpdates();
+                
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:var(--text-secondary);">${escapeHtml(t)}</span>`;
                 document.getElementById('showDateToggle').checked = appSettings.showDate !== false;
@@ -1142,6 +1164,8 @@
                 });
                 
                 await loadMessages();
+                startPeriodicUpdates();
+                
                 const { nick: n, tag: t } = splitFullNick(currentUser.full_nick);
                 document.getElementById('displayNickWithTag').innerHTML = `${escapeHtml(n)}<span style="color:var(--text-secondary);">${escapeHtml(t)}</span>`;
                 document.getElementById('showDateToggle').checked = appSettings.showDate !== false;
