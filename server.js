@@ -5,6 +5,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,11 +20,43 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// ========== ONESIGNAL (APP API KEY) ==========
+const ONESIGNAL_APP_ID = '22366383-4ee8-4a91-b727-1c11e6bdc218';
+// Используем ваш App API Key (начинается с os_v2_app_...)
+const ONESIGNAL_API_KEY = 'os_v2_app_ei3gha2o5bfjdnzhdqi6npocddbjq34lgqau4puyxuwqha52uog4f4hblgnplww65zzid2uneqn3nfkoxigordrzcjzwzedh6qtkd5a';
+
 const CHATS = [
   { id: 1, name: "Общий чат" },
   { id: 2, name: "Чат 1" },
   { id: 3, name: "Чат 2" }
 ];
+
+// Функция отправки уведомления через OneSignal
+async function sendOneSignalNotification(title, message, excludeUserId = null) {
+  const data = {
+    app_id: ONESIGNAL_APP_ID,
+    contents: { en: message },
+    headings: { en: title },
+    included_segments: ['Subscribed Users']
+  };
+  // Исключаем отправителя (если передан external_user_id)
+  if (excludeUserId) {
+    data.filters = [
+      { field: 'tag', key: 'external_user_id', relation: '!=', value: excludeUserId }
+    ];
+  }
+  try {
+    const response = await axios.post('https://onesignal.com/api/v1/notifications', data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+      }
+    });
+    console.log(`✅ Уведомление отправлено: ${title}`, response.data.id);
+  } catch (err) {
+    console.error('❌ Ошибка отправки уведомления:', err.response?.data || err.message);
+  }
+}
 
 async function initDB() {
   await pool.query(`
@@ -302,13 +335,13 @@ io.on('connection', (socket) => {
     }
     io.to(`chat_${chatId}`).emit('chat message received', { chatId, message: newMsg });
 
-    // Отправляем уведомление всем в чате, кроме отправителя
+    // Отправка уведомления через OneSignal (исключая отправителя)
     const chatName = CHATS.find(c => c.id === chatId)?.name || `Чат ${chatId}`;
-    socket.to(`chat_${chatId}`).emit('show notification', {
-      title: `Новое сообщение в ${chatName}`,
-      body: `${full_nick}: ${text.substring(0, 100)}`,
-      chatId: chatId
-    });
+    await sendOneSignalNotification(
+      `Новое сообщение в ${chatName}`,
+      `${full_nick}: ${text.substring(0, 100)}`,
+      full_nick
+    );
   });
 });
 
