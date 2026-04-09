@@ -451,6 +451,9 @@
             background-color:rgba(0,0,0,0.7); backdrop-filter:blur(12px); z-index:10000;
             justify-content:center; align-items:center;
         }
+        .modal.modal-top {
+            z-index: 10001;
+        }
         .modal.fullscreen {
             background: var(--bg-page);
             backdrop-filter: none;
@@ -553,6 +556,7 @@
             gap: 0.6rem;
             border-bottom: 1px solid var(--border-light);
             padding-bottom: 0.9rem;
+            padding-top: 0.9rem;
         }
         .setting-row:last-of-type {
             border-bottom: none;
@@ -767,7 +771,6 @@
         .chat-menu-modal .modal-content {
             max-width: 320px;
         }
-        /* Увеличенная кнопка меню чата */
         .chat-menu-btn {
             width: 36px;
             height: 36px;
@@ -790,6 +793,24 @@
             stroke: var(--accent-color);
             stroke-width: 2;
             fill: none;
+        }
+
+        /* Стилизация селекта под тёмную тему */
+        select, .badge-select {
+            background: var(--bg-page);
+            border: 1px solid var(--border-light);
+            border-radius: 1rem;
+            padding: 0.7rem 1rem;
+            color: var(--text-primary);
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
         }
     </style>
 </head>
@@ -872,7 +893,7 @@
             <div class="setting-row">
                 <button id="openStyleSettingsBtn" class="profile-menu-btn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2v20M2 12h20"/>
+                        <path d="M2 21h20M4 3l2 2 2-2 2 2 2-2 2 2 2-2 2 2"/>
                         <circle cx="12" cy="12" r="3"/>
                     </svg>
                     Стиль
@@ -922,8 +943,8 @@
 
 <!-- Модальные окна -->
 <div id="addFriendModal" class="modal"><div class="modal-content"><h3>Добавить друга</h3><div class="modal-setting"><input type="text" id="friendFullNickInput" placeholder="ник#тег"></div><div class="modal-buttons"><button id="cancelAddFriendBtn">Отмена</button><button id="sendFriendRequestBtn">Запрос</button></div></div></div>
-<div id="confirmModal" class="modal"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">OK</button></div></div></div>
-<div id="pinConfirmModal" class="modal"><div class="modal-content"><h3>Введите PIN</h3><div class="modal-setting"><input type="password" id="pinConfirmInput" placeholder="PIN" maxlength="4"></div><div class="modal-buttons"><button id="pinConfirmCancelBtn">Отмена</button><button id="pinConfirmOkBtn">Подтвердить</button></div></div></div>
+<div id="confirmModal" class="modal modal-top"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">OK</button></div></div></div>
+<div id="pinConfirmModal" class="modal modal-top"><div class="modal-content"><h3>Введите PIN</h3><div class="modal-setting"><input type="password" id="pinConfirmInput" placeholder="PIN" maxlength="4"></div><div class="modal-buttons"><button id="pinConfirmCancelBtn">Отмена</button><button id="pinConfirmOkBtn">Подтвердить</button></div></div></div>
 <div id="reactionPickerModal" class="modal"><div class="modal-content"><h3>Реакция</h3><div class="reactions-picker" id="reactionsPicker"></div><div class="modal-buttons"><button id="closeReactionPickerBtn">Закрыть</button></div></div></div>
 <div id="contextMenuModal" class="modal"><div class="modal-content"><div id="contextMessageNick"></div><div id="contextMessagePreview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
 
@@ -941,7 +962,7 @@
 </div>
 
 <!-- Модалка смены ника -->
-<div id="changeNickModal" class="modal">
+<div id="changeNickModal" class="modal modal-top">
     <div class="modal-content">
         <h3>Сменить ник</h3>
         <div class="modal-setting">
@@ -971,6 +992,7 @@
             <div class="setting-header">
                 <span class="setting-label">Значок</span>
                 <select id="badgeSelect" class="badge-select">
+                    <option value="">— Отсутствует —</option>
                     <option value="⭐">⭐ Звезда</option>
                     <option value="❤️">❤️ Сердечко</option>
                     <option value="🔥">🔥 Огонёк</option>
@@ -1008,7 +1030,7 @@
             <h3 style="margin-left:1rem;">Приватность</h3>
         </div>
         <div class="setting-row"><button id="changePinFromPrivacyBtn" class="profile-menu-btn" style="justify-content:flex-start;">Сменить PIN</button></div>
-        <div class="setting-row" style="border-bottom:none;"><button id="logoutBtn" class="profile-menu-btn" style="justify-content:flex-start;">Выйти из аккаунта</button></div>
+        <div class="setting-row"><button id="logoutBtn" class="profile-menu-btn" style="justify-content:flex-start;">Выйти из аккаунта</button></div>
         <div class="setting-row"><button id="deleteAccountBtn" class="profile-menu-btn" style="color:#ff375f; justify-content:flex-start;">Удалить аккаунт</button></div>
     </div>
 </div>
@@ -1035,7 +1057,7 @@
             <div class="setting-header">
                 <span class="setting-label">Оттенок</span>
                 <select id="accentColorSelect" class="badge-select">
-                    <option value="#0a84ff">Небо</option>
+                    <option value="#0a84ff" selected>Небо</option>
                     <option value="#ff3b30">Алый</option>
                     <option value="#ff9500">Медный</option>
                     <option value="#ff2d55">Пинки</option>
@@ -1072,7 +1094,7 @@
         showReactions: true, 
         notifications: true, 
         accentColor: '#0a84ff', 
-        userBadge: '⭐' 
+        userBadge: '' 
     };
     
     let messages = [];
@@ -1132,7 +1154,11 @@
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabId);
         });
-        if (tabId === 'friends') loadFriends();
+        if (tabId === 'friends') {
+            document.getElementById('friendsSearchInput').value = '';
+            friendsSearchQuery = '';
+            loadFriends();
+        }
         else if (tabId === 'chats') {
             document.getElementById('chatSearchInput').value = '';
             chatSearchQuery = '';
@@ -1348,7 +1374,7 @@
         list.forEach(user => {
             const badge = getUserBadge(user.full_nick);
             html += `<div class="friend-item">
-                <div class="friend-info"><span class="user-badge">${badge}</span><span class="friend-name">${escapeHtml(user.full_nick)}</span></div>
+                <div class="friend-info">${badge ? `<span class="user-badge">${badge}</span>` : ''}<span class="friend-name">${escapeHtml(user.full_nick)}</span></div>
                 <div class="friend-actions">`;
             if (friendsFilter === 'incoming') {
                 html += `<button class="accept-friend" data-nick="${user.full_nick}">✓</button>
@@ -1411,7 +1437,7 @@
         users.forEach(u => {
             const badge = getUserBadge(u.full_nick);
             html += `<div class="friend-item">
-                <div class="friend-info"><span class="user-badge">${badge}</span><span class="friend-name">${escapeHtml(u.full_nick)}</span></div>
+                <div class="friend-info">${badge ? `<span class="user-badge">${badge}</span>` : ''}<span class="friend-name">${escapeHtml(u.full_nick)}</span></div>
                 <div class="friend-actions">
                     <button class="add-friend-search" data-nick="${u.full_nick}">👤+</button>
                     <button class="write-search" data-nick="${u.full_nick}">💬</button>
@@ -1436,7 +1462,8 @@
 
     // --- Значки пользователей ---
     function getUserBadge(full_nick) {
-        return full_nick === currentUser.full_nick ? appSettings.userBadge : '⭐';
+        // В будущем будем брать из БД, пока заглушка: только для текущего пользователя
+        return full_nick === currentUser.full_nick ? (appSettings.userBadge || '') : '';
     }
 
     // --- Рендер сообщений ---
@@ -1469,7 +1496,7 @@
             const timestamp = formatTimestamp(msg.created_at, appSettings.showDate);
             const badge = getUserBadge(msg.full_nick);
             msgDiv.innerHTML = `
-                <div class="message-header"><div class="message-nick"><span class="user-badge">${badge}</span><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span></div></div>
+                <div class="message-header"><div class="message-nick">${badge ? `<span class="user-badge">${badge}</span>` : ''}<span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span></div></div>
                 ${replyHtml}
                 <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 <div class="message-footer">
@@ -1591,6 +1618,7 @@
         input.value = '';
         autoResizeTextarea(input);
         onTyping(false);
+        input.focus();
     }
 
     async function editMessage(messageId, newText) {
@@ -1748,7 +1776,7 @@
         document.getElementById('showDateToggle').checked = appSettings.showDate;
         document.getElementById('showReactionsToggle').checked = appSettings.showReactions;
         document.getElementById('notificationsToggle').checked = appSettings.notifications;
-        document.getElementById('badgeSelect').value = appSettings.userBadge;
+        document.getElementById('badgeSelect').value = appSettings.userBadge || '';
         document.getElementById('accentColorSelect').value = appSettings.accentColor;
 
         document.getElementById('showDateToggle').onchange = e => {
@@ -2026,12 +2054,7 @@
             autoResizeTextarea(msgInput);
             onTyping(true);
         });
-        msgInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
+        // Enter теперь добавляет новую строку (поведение по умолчанию)
 
         window.isUserScrolling = false;
         document.getElementById('messagesContainer')?.addEventListener('scroll', () => {
