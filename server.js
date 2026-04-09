@@ -20,16 +20,9 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Удаляем старые таблицы для миграции (только при первом запуске)
-  await pool.query(`DROP TABLE IF EXISTS message_reactions CASCADE`);
-  await pool.query(`DROP TABLE IF EXISTS messages CASCADE`);
-  await pool.query(`DROP TABLE IF EXISTS chat_participants CASCADE`);
-  await pool.query(`DROP TABLE IF EXISTS chats CASCADE`);
-  await pool.query(`DROP TABLE IF EXISTS friendships CASCADE`);
-  await pool.query(`DROP TABLE IF EXISTS users CASCADE`);
-
+  // Пользователи
   await pool.query(`
-    CREATE TABLE users (
+    CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       nick VARCHAR(50) NOT NULL,
       tag VARCHAR(4) NOT NULL,
@@ -40,24 +33,27 @@ async function initDB() {
     );
   `);
 
+  // Чаты (общий, личные, блокноты)
   await pool.query(`
-    CREATE TABLE chats (
+    CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
       type VARCHAR(20) NOT NULL CHECK (type IN ('public', 'private', 'notebook')),
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 
+  // Участники чатов
   await pool.query(`
-    CREATE TABLE chat_participants (
+    CREATE TABLE IF NOT EXISTS chat_participants (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
       full_nick VARCHAR(55) REFERENCES users(full_nick) ON DELETE CASCADE,
       PRIMARY KEY (chat_id, full_nick)
     );
   `);
 
+  // Сообщения
   await pool.query(`
-    CREATE TABLE messages (
+    CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
       chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
       full_nick VARCHAR(55) NOT NULL,
@@ -68,8 +64,9 @@ async function initDB() {
     );
   `);
 
+  // Реакции
   await pool.query(`
-    CREATE TABLE message_reactions (
+    CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
       message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
       full_nick VARCHAR(55) NOT NULL,
@@ -79,8 +76,9 @@ async function initDB() {
     );
   `);
 
+  // Друзья
   await pool.query(`
-    CREATE TABLE friendships (
+    CREATE TABLE IF NOT EXISTS friendships (
       id SERIAL PRIMARY KEY,
       user_full_nick VARCHAR(55) NOT NULL REFERENCES users(full_nick) ON DELETE CASCADE,
       friend_full_nick VARCHAR(55) NOT NULL REFERENCES users(full_nick) ON DELETE CASCADE,
@@ -90,20 +88,22 @@ async function initDB() {
     );
   `);
 
+  // Удалённые чаты (для мягкого удаления)
   await pool.query(`
-    CREATE TABLE deleted_chats (
+    CREATE TABLE IF NOT EXISTS deleted_chats (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
       full_nick VARCHAR(55) REFERENCES users(full_nick) ON DELETE CASCADE,
       PRIMARY KEY (chat_id, full_nick)
     );
   `);
 
+  // Создаём публичный чат, если его нет
   const publicChat = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
   if (publicChat.rows.length === 0) {
     await pool.query(`INSERT INTO chats (type) VALUES ('public')`);
   }
 
-  console.log('✅ База данных готова (произведена миграция)');
+  console.log('✅ База данных готова (использованы существующие таблицы)');
 }
 initDB();
 
