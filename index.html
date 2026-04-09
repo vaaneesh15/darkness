@@ -221,6 +221,7 @@
             border-radius: 50%;
             background-color: var(--accent-color);
             display: inline-block;
+            margin-left: 6px;
         }
         .chat-header-status {
             font-size: 0.75rem;
@@ -262,7 +263,6 @@
         }
         .nick-main { color: var(--text-secondary); }
         .own-message .nick-main { color: var(--accent-color); }
-        .nick-tag { color:#6c6c70; font-weight:400; font-size:0.8rem; }
         .message-actions-btn {
             position: absolute; right: 0; top: 0;
             background: none; border: none;
@@ -646,21 +646,24 @@
         }
 
         /* Списки друзей и чатов */
-        .friend-item, .chat-item {
+        .contact-item, .chat-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0.8rem 0;
             border-bottom: 1px solid var(--border-light);
         }
-        .friend-info, .chat-info {
+        .contact-info, .chat-info {
             flex: 1;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .friend-name {
+        .contact-name {
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .chat-preview {
             font-size: 0.8rem;
@@ -677,11 +680,11 @@
             margin-left: 8px;
             white-space: nowrap;
         }
-        .friend-actions {
+        .contact-actions {
             display: flex;
             gap: 8px;
         }
-        .friend-actions button {
+        .contact-actions button {
             background: none;
             border: none;
             color: var(--text-primary);
@@ -698,25 +701,6 @@
             color: var(--text-primary);
             font-size: 1rem;
             margin-bottom: 1rem;
-        }
-
-        /* Круглая кнопка добавления друга */
-        .add-friend-fab {
-            position: fixed;
-            bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-            right: 1rem;
-            width: 3.5rem;
-            height: 3.5rem;
-            border-radius: 50%;
-            background: var(--accent-color);
-            border: none;
-            color: white;
-            font-size: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            z-index: 90;
         }
 
         /* Иконки в профиле */
@@ -761,26 +745,13 @@
         .chat-menu-modal .modal-content {
             max-width: 320px;
         }
-        .chat-menu-btn {
-            width: 48px;
-            height: 48px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 24px;
-            color: var(--text-secondary);
-        }
-        .chat-menu-btn svg {
-            width: 28px;
-            height: 28px;
-        }
 
         /* Иконка значка пользователя */
         .user-badge {
             margin-right: 4px;
             font-size: 1.1rem;
         }
-        /* Иконка pin в закрепленном чате */
+        /* Иконка pin в закрепленном чате (звезда) */
         .pinned-icon {
             margin-right: 4px;
             width: 14px;
@@ -830,26 +801,13 @@
             border-bottom: 1px solid var(--border-light);
         }
 
-        /* Панель друзей flex-контейнер */
-        #friendsPanel {
+        /* Панель контактов flex-контейнер */
+        #contactsPanel {
             display: flex;
             flex-direction: column;
         }
-        #friendsListContainer {
+        #contactsListContainer {
             flex: 1;
-        }
-
-        /* Индикатор входящего запроса */
-        .friend-request-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
-        }
-        .friend-request-nick {
-            margin-left: 8px;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
         }
     </style>
 </head>
@@ -866,13 +824,13 @@
 </div>
 
 <div id="appContainer" class="app-container" style="display: none;">
-    <!-- Панель друзей -->
-    <div id="friendsPanel" class="panel" style="display: none;">
+    <!-- Панель контактов -->
+    <div id="contactsPanel" class="panel" style="display: none;">
         <div class="panel-header">
-            <div class="panel-title">Друзья</div>
-            <input type="text" id="friendsSearchInput" class="search-input" placeholder="Поиск...">
+            <div class="panel-title">Контакты</div>
+            <input type="text" id="contactsSearchInput" class="search-input" placeholder="Поиск...">
         </div>
-        <div id="friendsListContainer"></div>
+        <div id="contactsListContainer"></div>
     </div>
 
     <!-- Панель чатов -->
@@ -949,14 +907,11 @@
         </div>
     </div>
 
-    <!-- Круглая кнопка добавления друга -->
-    <button id="addFriendFab" class="add-friend-fab">+</button>
-
     <!-- Нижняя навигация -->
     <div class="nav-bar" id="mainNavBar">
-        <button class="nav-item" data-tab="friends">
+        <button class="nav-item" data-tab="contacts">
             <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            <span>Друзья</span>
+            <span>Контакты</span>
         </button>
         <button class="nav-item active" data-tab="chats">
             <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
@@ -973,7 +928,6 @@
 </div>
 
 <!-- Модальные окна -->
-<div id="addFriendModal" class="modal"><div class="modal-content"><h3>Добавить друга</h3><div class="modal-setting"><input type="text" id="friendFullNickInput" placeholder="ник#тег"></div><div class="modal-buttons"><button id="cancelAddFriendBtn">Отмена</button><button id="sendFriendRequestBtn">Запрос</button></div></div></div>
 <div id="confirmModal" class="modal modal-top"><div class="modal-content"><h3>Подтверждение</h3><p id="confirmMessage">Вы уверены?</p><div class="modal-buttons"><button id="confirmCancelBtn">Отмена</button><button id="confirmOkBtn">OK</button></div></div></div>
 <div id="pinConfirmModal" class="modal modal-top"><div class="modal-content"><h3>Введите PIN</h3><div class="modal-setting"><input type="password" id="pinConfirmInput" placeholder="PIN" maxlength="4"></div><div class="modal-buttons"><button id="pinConfirmCancelBtn">Отмена</button><button id="pinConfirmOkBtn">Подтвердить</button></div></div></div>
 <div id="reactionPickerModal" class="modal"><div class="modal-content"><h3>Реакция</h3><div class="reactions-picker" id="reactionsPicker"></div><div class="modal-buttons"><button id="closeReactionPickerBtn">Закрыть</button></div></div></div>
@@ -984,8 +938,8 @@
     <div class="modal-content">
         <div style="margin-bottom:1rem; font-weight:600;" id="chatMenuNick"></div>
         <div class="context-menu-buttons" id="chatMenuButtons">
-            <button id="chatMenuPin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M5 12h14"/></svg> <span id="pinButtonText">Закрепить</span></button>
-            <button id="chatMenuFriend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> <span id="chatMenuFriendText">Добавить в друзья</span></button>
+            <button id="chatMenuPin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> <span id="pinButtonText">Закрепить</span></button>
+            <button id="chatMenuContact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> <span id="chatMenuContactText">Добавить в контакты</span></button>
             <button id="chatMenuDelete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>
             <button id="chatMenuClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Закрыть</button>
         </div>
@@ -1117,7 +1071,7 @@
 
     // --- Глобальное состояние ---
     let socket = null;
-    let currentUser = { full_nick: "", badge: "" };
+    let currentUser = { nick: "", badge: "" };
     let authToken = localStorage.getItem('simply_token');
     let appSettings = JSON.parse(localStorage.getItem('simply_settings')) || { 
         showDate: true, 
@@ -1132,8 +1086,8 @@
     let chatsList = [];
     let pinnedChats = JSON.parse(localStorage.getItem('pinned_chats')) || [];
     let lastReadMessage = JSON.parse(localStorage.getItem('last_read_message')) || {};
-    let friendsData = { accepted: [], incoming: [] };
-    let friendsSearchQuery = '';
+    let contacts = [];
+    let contactsSearchQuery = '';
     let chatSearchQuery = '';
     let editingMessage = null;
     let pendingDeleteMessageId = null;
@@ -1150,7 +1104,6 @@
 
     // --- Вспомогательные функции ---
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
-    function splitFullNick(full) { const h=full.lastIndexOf('#'); if(h===-1) return {nick:full,tag:''}; return {nick:full.slice(0,h),tag:full.slice(h)}; }
     function linkify(text) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-color); text-decoration: underline;">${url}</a>`);
@@ -1180,7 +1133,7 @@
     // Проверка непрочитанных сообщений в чате
     function hasUnreadMessages(chat) {
         if (!chat.last_message) return false;
-        if (chat.last_message.full_nick === currentUser.full_nick) return false;
+        if (chat.last_message.nick === currentUser.nick) return false;
         const lastMsgId = chat.last_message.id;
         const lastReadId = lastReadMessage[chat.id] || 0;
         return lastMsgId > lastReadId;
@@ -1193,21 +1146,20 @@
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabId);
         });
-        const fab = document.getElementById('addFriendFab');
-        fab.style.display = (tabId === 'friends') ? 'flex' : 'none';
         
-        if (tabId === 'friends') {
-            document.getElementById('friendsSearchInput').value = '';
-            friendsSearchQuery = '';
-            loadFriends();
+        if (tabId === 'contacts') {
+            document.getElementById('contactsSearchInput').value = '';
+            contactsSearchQuery = '';
+            loadContacts();
         } else if (tabId === 'chats') {
             document.getElementById('chatSearchInput').value = '';
             chatSearchQuery = '';
             loadChatsList();
             document.getElementById('userSearchResults').innerHTML = '';
+            document.getElementById('chatsListContainer').style.display = 'block';
         }
         else if (tabId === 'profile') {
-            document.getElementById('profileNickDisplay').innerText = currentUser.full_nick;
+            document.getElementById('profileNickDisplay').innerText = currentUser.nick;
         }
         if (currentChat.id) closeChatView();
     }
@@ -1225,12 +1177,17 @@
             currentChat = { id: null, type: null, other: null, name: '' };
         }
         showTab('chats');
+        document.getElementById('chatSearchInput').value = '';
+        chatSearchQuery = '';
+        loadChatsList();
+        document.getElementById('userSearchResults').innerHTML = '';
+        document.getElementById('chatsListContainer').style.display = 'block';
     }
 
     // --- Работа с чатами ---
     async function loadChatsList() {
         try {
-            const res = await fetch(`/chats?full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+            const res = await fetch(`/chats?nick=${encodeURIComponent(currentUser.nick)}`);
             chatsList = await res.json();
             chatsList.forEach(c => { c.pinned = pinnedChats.includes(c.id); });
             renderChatsList();
@@ -1257,30 +1214,26 @@
             let preview = '';
             let timeStr = '';
             if (chat.last_message) {
-                const isOwn = chat.last_message.full_nick === currentUser.full_nick;
-                const prefix = isOwn ? 'Вы: ' : (chat.type==='private' ? '' : splitFullNick(chat.last_message.full_nick).nick+': ');
+                const isOwn = chat.last_message.nick === currentUser.nick;
+                const prefix = isOwn ? 'Вы: ' : (chat.type==='private' ? '' : chat.last_message.nick+': ');
                 preview = prefix + (chat.last_message.text.length > 30 ? chat.last_message.text.substring(0,30)+'…' : chat.last_message.text);
                 timeStr = formatTimestamp(chat.last_message.created_at, appSettings.showDate);
             }
-            const pinnedIcon = chat.pinned ? '<svg class="pinned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M5 12h14"/></svg>' : '';
+            const pinnedIcon = chat.pinned ? '<svg class="pinned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' : '';
             const unreadDot = hasUnreadMessages(chat) ? '<span class="unread-dot"></span>' : '';
             html += `<div class="chat-item clickable" data-chat-id="${chat.id}" data-chat-type="${chat.type}" data-other="${chat.other||''}" data-name="${escapeHtml(chat.name)}">
                 <div class="chat-info">
                     ${pinnedIcon}
                     <div style="flex:1">
-                        <div class="friend-name">${unreadDot}${escapeHtml(chat.name)}</div>
+                        <div class="friend-name">${escapeHtml(chat.name)}${unreadDot}</div>
                         <div class="chat-preview"><span>${escapeHtml(preview)}</span><span class="chat-time">${timeStr}</span></div>
                     </div>
-                </div>`;
-            if (chat.type === 'private') {
-                html += `<button class="message-actions-btn chat-menu-btn" style="position:relative; right:auto; top:auto;" data-chat-id="${chat.id}" data-other="${chat.other}">⋮</button>`;
-            }
-            html += `</div>`;
+                </div>
+            </div>`;
         });
         container.innerHTML = html || '<div style="color:var(--text-secondary); text-align:center;">Нет чатов</div>';
         document.querySelectorAll('.chat-item').forEach(el => {
             el.addEventListener('click', (e) => {
-                if (e.target.closest('.chat-menu-btn')) return;
                 const chat = {
                     id: parseInt(el.dataset.chatId),
                     type: el.dataset.chatType,
@@ -1289,15 +1242,30 @@
                 };
                 openChat(chat);
             });
-        });
-        document.querySelectorAll('.chat-menu-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const chatId = parseInt(btn.dataset.chatId);
-                const other = btn.dataset.other;
-                selectedChatForMenu = { chatId, other };
-                openChatMenu(chatId, other);
-            });
+            // Долгое нажатие для меню чата (только для приватных)
+            if (el.dataset.chatType === 'private') {
+                let pressTimer;
+                el.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => {
+                        const chatId = parseInt(el.dataset.chatId);
+                        const other = el.dataset.other;
+                        selectedChatForMenu = { chatId, other };
+                        openChatMenu(chatId, other);
+                    }, 500);
+                });
+                el.addEventListener('touchend', () => clearTimeout(pressTimer));
+                el.addEventListener('touchcancel', () => clearTimeout(pressTimer));
+                el.addEventListener('mousedown', (e) => {
+                    pressTimer = setTimeout(() => {
+                        const chatId = parseInt(el.dataset.chatId);
+                        const other = el.dataset.other;
+                        selectedChatForMenu = { chatId, other };
+                        openChatMenu(chatId, other);
+                    }, 500);
+                });
+                el.addEventListener('mouseup', () => clearTimeout(pressTimer));
+                el.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+            }
         });
     }
 
@@ -1318,12 +1286,13 @@
             lastReadMessage[chat.id] = lastMsg.id;
             localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
         }
+        // Очищаем строку поиска и возвращаем список чатов при возврате
     }
 
     async function loadChatMessages() {
         if (!currentChat.id) return;
         try {
-            const res = await fetch(`/chat-messages?chat_id=${currentChat.id}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+            const res = await fetch(`/chat-messages?chat_id=${currentChat.id}&nick=${encodeURIComponent(currentUser.nick)}`);
             messages = await res.json();
         } catch(e) { console.error(e); }
     }
@@ -1332,40 +1301,38 @@
     async function openChatMenu(chatId, other) {
         if (!other) return;
         document.getElementById('chatMenuNick').innerText = other;
-        const btn = document.getElementById('chatMenuFriend');
-        const span = document.getElementById('chatMenuFriendText');
+        const contactBtn = document.getElementById('chatMenuContact');
+        const contactSpan = document.getElementById('chatMenuContactText');
         const pinBtn = document.getElementById('chatMenuPin');
         const pinText = document.getElementById('pinButtonText');
         
         const isPinned = pinnedChats.includes(chatId);
         pinText.innerText = isPinned ? 'Открепить' : 'Закрепить';
         
-        const res = await fetch(`/friendship-status?from=${encodeURIComponent(currentUser.full_nick)}&to=${encodeURIComponent(other)}`);
+        const res = await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(other)}`);
         const data = await res.json();
         
-        if (data.status === 'accepted') {
-            span.innerText = 'Друзья';
-            btn.style.opacity = '1';
-            btn.onclick = null;
-        } else if (data.status === 'pending') {
-            if (data.isOutgoing) {
-                span.innerText = 'Хочу дружить';
-                btn.style.opacity = '0.5';
-                btn.onclick = null;
-            } else {
-                span.innerText = 'Хочет дружить';
-                btn.style.opacity = '1';
-                btn.onclick = async () => {
-                    await respondFriend(other, 'accept');
-                    document.getElementById('chatMenuModal').style.display = 'none';
-                };
-            }
-        } else {
-            span.innerText = 'Добавить в друзья';
-            btn.style.opacity = '1';
-            btn.onclick = async () => {
-                await sendFriendRequest(other);
+        if (data.inContacts) {
+            contactSpan.innerText = 'В контактах';
+            contactBtn.onclick = async () => {
+                await fetch('/contact-remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user: currentUser.nick, contact: other })
+                });
                 document.getElementById('chatMenuModal').style.display = 'none';
+                loadContacts();
+            };
+        } else {
+            contactSpan.innerText = 'Добавить в контакты';
+            contactBtn.onclick = async () => {
+                await fetch('/contact-add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user: currentUser.nick, contact: other })
+                });
+                document.getElementById('chatMenuModal').style.display = 'none';
+                loadContacts();
             };
         }
         
@@ -1386,7 +1353,7 @@
             await fetch('/delete-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: selectedChatForMenu.chatId, full_nick: currentUser.full_nick })
+                body: JSON.stringify({ chat_id: selectedChatForMenu.chatId, nick: currentUser.nick })
             });
             document.getElementById('chatMenuModal').style.display = 'none';
             loadChatsList();
@@ -1402,85 +1369,55 @@
         document.getElementById('chatMenuModal').style.display = 'flex';
     }
 
-    // --- Друзья ---
-    async function loadFriends() {
+    // --- Контакты ---
+    async function loadContacts() {
         try {
-            const [accepted, incoming] = await Promise.all([
-                fetch(`/friends?full_nick=${currentUser.full_nick}&filter=accepted`).then(r=>r.json()),
-                fetch(`/friends?full_nick=${currentUser.full_nick}&filter=pending_incoming`).then(r=>r.json())
-            ]);
-            friendsData = { accepted, incoming };
-            renderFriendsList();
+            const res = await fetch(`/contacts?nick=${encodeURIComponent(currentUser.nick)}`);
+            contacts = await res.json();
+            renderContactsList();
         } catch(e) { console.error(e); }
     }
 
-    function renderFriendsList() {
-        const container = document.getElementById('friendsListContainer');
-        const query = friendsSearchQuery.toLowerCase();
+    function renderContactsList() {
+        const container = document.getElementById('contactsListContainer');
+        const query = contactsSearchQuery.toLowerCase();
+        const filtered = contacts.filter(c => c.nick.toLowerCase().includes(query));
         let html = '';
-        
-        const filteredIncoming = friendsData.incoming.filter(u => u.full_nick.toLowerCase().includes(query) || u.nick.toLowerCase().includes(query));
-        filteredIncoming.forEach(user => {
-            html += `<div class="friend-item">
-                <div class="friend-info">
-                    <span class="user-badge">${user.badge || ''}</span>
-                    <div>
-                        <div>Входящий запрос дружбы</div>
-                        <div class="friend-request-nick">${escapeHtml(user.full_nick)}</div>
-                    </div>
+        filtered.forEach(contact => {
+            html += `<div class="contact-item">
+                <div class="contact-info">
+                    <span class="user-badge">${contact.badge || ''}</span>
+                    <span class="contact-name">${escapeHtml(contact.nick)}</span>
                 </div>
-                <div class="friend-actions">
-                    <button class="accept-friend" data-nick="${user.full_nick}">✓</button>
-                    <button class="reject-friend" data-nick="${user.full_nick}">✕</button>
+                <div class="contact-actions">
+                    <button class="remove-contact" data-nick="${contact.nick}">−</button>
+                    <button class="chat-with-contact" data-nick="${contact.nick}">💬</button>
                 </div>
             </div>`;
         });
-        
-        const filteredAccepted = friendsData.accepted.filter(u => u.full_nick.toLowerCase().includes(query) || u.nick.toLowerCase().includes(query));
-        filteredAccepted.forEach(user => {
-            html += `<div class="friend-item">
-                <div class="friend-info"><span class="user-badge">${user.badge || ''}</span><span class="friend-name">${escapeHtml(user.full_nick)}</span></div>
-                <div class="friend-actions">
-                    <button class="remove-friend" data-nick="${user.full_nick}">−</button>
-                    <button class="chat-with-friend" data-nick="${user.full_nick}">💬</button>
-                </div>
-            </div>`;
+        container.innerHTML = html || '<div style="color:var(--text-secondary); text-align:center;">Нет контактов</div>';
+        document.querySelectorAll('.remove-contact').forEach(b => b.onclick = () => removeContact(b.dataset.nick));
+        document.querySelectorAll('.chat-with-contact').forEach(b => b.onclick = () => createPrivateChat(b.dataset.nick));
+    }
+
+    async function removeContact(contactNick) {
+        await fetch('/contact-remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: currentUser.nick, contact: contactNick })
         });
-        
-        container.innerHTML = html || '<div style="color:var(--text-secondary); text-align:center;">Пусто</div>';
-        
-        document.querySelectorAll('.accept-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'accept'));
-        document.querySelectorAll('.reject-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'reject'));
-        document.querySelectorAll('.remove-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'reject'));
-        document.querySelectorAll('.chat-with-friend').forEach(b => b.onclick = () => createPrivateChat(b.dataset.nick));
+        loadContacts();
     }
 
-    async function respondFriend(from, action) {
-        if (action === 'accept') {
-            await fetch('/friend-respond', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ full_nick: currentUser.full_nick, from, action: 'accept' })
-            });
-        } else {
-            await fetch('/friend-respond', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ full_nick: currentUser.full_nick, from, action: 'reject' })
-            });
-        }
-        loadFriends();
-    }
-
-    async function createPrivateChat(otherFullNick) {
+    async function createPrivateChat(otherNick) {
         const res = await fetch('/create-private-chat', {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ user1: currentUser.full_nick, user2: otherFullNick })
+            body: JSON.stringify({ user1: currentUser.nick, user2: otherNick })
         });
         const data = await res.json();
         if (data.success) {
-            const chat = { id: data.chatId, type: 'private', other: otherFullNick, name: otherFullNick };
+            const chat = { id: data.chatId, type: 'private', other: otherNick, name: otherNick };
             openChat(chat);
         }
     }
@@ -1493,32 +1430,19 @@
             return;
         }
         document.getElementById('chatsListContainer').style.display = 'none';
-        const res = await fetch(`/search-users?q=${encodeURIComponent(query)}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
+        const res = await fetch(`/search-users?q=${encodeURIComponent(query)}&nick=${encodeURIComponent(currentUser.nick)}`);
         const users = await res.json();
         let html = '';
         users.forEach(u => {
-            html += `<div class="friend-item">
-                <div class="friend-info"><span class="user-badge">${u.badge || ''}</span><span class="friend-name">${escapeHtml(u.full_nick)}</span></div>
-                <div class="friend-actions">
-                    <button class="add-friend-search" data-nick="${u.full_nick}">👤+</button>
-                    <button class="write-search" data-nick="${u.full_nick}">💬</button>
+            html += `<div class="contact-item">
+                <div class="contact-info"><span class="user-badge">${u.badge || ''}</span><span class="contact-name">${escapeHtml(u.nick)}</span></div>
+                <div class="contact-actions">
+                    <button class="write-search" data-nick="${u.nick}">💬</button>
                 </div>
             </div>`;
         });
         document.getElementById('userSearchResults').innerHTML = html;
-        document.querySelectorAll('.add-friend-search').forEach(b => b.onclick = () => sendFriendRequest(b.dataset.nick));
         document.querySelectorAll('.write-search').forEach(b => b.onclick = () => createPrivateChat(b.dataset.nick));
-    }
-
-    async function sendFriendRequest(to) {
-        const res = await fetch('/friend-request', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ from: currentUser.full_nick, to })
-        });
-        const data = await res.json();
-        alert(data.success ? 'Запрос отправлен' : (data.error || 'Ошибка'));
-        loadFriends();
     }
 
     // --- Рендер сообщений ---
@@ -1529,12 +1453,11 @@
         container.innerHTML = '';
         const showReactions = appSettings.showReactions !== false;
         messages.forEach(msg => {
-            const isOwn = msg.full_nick === currentUser.full_nick;
-            const { nick, tag } = splitFullNick(msg.full_nick);
+            const isOwn = msg.nick === currentUser.nick;
             const msgDiv = document.createElement('div');
             msgDiv.className = 'message-item' + (isOwn ? ' own-message' : '');
             msgDiv.dataset.id = msg.id;
-            msgDiv.dataset.fullNick = msg.full_nick;
+            msgDiv.dataset.nick = msg.nick;
             let replyHtml = '';
             if (msg.reply_to_id && msg.reply_nick && msg.reply_text) {
                 replyHtml = `<div class="reply-context" data-message="${msg.reply_to_id}"><div class="reply-nick">${escapeHtml(msg.reply_nick)}</div><div class="reply-text">${escapeHtml(msg.reply_text)}</div></div>`;
@@ -1550,7 +1473,7 @@
             }
             const timestamp = formatTimestamp(msg.created_at, appSettings.showDate);
             msgDiv.innerHTML = `
-                <div class="message-header"><div class="message-nick"><span class="user-badge">${currentUser.badge || ''}</span><span class="nick-main">${escapeHtml(nick)}</span><span class="nick-tag">${escapeHtml(tag)}</span></div></div>
+                <div class="message-header"><div class="message-nick"><span class="user-badge">${currentUser.badge || ''}</span><span class="nick-main">${escapeHtml(msg.nick)}</span></div></div>
                 ${replyHtml}
                 <div class="message-text">${linkify(escapeHtml(msg.text))}</div>
                 <div class="message-footer">
@@ -1566,7 +1489,7 @@
             const actionsBtn = document.createElement('button');
             actionsBtn.className = 'message-actions-btn';
             actionsBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
-            actionsBtn.onclick = (e) => { e.stopPropagation(); showContextMenu(msg.id, msg.full_nick, msg.text, isOwn); };
+            actionsBtn.onclick = (e) => { e.stopPropagation(); showContextMenu(msg.id, msg.nick, msg.text, isOwn); };
             msgDiv.appendChild(actionsBtn);
         });
         if (wasNearBottom && !window.isUserScrolling) container.scrollTop = container.scrollHeight;
@@ -1596,8 +1519,8 @@
         document.querySelectorAll('.message-nick').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const fullNick = el.closest('.message-item')?.dataset.fullNick;
-                if (fullNick) navigator.clipboard?.writeText(fullNick);
+                const nick = el.closest('.message-item')?.dataset.nick;
+                if (nick) navigator.clipboard?.writeText(nick);
             });
         });
     }
@@ -1606,7 +1529,7 @@
         const res = await fetch('/add-reaction', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, reaction, isRoom: false })
+            body: JSON.stringify({ messageId, nick: currentUser.nick, reaction, isRoom: false })
         });
         const data = await res.json();
         if (data.success) {
@@ -1656,7 +1579,7 @@
 
         const payload = {
             chat_id: currentChat.id,
-            full_nick: currentUser.full_nick,
+            nick: currentUser.nick,
             text,
             reply_to_id: replyingTo?.messageId || null
         };
@@ -1679,16 +1602,15 @@
         const res = await fetch('/edit-message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messageId, full_nick: currentUser.full_nick, newText })
+            body: JSON.stringify({ messageId, nick: currentUser.nick, newText })
         });
         const data = await res.json();
         if (!data.success) alert('Не удалось отредактировать');
     }
 
-    function showContextMenu(messageId, full_nick, text, isOwn) {
+    function showContextMenu(messageId, nick, text, isOwn) {
         const showReactions = appSettings.showReactions !== false;
-        const { nick, tag } = splitFullNick(full_nick);
-        document.getElementById('contextMessageNick').innerHTML = `${escapeHtml(nick)}<span class="nick-tag">${escapeHtml(tag)}</span>`;
+        document.getElementById('contextMessageNick').innerHTML = escapeHtml(nick);
         document.getElementById('contextMessagePreview').innerHTML = linkify(escapeHtml(text.substring(0, 150))) + (text.length>150?'…':'');
         const container = document.getElementById('contextMenuButtons');
         let html = '';
@@ -1708,7 +1630,7 @@
         };
         document.getElementById('ctx-reply').onclick = () => {
             if (editingMessage) { editingMessage = null; hideEditIndicator(); }
-            replyingTo = { messageId, full_nick, text };
+            replyingTo = { messageId, nick, text };
             showReplyIndicator(replyingTo);
             modal.style.display = 'none';
             document.getElementById('messageInput').focus();
@@ -1752,7 +1674,7 @@
                 ind.style.display = 'none';
             };
         }
-        ind.querySelector('.reply-nick').innerHTML = escapeHtml(reply.full_nick);
+        ind.querySelector('.reply-nick').innerHTML = escapeHtml(reply.nick);
         ind.querySelector('.reply-text').innerHTML = escapeHtml(reply.text);
         ind.style.display = 'flex';
     }
@@ -1788,12 +1710,11 @@
     function updateTypingIndicator(data) {
         const ind = document.getElementById('typingIndicator');
         if (!ind) return;
-        if (!data || data.full_nick === currentUser.full_nick) {
+        if (!data || data.nick === currentUser.nick) {
             ind.classList.add('hidden');
             return;
         }
-        const { nick, tag } = splitFullNick(data.full_nick);
-        ind.innerHTML = `${escapeHtml(nick)}${escapeHtml(tag)} печатает...`;
+        ind.innerHTML = `${escapeHtml(data.nick)} печатает...`;
         ind.classList.remove('hidden');
         clearTimeout(window.typingHideTimeout);
         window.typingHideTimeout = setTimeout(() => ind.classList.add('hidden'), 2000);
@@ -1802,7 +1723,7 @@
     function onTyping(isTyping) {
         if (!socket || !currentChat.id) return;
         if (isTyping) {
-            socket.emit('typing', { chatId: currentChat.id, full_nick: currentUser.full_nick });
+            socket.emit('typing', { chatId: currentChat.id, nick: currentUser.nick });
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(() => socket.emit('stop typing', { chatId: currentChat.id }), 1500);
         } else {
@@ -1857,7 +1778,7 @@
                 body: JSON.stringify({ token: authToken, badge: newBadge })
             });
             renderMessages();
-            renderFriendsList();
+            renderContactsList();
         };
         document.getElementById('accentColorSelect').onchange = e => {
             appSettings.accentColor = e.target.value;
@@ -1866,7 +1787,7 @@
         };
 
         await loadChatsList();
-        await loadFriends();
+        await loadContacts();
 
         socket.on('chat message received', (newMsg) => {
             if (currentChat.id === newMsg.chat_id) {
@@ -1876,6 +1797,16 @@
                 localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
             }
             loadChatsList();
+            // Уведомление, если чат не открыт и сообщение не от нас
+            if (appSettings.notifications && newMsg.nick !== currentUser.nick) {
+                const isChatOpen = currentChat.id === newMsg.chat_id;
+                if (!isChatOpen && Notification.permission === 'granted') {
+                    new Notification(`Новое сообщение от ${newMsg.nick}`, {
+                        body: newMsg.text.substring(0, 100),
+                        icon: '/favicon.ico'
+                    });
+                }
+            }
         });
 
         socket.on('message deleted', (msgId) => {
@@ -1903,37 +1834,37 @@
             if (data.chatId === currentChat.id) updateTypingIndicator(null);
         });
 
-        socket.on('online status', ({ full_nick, online }) => {
-            if (online) onlineUsers.add(full_nick);
-            else onlineUsers.delete(full_nick);
+        socket.on('online status', ({ nick, online }) => {
+            if (online) onlineUsers.add(nick);
+            else onlineUsers.delete(nick);
             renderChatsList();
         });
 
-        socket.on('user joined chat', ({ chatId, full_nick }) => {
+        socket.on('user joined chat', ({ chatId, nick }) => {
             if (!usersInChat.has(chatId)) usersInChat.set(chatId, new Set());
-            usersInChat.get(chatId).add(full_nick);
-            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === full_nick) {
+            usersInChat.get(chatId).add(nick);
+            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === nick) {
                 document.getElementById('chatStatus').innerText = 'В сети';
                 document.getElementById('chatTitle').innerHTML = `${escapeHtml(currentChat.name)} <span style="color:var(--accent-color);">●</span>`;
             }
         });
 
-        socket.on('user left chat', ({ chatId, full_nick }) => {
+        socket.on('user left chat', ({ chatId, nick }) => {
             if (usersInChat.has(chatId)) {
-                usersInChat.get(chatId).delete(full_nick);
+                usersInChat.get(chatId).delete(nick);
             }
-            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === full_nick) {
+            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === nick) {
                 document.getElementById('chatStatus').innerText = 'Не в сети';
                 document.getElementById('chatTitle').innerText = currentChat.name;
             }
         });
 
-        socket.on('nick changed', ({ oldFullNick, newFullNick }) => {
-            if (currentUser.full_nick === oldFullNick) {
-                currentUser.full_nick = newFullNick;
-                document.getElementById('profileNickDisplay').innerText = newFullNick;
+        socket.on('nick changed', ({ oldNick, newNick }) => {
+            if (currentUser.nick === oldNick) {
+                currentUser.nick = newNick;
+                document.getElementById('profileNickDisplay').innerText = newNick;
             }
-            loadFriends();
+            loadContacts();
             loadChatsList();
         });
 
@@ -1943,8 +1874,8 @@
             } else {
                 loadChatsList();
             }
-            if (document.getElementById('friendsPanel').style.display === 'flex') {
-                loadFriends();
+            if (document.getElementById('contactsPanel').style.display === 'flex') {
+                loadContacts();
             }
         }, 3000);
     }
@@ -1974,8 +1905,8 @@
             });
             const data = await res.json();
             if (data.success) {
-                currentUser.full_nick = data.newFullNick;
-                document.getElementById('profileNickDisplay').innerText = data.newFullNick;
+                currentUser.nick = data.newNick;
+                document.getElementById('profileNickDisplay').innerText = data.newNick;
                 document.getElementById('changeNickModal').style.display = 'none';
                 alert('Ник изменён');
             } else alert(data.error);
@@ -2046,7 +1977,7 @@
             await fetch('/delete-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId: pendingDeleteMessageId, full_nick: currentUser.full_nick })
+                body: JSON.stringify({ messageId: pendingDeleteMessageId, nick: currentUser.nick })
             });
             pendingDeleteMessageId = null;
         } else if (pendingAction === 'logout') {
@@ -2091,29 +2022,15 @@
             btn.onclick = () => showTab(btn.dataset.tab);
         });
 
-        document.getElementById('friendsSearchInput').oninput = (e) => {
-            friendsSearchQuery = e.target.value;
-            renderFriendsList();
+        document.getElementById('contactsSearchInput').oninput = (e) => {
+            contactsSearchQuery = e.target.value;
+            renderContactsList();
         };
 
         document.getElementById('chatSearchInput').oninput = (e) => {
             chatSearchQuery = e.target.value;
             renderChatsList();
             searchUsers(e.target.value);
-        };
-
-        document.getElementById('addFriendFab').onclick = () => {
-            document.getElementById('addFriendModal').style.display = 'flex';
-            document.getElementById('friendFullNickInput').value = '';
-        };
-        document.getElementById('cancelAddFriendBtn').onclick = () => {
-            document.getElementById('addFriendModal').style.display = 'none';
-        };
-        document.getElementById('sendFriendRequestBtn').onclick = async () => {
-            const to = document.getElementById('friendFullNickInput').value.trim();
-            if (!to) return;
-            await sendFriendRequest(to);
-            document.getElementById('addFriendModal').style.display = 'none';
         };
 
         document.getElementById('backFromChatBtn').onclick = closeChatView;
@@ -2142,19 +2059,18 @@
             body: JSON.stringify({ token })
         }).then(r => r.json()).then(async data => {
             if (data.success) {
-                currentUser.full_nick = data.full_nick;
+                currentUser.nick = data.nick;
                 currentUser.badge = data.badge || '';
                 authToken = token;
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
                 socket = io();
-                socket.emit('user online', currentUser.full_nick);
-                await setOneSignalUserId(currentUser.full_nick);
+                socket.emit('user online', currentUser.nick);
+                await setOneSignalUserId(currentUser.nick);
                 bindUI();
                 setupProfileModals();
                 await initializeApp();
                 showTab('chats');
-                document.getElementById('addFriendFab').style.display = 'none';
             } else {
                 localStorage.removeItem('simply_token');
                 document.getElementById('loginScreen').style.display = 'flex';
@@ -2178,20 +2094,19 @@
         });
         const data = await res.json();
         if (data.success) {
-            currentUser.full_nick = data.full_nick;
+            currentUser.nick = data.nick;
             currentUser.badge = data.badge || '';
             authToken = data.token;
             localStorage.setItem('simply_token', authToken);
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('appContainer').style.display = 'flex';
             socket = io();
-            socket.emit('user online', currentUser.full_nick);
-            await setOneSignalUserId(currentUser.full_nick);
+            socket.emit('user online', currentUser.nick);
+            await setOneSignalUserId(currentUser.nick);
             bindUI();
             setupProfileModals();
             await initializeApp();
             showTab('chats');
-            document.getElementById('addFriendFab').style.display = 'none';
         } else {
             document.getElementById('loginError').innerText = data.error || 'Ошибка входа';
         }
