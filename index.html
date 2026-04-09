@@ -1286,7 +1286,6 @@
             lastReadMessage[chat.id] = lastMsg.id;
             localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
         }
-        // Очищаем строку поиска и возвращаем список чатов при возврате
     }
 
     async function loadChatMessages() {
@@ -1797,7 +1796,6 @@
                 localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
             }
             loadChatsList();
-            // Уведомление, если чат не открыт и сообщение не от нас
             if (appSettings.notifications && newMsg.nick !== currentUser.nick) {
                 const isChatOpen = currentChat.id === newMsg.chat_id;
                 if (!isChatOpen && Notification.permission === 'granted') {
