@@ -211,6 +211,16 @@
         }
         .chat-header-name {
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .unread-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+            display: inline-block;
         }
         .chat-header-status {
             font-size: 0.75rem;
@@ -678,26 +688,7 @@
             font-size: 1.2rem;
             padding: 0.3rem;
         }
-        .segment-control {
-            display: flex;
-            background: var(--input-bg);
-            border-radius: 0.8rem;
-            padding: 0.2rem;
-            margin-bottom: 1rem;
-        }
-        .segment-btn {
-            flex: 1;
-            background: none;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 0.6rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-        .segment-btn.active {
-            background: var(--bg-page);
-            color: var(--text-primary);
-        }
+
         .search-input {
             width: 100%;
             padding: 0.7rem 1rem;
@@ -709,29 +700,23 @@
             margin-bottom: 1rem;
         }
 
-        /* Кнопка Подружиться внизу */
-        .add-friend-btn {
-            background: var(--bg-page);
-            border: 1px solid var(--border-light);
-            padding: 0.8rem 1rem;
-            border-radius: 1rem;
-            font-size: 1.1rem;
-            color: var(--text-primary);
+        /* Круглая кнопка добавления друга */
+        .add-friend-fab {
+            position: fixed;
+            bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+            right: 1rem;
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 50%;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            font-size: 2rem;
             display: flex;
             align-items: center;
-            gap: 14px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: auto;
-            margin-bottom: 4.5rem;
-            border-top: 1px solid var(--border-light);
-        }
-        .add-friend-btn svg {
-            width: 1.4rem;
-            height: 1.4rem;
-            stroke: currentColor;
-            stroke-width: 1.5;
-            fill: none;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            z-index: 90;
         }
 
         /* Иконки в профиле */
@@ -777,17 +762,17 @@
             max-width: 320px;
         }
         .chat-menu-btn {
-            width: 64px;  /* увеличен в 2 раза */
-            height: 64px;
+            width: 48px;
+            height: 48px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border-radius: 32px;
+            border-radius: 24px;
             color: var(--text-secondary);
         }
         .chat-menu-btn svg {
-            width: 40px;
-            height: 40px;
+            width: 28px;
+            height: 28px;
         }
 
         /* Иконка значка пользователя */
@@ -853,6 +838,19 @@
         #friendsListContainer {
             flex: 1;
         }
+
+        /* Индикатор входящего запроса */
+        .friend-request-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .friend-request-nick {
+            margin-left: 8px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -872,20 +870,9 @@
     <div id="friendsPanel" class="panel" style="display: none;">
         <div class="panel-header">
             <div class="panel-title">Друзья</div>
-            <div class="segment-control" id="friendsSegment">
-                <button class="segment-btn active" data-filter="accepted">Мои</button>
-                <button class="segment-btn" data-filter="incoming">Хотят</button>
-                <button class="segment-btn" data-filter="outgoing">Хочу</button>
-            </div>
             <input type="text" id="friendsSearchInput" class="search-input" placeholder="Поиск...">
         </div>
         <div id="friendsListContainer"></div>
-        <button id="addFriendBtn" class="add-friend-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 5v14M5 12h14"/>
-            </svg>
-            Подружиться
-        </button>
     </div>
 
     <!-- Панель чатов -->
@@ -961,6 +948,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Круглая кнопка добавления друга -->
+    <button id="addFriendFab" class="add-friend-fab">+</button>
 
     <!-- Нижняя навигация -->
     <div class="nav-bar" id="mainNavBar">
@@ -1141,8 +1131,9 @@
     let currentChat = { id: null, type: null, other: null, name: '' };
     let chatsList = [];
     let pinnedChats = JSON.parse(localStorage.getItem('pinned_chats')) || [];
-    let friendsData = { accepted: [], incoming: [], outgoing: [] };
-    let friendsFilter = 'accepted';
+    // Хранилище последнего прочитанного сообщения для каждого чата
+    let lastReadMessage = JSON.parse(localStorage.getItem('last_read_message')) || {};
+    let friendsData = { accepted: [], incoming: [] };
     let friendsSearchQuery = '';
     let chatSearchQuery = '';
     let editingMessage = null;
@@ -1153,7 +1144,8 @@
     let refreshInterval = null;
     let pendingAction = null;
     let selectedChatForMenu = null;
-    const onlineUsers = new Set();
+    const onlineUsers = new Set(); // полный список онлайн пользователей
+    const usersInChat = new Map(); // chatId -> Set(full_nick)
 
     document.documentElement.style.setProperty('--accent-color', appSettings.accentColor);
 
@@ -1186,6 +1178,15 @@
         }
     }
 
+    // Проверка непрочитанных сообщений в чате
+    function hasUnreadMessages(chat) {
+        if (!chat.last_message) return false;
+        if (chat.last_message.full_nick === currentUser.full_nick) return false;
+        const lastMsgId = chat.last_message.id;
+        const lastReadId = lastReadMessage[chat.id] || 0;
+        return lastMsgId > lastReadId;
+    }
+
     // --- Навигация ---
     function showTab(tabId) {
         document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
@@ -1193,6 +1194,9 @@
         document.querySelectorAll('.nav-item').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabId);
         });
+        const fab = document.getElementById('addFriendFab');
+        fab.style.display = (tabId === 'friends') ? 'flex' : 'none';
+        
         if (tabId === 'friends') {
             document.getElementById('friendsSearchInput').value = '';
             friendsSearchQuery = '';
@@ -1214,6 +1218,12 @@
         document.getElementById('mainNavBar').classList.remove('hidden');
         if (currentChat.id) {
             socket.emit('leave chat', currentChat.id);
+            // Сохраняем последнее прочитанное сообщение
+            if (messages.length > 0) {
+                const lastMsg = messages[messages.length - 1];
+                lastReadMessage[currentChat.id] = lastMsg.id;
+                localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
+            }
             currentChat = { id: null, type: null, other: null, name: '' };
         }
         showTab('chats');
@@ -1255,11 +1265,12 @@
                 timeStr = formatTimestamp(chat.last_message.created_at, appSettings.showDate);
             }
             const pinnedIcon = chat.pinned ? '<svg class="pinned-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2v20M5 12h14"/></svg>' : '';
+            const unreadDot = hasUnreadMessages(chat) ? '<span class="unread-dot"></span>' : '';
             html += `<div class="chat-item clickable" data-chat-id="${chat.id}" data-chat-type="${chat.type}" data-other="${chat.other||''}" data-name="${escapeHtml(chat.name)}">
                 <div class="chat-info">
                     ${pinnedIcon}
                     <div style="flex:1">
-                        <div class="friend-name">${escapeHtml(chat.name)}</div>
+                        <div class="friend-name">${unreadDot}${escapeHtml(chat.name)}</div>
                         <div class="chat-preview"><span>${escapeHtml(preview)}</span><span class="chat-time">${timeStr}</span></div>
                     </div>
                 </div>`;
@@ -1297,16 +1308,19 @@
         document.getElementById('chatsPanel').style.display = 'none';
         document.getElementById('chatView').style.display = 'flex';
         document.getElementById('mainNavBar').classList.add('hidden');
-        document.getElementById('chatTitle').innerText = chat.name;
-        document.getElementById('chatStatus').innerText = (chat.type === 'public' || chat.type === 'notebook') ? '' : 'загрузка...';
-        if (chat.type === 'private' && chat.other) {
-            updateChatStatus(chat.other);
-        }
+        document.getElementById('chatTitle').innerHTML = `${escapeHtml(chat.name)}${chat.type === 'private' && usersInChat.get(chat.id)?.has(chat.other) ? ' <span style="color:var(--accent-color);">●</span>' : ''}`;
+        document.getElementById('chatStatus').innerText = (chat.type === 'public' || chat.type === 'notebook') ? '' : (usersInChat.get(chat.id)?.has(chat.other) ? 'В сети' : 'Не в сети');
         socket.emit('join chat', chat.id);
         messages = [];
         renderMessages();
         await loadChatMessages();
         renderMessages();
+        // Сбрасываем непрочитанные
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            lastReadMessage[chat.id] = lastMsg.id;
+            localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
+        }
     }
 
     async function loadChatMessages() {
@@ -1315,11 +1329,6 @@
             const res = await fetch(`/chat-messages?chat_id=${currentChat.id}&full_nick=${encodeURIComponent(currentUser.full_nick)}`);
             messages = await res.json();
         } catch(e) { console.error(e); }
-    }
-
-    function updateChatStatus(full_nick) {
-        const isOnline = onlineUsers.has(full_nick);
-        document.getElementById('chatStatus').innerText = isOnline ? 'В сети' : 'Не в сети';
     }
 
     // --- Меню чата ---
@@ -1399,12 +1408,11 @@
     // --- Друзья ---
     async function loadFriends() {
         try {
-            const [accepted, incoming, outgoing] = await Promise.all([
+            const [accepted, incoming] = await Promise.all([
                 fetch(`/friends?full_nick=${currentUser.full_nick}&filter=accepted`).then(r=>r.json()),
-                fetch(`/friends?full_nick=${currentUser.full_nick}&filter=pending_incoming`).then(r=>r.json()),
-                fetch(`/friends?full_nick=${currentUser.full_nick}&filter=pending_outgoing`).then(r=>r.json())
+                fetch(`/friends?full_nick=${currentUser.full_nick}&filter=pending_incoming`).then(r=>r.json())
             ]);
-            friendsData = { accepted, incoming, outgoing };
+            friendsData = { accepted, incoming };
             renderFriendsList();
         } catch(e) { console.error(e); }
     }
@@ -1412,32 +1420,45 @@
     function renderFriendsList() {
         const container = document.getElementById('friendsListContainer');
         const query = friendsSearchQuery.toLowerCase();
-        let list = [];
-        if (friendsFilter === 'accepted') list = friendsData.accepted;
-        else if (friendsFilter === 'incoming') list = friendsData.incoming;
-        else list = friendsData.outgoing;
-        
-        list = list.filter(u => u.full_nick.toLowerCase().includes(query) || u.nick.toLowerCase().includes(query));
         let html = '';
-        list.forEach(user => {
+        
+        // Входящие запросы
+        const filteredIncoming = friendsData.incoming.filter(u => u.full_nick.toLowerCase().includes(query) || u.nick.toLowerCase().includes(query));
+        filteredIncoming.forEach(user => {
+            const badge = getUserBadge(user.full_nick);
+            html += `<div class="friend-item">
+                <div class="friend-info">
+                    <span class="user-badge">${badge}</span>
+                    <div>
+                        <div>Входящий запрос дружбы</div>
+                        <div class="friend-request-nick">${escapeHtml(user.full_nick)}</div>
+                    </div>
+                </div>
+                <div class="friend-actions">
+                    <button class="accept-friend" data-nick="${user.full_nick}">✓</button>
+                    <button class="reject-friend" data-nick="${user.full_nick}">✕</button>
+                </div>
+            </div>`;
+        });
+        
+        // Принятые друзья
+        const filteredAccepted = friendsData.accepted.filter(u => u.full_nick.toLowerCase().includes(query) || u.nick.toLowerCase().includes(query));
+        filteredAccepted.forEach(user => {
             const badge = getUserBadge(user.full_nick);
             html += `<div class="friend-item">
                 <div class="friend-info"><span class="user-badge">${badge}</span><span class="friend-name">${escapeHtml(user.full_nick)}</span></div>
-                <div class="friend-actions">`;
-            if (friendsFilter === 'incoming') {
-                html += `<button class="accept-friend" data-nick="${user.full_nick}">✓</button>
-                         <button class="reject-friend" data-nick="${user.full_nick}">✕</button>`;
-            } else if (friendsFilter === 'outgoing') {
-                html += `<button class="cancel-request" data-nick="${user.full_nick}">✕</button>`;
-            } else {
-                html += `<button class="chat-with-friend" data-nick="${user.full_nick}">💬</button>`;
-            }
-            html += `</div></div>`;
+                <div class="friend-actions">
+                    <button class="remove-friend" data-nick="${user.full_nick}">−</button>
+                    <button class="chat-with-friend" data-nick="${user.full_nick}">💬</button>
+                </div>
+            </div>`;
         });
+        
         container.innerHTML = html || '<div style="color:var(--text-secondary); text-align:center;">Пусто</div>';
         
         document.querySelectorAll('.accept-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'accept'));
-        document.querySelectorAll('.reject-friend, .cancel-request').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'reject'));
+        document.querySelectorAll('.reject-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'reject'));
+        document.querySelectorAll('.remove-friend').forEach(b => b.onclick = () => respondFriend(b.dataset.nick, 'reject'));
         document.querySelectorAll('.chat-with-friend').forEach(b => b.onclick = () => createPrivateChat(b.dataset.nick));
     }
 
@@ -1511,7 +1532,6 @@
     // --- Значки пользователей (заглушка, в будущем из БД) ---
     const badgeOptions = ['⭐','❤️','🔥','🍀','⚡','🌹','🔕','🎁','🎉'];
     function getUserBadge(full_nick) {
-        // Простая детерминированная заглушка на основе full_nick
         if (!full_nick) return '';
         let hash = 0;
         for (let i = 0; i < full_nick.length; i++) {
@@ -1869,6 +1889,9 @@
             if (currentChat.id === newMsg.chat_id) {
                 messages.push(newMsg);
                 renderMessages();
+                // Обновляем последнее прочитанное, если чат открыт
+                lastReadMessage[currentChat.id] = newMsg.id;
+                localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
             }
             loadChatsList();
         });
@@ -1901,17 +1924,31 @@
         socket.on('online status', ({ full_nick, online }) => {
             if (online) onlineUsers.add(full_nick);
             else onlineUsers.delete(full_nick);
-            if (currentChat.type === 'private' && currentChat.other === full_nick)
-                updateChatStatus(full_nick);
+            // Обновляем статус в текущем чате, если это собеседник
+            if (currentChat.type === 'private' && currentChat.other === full_nick) {
+                document.getElementById('chatStatus').innerText = online ? 'В сети' : 'Не в сети';
+                document.getElementById('chatTitle').innerHTML = `${escapeHtml(currentChat.name)}${online ? ' <span style="color:var(--accent-color);">●</span>' : ''}`;
+            }
+            renderChatsList();
         });
 
-        socket.on('nick changed', ({ oldFullNick, newFullNick }) => {
-            if (currentUser.full_nick === oldFullNick) {
-                currentUser.full_nick = newFullNick;
-                document.getElementById('profileNickDisplay').innerText = newFullNick;
+        socket.on('user joined chat', ({ chatId, full_nick }) => {
+            if (!usersInChat.has(chatId)) usersInChat.set(chatId, new Set());
+            usersInChat.get(chatId).add(full_nick);
+            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === full_nick) {
+                document.getElementById('chatStatus').innerText = 'В сети';
+                document.getElementById('chatTitle').innerHTML = `${escapeHtml(currentChat.name)} <span style="color:var(--accent-color);">●</span>`;
             }
-            loadFriends();
-            loadChatsList();
+        });
+
+        socket.on('user left chat', ({ chatId, full_nick }) => {
+            if (usersInChat.has(chatId)) {
+                usersInChat.get(chatId).delete(full_nick);
+            }
+            if (currentChat.id === chatId && currentChat.type === 'private' && currentChat.other === full_nick) {
+                document.getElementById('chatStatus').innerText = 'Не в сети';
+                document.getElementById('chatTitle').innerText = currentChat.name;
+            }
         });
 
         refreshInterval = setInterval(() => {
@@ -1923,10 +1960,7 @@
             if (document.getElementById('friendsPanel').style.display === 'flex') {
                 loadFriends();
             }
-            if (currentChat.type === 'private' && currentChat.other) {
-                updateChatStatus(currentChat.other);
-            }
-        }, 1000);
+        }, 3000);
     }
 
     // --- Настройка модалок ---
@@ -2071,15 +2105,6 @@
             btn.onclick = () => showTab(btn.dataset.tab);
         });
 
-        document.querySelectorAll('.segment-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                friendsFilter = btn.dataset.filter;
-                renderFriendsList();
-            };
-        });
-
         document.getElementById('friendsSearchInput').oninput = (e) => {
             friendsSearchQuery = e.target.value;
             renderFriendsList();
@@ -2091,7 +2116,7 @@
             searchUsers(e.target.value);
         };
 
-        document.getElementById('addFriendBtn').onclick = () => {
+        document.getElementById('addFriendFab').onclick = () => {
             document.getElementById('addFriendModal').style.display = 'flex';
             document.getElementById('friendFullNickInput').value = '';
         };
@@ -2142,6 +2167,7 @@
                 setupProfileModals();
                 await initializeApp();
                 showTab('chats');
+                document.getElementById('addFriendFab').style.display = 'none';
             } else {
                 localStorage.removeItem('simply_token');
                 document.getElementById('loginScreen').style.display = 'flex';
@@ -2177,6 +2203,7 @@
             setupProfileModals();
             await initializeApp();
             showTab('chats');
+            document.getElementById('addFriendFab').style.display = 'none';
         } else {
             document.getElementById('loginError').innerText = data.error || 'Ошибка входа';
         }
