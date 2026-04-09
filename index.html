@@ -556,8 +556,7 @@
             flex-direction: column;
             gap: 0.6rem;
             border-bottom: 1px solid var(--border-light);
-            padding-bottom: 0.9rem;
-            padding-top: 0.3rem;
+            padding: 0.8rem 0;
         }
         .setting-row:last-of-type {
             border-bottom: none;
@@ -723,10 +722,9 @@
             gap: 14px;
             cursor: pointer;
             width: 100%;
-            margin-top: 1rem;
+            margin-top: auto;
             margin-bottom: 4.5rem;
             border-top: 1px solid var(--border-light);
-            padding-top: 1rem;
         }
         .add-friend-btn svg {
             width: 1.4rem;
@@ -779,17 +777,17 @@
             max-width: 320px;
         }
         .chat-menu-btn {
-            width: 32px;
-            height: 32px;
+            width: 64px;  /* увеличен в 2 раза */
+            height: 64px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            border-radius: 16px;
+            border-radius: 32px;
             color: var(--text-secondary);
         }
         .chat-menu-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 40px;
+            height: 40px;
         }
 
         /* Иконка значка пользователя */
@@ -807,7 +805,7 @@
             fill: none;
         }
 
-        /* Стилизация селекта под тёмную тему (уменьшена ширина) */
+        /* Стилизация селекта под тёмную тему */
         select, .badge-select {
             background: var(--bg-page);
             border: 1px solid var(--border-light);
@@ -845,6 +843,15 @@
         /* Полоска в контекстном меню */
         .context-message-preview {
             border-bottom: 1px solid var(--border-light);
+        }
+
+        /* Панель друзей flex-контейнер */
+        #friendsPanel {
+            display: flex;
+            flex-direction: column;
+        }
+        #friendsListContainer {
+            flex: 1;
         }
     </style>
 </head>
@@ -1106,7 +1113,6 @@
 <div id="changePinModal" class="modal"><div class="modal-content"><h3>Смена PIN</h3><div class="modal-setting"><label>Старый PIN</label><input type="password" id="oldPinInput" placeholder="Старый PIN" maxlength="4"></div><div class="modal-setting"><label>Новый PIN</label><input type="password" id="newPinInput" placeholder="Новый PIN" maxlength="4"></div><div class="modal-buttons"><button id="cancelPinBtn">Отмена</button><button id="applyPinBtn">Применить</button></div></div></div>
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-<!-- Далее будет JavaScript -->
 <script>
     (function() {
         function addTapped(e) { const t = e.target.closest('button, .clickable'); if(t) t.classList.add('tapped'); }
@@ -1325,7 +1331,6 @@
         const pinBtn = document.getElementById('chatMenuPin');
         const pinText = document.getElementById('pinButtonText');
         
-        // Обновляем текст кнопки закрепа
         const isPinned = pinnedChats.includes(chatId);
         pinText.innerText = isPinned ? 'Открепить' : 'Закрепить';
         
@@ -1504,9 +1509,17 @@
     }
 
     // --- Значки пользователей (заглушка, в будущем из БД) ---
+    const badgeOptions = ['⭐','❤️','🔥','🍀','⚡','🌹','🔕','🎁','🎉'];
     function getUserBadge(full_nick) {
-        // Пока у всех, кроме текущего, нет значка, но в будущем можно брать из API
-        return full_nick === currentUser.full_nick ? (appSettings.userBadge || '') : '';
+        // Простая детерминированная заглушка на основе full_nick
+        if (!full_nick) return '';
+        let hash = 0;
+        for (let i = 0; i < full_nick.length; i++) {
+            hash = ((hash << 5) - hash) + full_nick.charCodeAt(i);
+            hash |= 0;
+        }
+        const index = Math.abs(hash) % badgeOptions.length;
+        return badgeOptions[index];
     }
 
     // --- Рендер сообщений ---
@@ -1805,7 +1818,7 @@
         if (el) {
             el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             el.classList.add('highlight');
-            setTimeout(() => el.classList.remove('highlight'), 2000);
+            setTimeout(() => el.classList.remove('highlight'), 4000);
         }
     }
 
