@@ -56,7 +56,6 @@ async function initDB() {
     );
   `);
 
-  // Миграции для users
   const userCols = ['badge', 'description', 'visibility', 'who_can_write', 'online_visible', 'who_can_voice', 'description_visible', 'who_can_invite'];
   for (const col of userCols) {
     try {
@@ -83,7 +82,6 @@ async function initDB() {
     await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook', 'group', 'channel'))`);
   } catch (e) {}
 
-  // Миграции для chats
   try {
     await pool.query(`ALTER TABLE chats ADD COLUMN IF NOT EXISTS name VARCHAR(100)`);
   } catch (e) {}
@@ -119,7 +117,6 @@ async function initDB() {
     );
   `);
 
-  // Миграции для messages
   const msgCols = ['type', 'file_url', 'file_name', 'file_size', 'duration', 'views'];
   for (const col of msgCols) {
     try {
@@ -552,6 +549,7 @@ app.post('/create-private-chat', async (req, res) => {
     return res.status(403).json({ success: false, error: 'Невозможно написать' });
   }
   
+  // Проверяем существующий чат
   const existing = await pool.query(`
     SELECT c.id FROM chats c
     JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.nick = $1
@@ -559,6 +557,11 @@ app.post('/create-private-chat', async (req, res) => {
     WHERE c.type = 'private'
   `, [user1, user2]);
   if (existing.rows.length > 0) {
+    // Если чат существует, но удалён для пользователя, восстанавливаем
+    const deleted = await pool.query(`SELECT 1 FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
+    if (deleted.rows.length > 0) {
+      await pool.query(`DELETE FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
+    }
     return res.json({ success: true, chatId: existing.rows[0].id });
   }
   const newChat = await pool.query(`INSERT INTO chats (type) VALUES ('private') RETURNING id`);
@@ -584,8 +587,10 @@ app.get('/chat-messages', async (req, res) => {
     SELECT m.id, m.chat_id, m.nick, m.text, m.reply_to_id, m.edited, m.type, m.file_url, m.file_name, m.file_size, m.duration, m.views, m.created_at,
            COALESCE(r.reactions, '[]'::json) as reactions,
            rep.nick as reply_nick, rep.text as reply_text,
-           (SELECT array_agg(reaction) FROM message_reactions WHERE message_id = m.id AND nick = $2) as user_reactions
+           (SELECT array_agg(reaction) FROM message_reactions WHERE message_id = m.id AND nick = $2) as user_reactions,
+           u.badge as user_badge
     FROM messages m
+    LEFT JOIN users u ON m.nick = u.nick
     LEFT JOIN LATERAL (
       SELECT json_agg(json_build_object('reaction', reaction, 'count', cnt)) as reactions
       FROM (
@@ -722,7 +727,7 @@ app.post('/edit-message', async (req, res) => {
   }
 });
 
-// Онлайн статус (только присутствие в чатах, без публичного статуса)
+// Онлайн статус (только присутствие в чатах)
 const usersInChat = new Map();
 
 io.on('connection', (socket) => {
