@@ -92,7 +92,7 @@ async function initDB() {
     );
   `);
 
-  // Сообщения
+  // Сообщения (text теперь может быть NULL)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -111,14 +111,17 @@ async function initDB() {
     );
   `);
 
-  // Миграции для messages
+  // Миграции для messages, включая снятие NOT NULL с text
   const msgCols = ['type', 'file_url', 'file_name', 'file_size', 'duration', 'views'];
   for (const col of msgCols) {
     try {
       await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ${col} ${col === 'type' ? "VARCHAR(20) DEFAULT 'text'" : (col === 'views' ? 'INTEGER DEFAULT 0' : 'TEXT')}`);
     } catch (e) {}
   }
+  // Снимаем NOT NULL с text
+  try {
     await pool.query(`ALTER TABLE messages ALTER COLUMN text DROP NOT NULL`);
+  } catch (e) {}
 
   // Реакции
   await pool.query(`
@@ -176,7 +179,6 @@ async function initDB() {
   if (publicChat.rows.length === 0) {
     await pool.query(`INSERT INTO chats (type, name) VALUES ('public', 'Общий чат')`);
   } else {
-    // Убедимся, что у публичного чата есть имя
     await pool.query(`UPDATE chats SET name = 'Общий чат' WHERE type = 'public' AND name IS NULL`);
   }
 
