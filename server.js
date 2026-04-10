@@ -118,6 +118,7 @@ async function initDB() {
       await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ${col} ${col === 'type' ? "VARCHAR(20) DEFAULT 'text'" : (col === 'views' ? 'INTEGER DEFAULT 0' : 'TEXT')}`);
     } catch (e) {}
   }
+    await pool.query(`ALTER TABLE messages ALTER COLUMN text DROP NOT NULL`);
 
   // Реакции
   await pool.query(`
