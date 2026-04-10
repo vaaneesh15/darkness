@@ -68,12 +68,20 @@ async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
-      type VARCHAR(20) NOT NULL CHECK (type IN ('public', 'private', 'notebook', 'group', 'channel')),
+      type VARCHAR(20) NOT NULL,
       name VARCHAR(100),
       owner_nick VARCHAR(50) REFERENCES users(nick) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+
+  // Миграция ограничения type
+  try {
+    await pool.query(`ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_type_check`);
+  } catch (e) {}
+  try {
+    await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook', 'group', 'channel'))`);
+  } catch (e) {}
 
   // Миграции для chats
   try {
@@ -92,7 +100,7 @@ async function initDB() {
     );
   `);
 
-  // Сообщения (text теперь может быть NULL)
+  // Сообщения
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -111,17 +119,13 @@ async function initDB() {
     );
   `);
 
-  // Миграции для messages, включая снятие NOT NULL с text
+  // Миграции для messages
   const msgCols = ['type', 'file_url', 'file_name', 'file_size', 'duration', 'views'];
   for (const col of msgCols) {
     try {
       await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ${col} ${col === 'type' ? "VARCHAR(20) DEFAULT 'text'" : (col === 'views' ? 'INTEGER DEFAULT 0' : 'TEXT')}`);
     } catch (e) {}
   }
-  // Снимаем NOT NULL с text
-  try {
-    await pool.query(`ALTER TABLE messages ALTER COLUMN text DROP NOT NULL`);
-  } catch (e) {}
 
   // Реакции
   await pool.query(`
@@ -307,6 +311,14 @@ app.post('/update-privacy', async (req, res) => {
   res.json({ success: true });
 });
 
+app.get('/privacy-settings', async (req, res) => {
+  const { nick } = req.query;
+  if (!nick) return res.json({});
+  const user = await pool.query('SELECT visibility, who_can_write, online_visible, who_can_voice, description_visible, who_can_invite FROM users WHERE nick = $1', [nick]);
+  if (user.rows.length) res.json(user.rows[0]);
+  else res.json({});
+});
+
 app.delete('/delete-account', async (req, res) => {
   const { token, pin } = req.body;
   if (!token || !pin) return res.status(400).json({ success: false, error: 'Требуется PIN' });
@@ -395,7 +407,7 @@ app.get('/blocked-list', async (req, res) => {
   res.json(result.rows);
 });
 
-// Поиск пользователей с учётом видимости и блокировки
+// Поиск пользователей
 app.get('/search-users', async (req, res) => {
   const { q, nick } = req.query;
   if (!q || !nick) return res.json([]);
@@ -409,6 +421,15 @@ app.get('/search-users', async (req, res) => {
     [`%${q}%`, nick]
   );
   res.json(result.rows);
+});
+
+// Профиль пользователя
+app.get('/user-profile', async (req, res) => {
+  const { nick } = req.query;
+  if (!nick) return res.json({});
+  const user = await pool.query('SELECT nick, badge, description FROM users WHERE nick = $1', [nick]);
+  if (user.rows.length) res.json(user.rows[0]);
+  else res.json({});
 });
 
 // Чаты
@@ -429,7 +450,7 @@ app.get('/chats', async (req, res) => {
     LEFT JOIN users u ON u.nick = cp2.nick
     WHERE c.type IN ('private', 'group', 'channel')
       AND NOT EXISTS (SELECT 1 FROM deleted_chats dc WHERE dc.chat_id = c.id AND dc.nick = $1)
-      AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1))
+      AND (c.type = 'private' AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1)) OR c.type IN ('group','channel'))
   `, [nick]);
   
   const chats = [
@@ -468,6 +489,17 @@ app.get('/chats', async (req, res) => {
   });
   
   res.json(chats);
+});
+
+app.get('/chat-participants', async (req, res) => {
+  const { chat_id } = req.query;
+  if (!chat_id) return res.json([]);
+  const result = await pool.query(`
+    SELECT u.nick, u.badge FROM chat_participants cp
+    JOIN users u ON cp.nick = u.nick
+    WHERE cp.chat_id = $1
+  `, [chat_id]);
+  res.json(result.rows);
 });
 
 app.post('/create-group', async (req, res) => {
@@ -690,23 +722,14 @@ app.post('/edit-message', async (req, res) => {
   }
 });
 
-// Онлайн статус
-const onlineUsers = new Map();
+// Онлайн статус (только присутствие в чатах, без публичного статуса)
+const usersInChat = new Map();
 
 io.on('connection', (socket) => {
   let currentNick = null;
 
   socket.on('user online', async (nick) => {
     currentNick = nick;
-    if (!onlineUsers.has(nick)) onlineUsers.set(nick, new Set());
-    onlineUsers.get(nick).add(socket.id);
-    
-    const user = await pool.query(`SELECT online_visible FROM users WHERE nick = $1`, [nick]);
-    const visible = user.rows[0]?.online_visible ?? true;
-    if (visible) {
-      io.emit('online status', { nick, online: true });
-    }
-    
     const chats = await pool.query(`
       SELECT c.id FROM chats c
       JOIN chat_participants cp ON cp.chat_id = c.id
@@ -720,6 +743,8 @@ io.on('connection', (socket) => {
   socket.on('join chat', (chatId) => {
     socket.join(`chat:${chatId}`);
     if (currentNick) {
+      if (!usersInChat.has(chatId)) usersInChat.set(chatId, new Set());
+      usersInChat.get(chatId).add(currentNick);
       io.to(`chat:${chatId}`).emit('user joined chat', { chatId, nick: currentNick });
     }
   });
@@ -727,6 +752,9 @@ io.on('connection', (socket) => {
   socket.on('leave chat', (chatId) => {
     socket.leave(`chat:${chatId}`);
     if (currentNick) {
+      if (usersInChat.has(chatId)) {
+        usersInChat.get(chatId).delete(currentNick);
+      }
       io.to(`chat:${chatId}`).emit('user left chat', { chatId, nick: currentNick });
     }
   });
@@ -739,18 +767,12 @@ io.on('connection', (socket) => {
     socket.to(`chat:${chatId}`).emit('user stop typing', { chatId });
   });
 
-  socket.on('disconnect', async () => {
+  socket.on('disconnect', () => {
     if (currentNick) {
-      const sockets = onlineUsers.get(currentNick);
-      if (sockets) {
-        sockets.delete(socket.id);
-        if (sockets.size === 0) {
-          onlineUsers.delete(currentNick);
-          const user = await pool.query(`SELECT online_visible FROM users WHERE nick = $1`, [currentNick]);
-          const visible = user.rows[0]?.online_visible ?? true;
-          if (visible) {
-            io.emit('online status', { nick: currentNick, online: false });
-          }
+      for (const [chatId, users] of usersInChat.entries()) {
+        if (users.has(currentNick)) {
+          users.delete(currentNick);
+          io.to(`chat:${chatId}`).emit('user left chat', { chatId, nick: currentNick });
         }
       }
     }
