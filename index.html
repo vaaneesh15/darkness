@@ -1542,7 +1542,6 @@
             lastReadMessage[chat.id] = lastMsg.id;
             localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage));
         }
-        // Скрыть поле ввода для каналов, если не владелец
         const inputWrapper = document.querySelector('.input-wrapper');
         if (chat.type === 'channel' && chat.owner !== currentUser.nick) {
             inputWrapper.style.display = 'none';
@@ -1824,7 +1823,7 @@
         });
     }
 
-        // --- Реакции ---
+    // --- Реакции ---
     function attachReactionEvents() {
         if (appSettings.showReactions === false) return;
         document.querySelectorAll('.reaction-btn').forEach(btn => {
