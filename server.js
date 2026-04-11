@@ -37,7 +37,6 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Пользователи
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -63,25 +62,22 @@ async function initDB() {
     } catch (e) {}
   }
 
-  // Чаты
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
-      type VARCHAR(20) NOT NULL,
+      type VARCHAR(20) NOT NULL CHECK (type IN ('public', 'private', 'notebook', 'group')),
       name VARCHAR(100),
       owner_nick VARCHAR(50) REFERENCES users(nick) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 
-  // Миграция ограничения type
   try {
     await pool.query(`ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_type_check`);
   } catch (e) {}
   try {
-    await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook', 'group', 'channel'))`);
+    await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook', 'group'))`);
   } catch (e) {}
-
   try {
     await pool.query(`ALTER TABLE chats ADD COLUMN IF NOT EXISTS name VARCHAR(100)`);
   } catch (e) {}
@@ -89,7 +85,6 @@ async function initDB() {
     await pool.query(`ALTER TABLE chats ADD COLUMN IF NOT EXISTS owner_nick VARCHAR(50) REFERENCES users(nick) ON DELETE CASCADE`);
   } catch (e) {}
 
-  // Участники чатов
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chat_participants (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -98,7 +93,6 @@ async function initDB() {
     );
   `);
 
-  // Сообщения
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -112,19 +106,17 @@ async function initDB() {
       file_name TEXT,
       file_size INTEGER,
       duration INTEGER,
-      views INTEGER DEFAULT 0,
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
 
-  const msgCols = ['type', 'file_url', 'file_name', 'file_size', 'duration', 'views'];
+  const msgCols = ['type', 'file_url', 'file_name', 'file_size', 'duration'];
   for (const col of msgCols) {
     try {
-      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ${col} ${col === 'type' ? "VARCHAR(20) DEFAULT 'text'" : (col === 'views' ? 'INTEGER DEFAULT 0' : 'TEXT')}`);
+      await pool.query(`ALTER TABLE messages ADD COLUMN IF NOT EXISTS ${col} ${col === 'type' ? "VARCHAR(20) DEFAULT 'text'" : 'TEXT'}`);
     } catch (e) {}
   }
 
-  // Реакции
   await pool.query(`
     CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
@@ -136,17 +128,6 @@ async function initDB() {
     );
   `);
 
-  // Просмотры
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS message_views (
-      message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-      nick VARCHAR(50) NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW(),
-      PRIMARY KEY (message_id, nick)
-    );
-  `);
-
-  // Контакты
   await pool.query(`
     CREATE TABLE IF NOT EXISTS contacts (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -156,7 +137,6 @@ async function initDB() {
     );
   `);
 
-  // Чёрный список
   await pool.query(`
     CREATE TABLE IF NOT EXISTS blocked_users (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -166,7 +146,6 @@ async function initDB() {
     );
   `);
 
-  // Удалённые чаты
   await pool.query(`
     CREATE TABLE IF NOT EXISTS deleted_chats (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -175,7 +154,6 @@ async function initDB() {
     );
   `);
 
-  // Публичный чат
   const publicChat = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
   if (publicChat.rows.length === 0) {
     await pool.query(`INSERT INTO chats (type, name) VALUES ('public', 'Общий чат')`);
@@ -404,12 +382,40 @@ app.get('/blocked-list', async (req, res) => {
   res.json(result.rows);
 });
 
-// Поиск пользователей
+// Поиск (пользователи и группы)
+app.get('/search-all', async (req, res) => {
+  const { q, nick } = req.query;
+  if (!q || !nick) return res.json([]);
+  const result = [];
+  // Пользователи
+  const users = await pool.query(`
+    SELECT u.nick, u.badge, 'user' as type
+    FROM users u
+    WHERE u.nick ILIKE $1 AND u.nick != $2
+      AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $2 AND b.blocked_nick = u.nick) OR (b.user_nick = u.nick AND b.blocked_nick = $2))
+      AND (u.visibility = 'all' OR (u.visibility = 'contacts' AND EXISTS (SELECT 1 FROM contacts c WHERE c.user_nick = u.nick AND c.contact_nick = $2)) OR u.nick = $2)
+    LIMIT 20`,
+    [`%${q}%`, nick]
+  );
+  result.push(...users.rows);
+  // Группы
+  const groups = await pool.query(`
+    SELECT c.id, c.name, 'group' as type
+    FROM chats c
+    WHERE c.type = 'group' AND c.name ILIKE $1
+    LIMIT 20`,
+    [`%${q}%`]
+  );
+  result.push(...groups.rows);
+  res.json(result);
+});
+
+// Поиск только пользователей (для добавления в группу)
 app.get('/search-users', async (req, res) => {
   const { q, nick } = req.query;
   if (!q || !nick) return res.json([]);
   const result = await pool.query(`
-    SELECT u.nick, u.badge, u.visibility, u.description
+    SELECT u.nick, u.badge
     FROM users u
     WHERE u.nick ILIKE $1 AND u.nick != $2
       AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $2 AND b.blocked_nick = u.nick) OR (b.user_nick = u.nick AND b.blocked_nick = $2))
@@ -420,7 +426,6 @@ app.get('/search-users', async (req, res) => {
   res.json(result.rows);
 });
 
-// Профиль пользователя
 app.get('/user-profile', async (req, res) => {
   const { nick } = req.query;
   if (!nick) return res.json({});
@@ -445,16 +450,16 @@ app.get('/chats', async (req, res) => {
     JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.nick = $1
     LEFT JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.nick != $1
     LEFT JOIN users u ON u.nick = cp2.nick
-    WHERE c.type IN ('private', 'group', 'channel')
+    WHERE c.type IN ('private', 'group')
       AND NOT EXISTS (SELECT 1 FROM deleted_chats dc WHERE dc.chat_id = c.id AND dc.nick = $1)
-      AND (c.type = 'private' AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1)) OR c.type IN ('group','channel'))
+      AND (c.type = 'private' AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1)) OR c.type = 'group')
   `, [nick]);
   
   const chats = [
-    { id: publicChatId, type: 'public', name: publicChat.rows[0]?.name || 'Общий чат', other: null }
+    { id: publicChatId, type: 'public', name: publicChat.rows[0]?.name || 'Общий чат', other: null, owner: null }
   ];
   if (notebookId) {
-    chats.push({ id: notebookId, type: 'notebook', name: 'Блокнот', other: null });
+    chats.push({ id: notebookId, type: 'notebook', name: 'Блокнот', other: null, owner: null });
   }
   privateChats.rows.forEach(row => {
     chats.push({
@@ -462,7 +467,7 @@ app.get('/chats', async (req, res) => {
       type: row.type,
       name: row.name || row.other_nick,
       other: row.type === 'private' ? row.other_nick : null,
-      owner: row.type === 'channel' ? row.owner_nick : null
+      owner: row.type === 'group' ? row.owner_nick : null
     });
   });
   
@@ -502,7 +507,7 @@ app.get('/chat-participants', async (req, res) => {
 app.post('/create-group', async (req, res) => {
   const { creator, name, participants } = req.body;
   if (!creator || !name) return res.status(400).json({ success: false });
-  const newChat = await pool.query(`INSERT INTO chats (type, name) VALUES ('group', $1) RETURNING id`, [name]);
+  const newChat = await pool.query(`INSERT INTO chats (type, name, owner_nick) VALUES ('group', $1, $2) RETURNING id`, [name, creator]);
   const chatId = newChat.rows[0].id;
   await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2)`, [chatId, creator]);
   if (participants && participants.length) {
@@ -513,18 +518,32 @@ app.post('/create-group', async (req, res) => {
   res.json({ success: true, chatId });
 });
 
-app.post('/create-channel', async (req, res) => {
-  const { creator, name, participants } = req.body;
-  if (!creator || !name) return res.status(400).json({ success: false });
-  const newChat = await pool.query(`INSERT INTO chats (type, name, owner_nick) VALUES ('channel', $1, $2) RETURNING id`, [name, creator]);
-  const chatId = newChat.rows[0].id;
-  await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2)`, [chatId, creator]);
-  if (participants && participants.length) {
-    for (const p of participants) {
-      await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2)`, [chatId, p]);
-    }
-  }
-  res.json({ success: true, chatId });
+app.post('/join-group', async (req, res) => {
+  const { chat_id, nick } = req.body;
+  if (!chat_id || !nick) return res.status(400).json({ success: false });
+  await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [chat_id, nick]);
+  res.json({ success: true });
+});
+
+app.post('/rename-chat', async (req, res) => {
+  const { chat_id, name } = req.body;
+  if (!chat_id || !name) return res.status(400).json({ success: false });
+  await pool.query(`UPDATE chats SET name = $1 WHERE id = $2`, [name, chat_id]);
+  res.json({ success: true });
+});
+
+app.post('/delete-chat-permanent', async (req, res) => {
+  const { chat_id } = req.body;
+  if (!chat_id) return res.status(400).json({ success: false });
+  await pool.query(`DELETE FROM chats WHERE id = $1`, [chat_id]);
+  res.json({ success: true });
+});
+
+app.post('/kick-participant', async (req, res) => {
+  const { chat_id, nick } = req.body;
+  if (!chat_id || !nick) return res.status(400).json({ success: false });
+  await pool.query(`DELETE FROM chat_participants WHERE chat_id = $1 AND nick = $2`, [chat_id, nick]);
+  res.json({ success: true });
 });
 
 app.post('/create-private-chat', async (req, res) => {
@@ -549,7 +568,6 @@ app.post('/create-private-chat', async (req, res) => {
     return res.status(403).json({ success: false, error: 'Невозможно написать' });
   }
   
-  // Проверяем существующий чат
   const existing = await pool.query(`
     SELECT c.id FROM chats c
     JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.nick = $1
@@ -557,7 +575,6 @@ app.post('/create-private-chat', async (req, res) => {
     WHERE c.type = 'private'
   `, [user1, user2]);
   if (existing.rows.length > 0) {
-    // Если чат существует, но удалён для пользователя, восстанавливаем
     const deleted = await pool.query(`SELECT 1 FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
     if (deleted.rows.length > 0) {
       await pool.query(`DELETE FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
@@ -584,7 +601,7 @@ app.get('/chat-messages', async (req, res) => {
   const { chat_id, nick } = req.query;
   if (!chat_id || !nick) return res.json([]);
   const result = await pool.query(`
-    SELECT m.id, m.chat_id, m.nick, m.text, m.reply_to_id, m.edited, m.type, m.file_url, m.file_name, m.file_size, m.duration, m.views, m.created_at,
+    SELECT m.id, m.chat_id, m.nick, m.text, m.reply_to_id, m.edited, m.type, m.file_url, m.file_name, m.file_size, m.duration, m.created_at,
            COALESCE(r.reactions, '[]'::json) as reactions,
            rep.nick as reply_nick, rep.text as reply_text,
            (SELECT array_agg(reaction) FROM message_reactions WHERE message_id = m.id AND nick = $2) as user_reactions,
@@ -604,25 +621,12 @@ app.get('/chat-messages', async (req, res) => {
     WHERE m.chat_id = $1
     ORDER BY m.created_at ASC
   `, [chat_id, nick]);
-  
-  const chat = await pool.query(`SELECT type FROM chats WHERE id = $1`, [chat_id]);
-  if (chat.rows[0]?.type === 'channel') {
-    for (const msg of result.rows) {
-      await pool.query(`INSERT INTO message_views (message_id, nick) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [msg.id, nick]);
-    }
-  }
-  
   res.json(result.rows);
 });
 
 app.post('/chat-message', async (req, res) => {
   const { chat_id, nick, text, reply_to_id, type, file_url, file_name, file_size, duration } = req.body;
   if (!chat_id || !nick) return res.status(400).json({ success: false });
-  
-  const chat = await pool.query(`SELECT type, owner_nick FROM chats WHERE id = $1`, [chat_id]);
-  if (chat.rows[0]?.type === 'channel' && chat.rows[0].owner_nick !== nick) {
-    return res.status(403).json({ success: false, error: 'Только автор канала может писать' });
-  }
   
   const result = await pool.query(
     `INSERT INTO messages (chat_id, nick, text, reply_to_id, type, file_url, file_name, file_size, duration)
@@ -727,7 +731,7 @@ app.post('/edit-message', async (req, res) => {
   }
 });
 
-// Онлайн статус (только присутствие в чатах)
+// Онлайн статус (присутствие в чатах)
 const usersInChat = new Map();
 
 io.on('connection', (socket) => {
