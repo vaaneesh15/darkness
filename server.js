@@ -358,35 +358,75 @@ app.get('/user-profile', async (req, res) => {
 app.get('/chats', async (req, res) => {
   const { nick } = req.query;
   if (!nick) return res.json([]);
+  
   const publicChat = await pool.query(`SELECT id, name FROM chats WHERE type = 'public'`);
   const publicChatId = publicChat.rows[0]?.id;
+  
   const notebookId = await getOrCreateNotebook(nick);
+  
   const privateChats = await pool.query(`
-    SELECT c.id, c.type, c.name, c.owner_nick, u.nick as other_nick, u.badge as other_badge
+    SELECT c.id, c.type, u.nick as other_nick, u.badge as other_badge
     FROM chats c
     JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.nick = $1
-    LEFT JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.nick != $1
-    LEFT JOIN users u ON u.nick = cp2.nick
-    WHERE c.type IN ('private', 'group')
+    JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.nick != $1
+    JOIN users u ON u.nick = cp2.nick
+    WHERE c.type = 'private'
       AND NOT EXISTS (SELECT 1 FROM deleted_chats dc WHERE dc.chat_id = c.id AND dc.nick = $1)
-      AND (c.type = 'private' AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1)) OR c.type = 'group')
+      AND NOT EXISTS (SELECT 1 FROM blocked_users b WHERE (b.user_nick = $1 AND b.blocked_nick = cp2.nick) OR (b.user_nick = cp2.nick AND b.blocked_nick = $1))
   `, [nick]);
-  const chats = [{ id: publicChatId, type: 'public', name: publicChat.rows[0]?.name || 'Общий чат', other: null, owner: null }];
-  if (notebookId) chats.push({ id: notebookId, type: 'notebook', name: 'Блокнот', other: null, owner: null });
+
+  const groupChats = await pool.query(`
+    SELECT c.id, c.type, c.name, c.owner_nick
+    FROM chats c
+    JOIN chat_participants cp ON cp.chat_id = c.id AND cp.nick = $1
+    WHERE c.type = 'group'
+      AND NOT EXISTS (SELECT 1 FROM deleted_chats dc WHERE dc.chat_id = c.id AND dc.nick = $1)
+  `, [nick]);
+  
+  const chats = [
+    { id: publicChatId, type: 'public', name: publicChat.rows[0]?.name || 'Общий чат', other: null, owner: null }
+  ];
+  if (notebookId) {
+    chats.push({ id: notebookId, type: 'notebook', name: 'Блокнот', other: null, owner: null });
+  }
   privateChats.rows.forEach(row => {
-    chats.push({ id: row.id, type: row.type, name: row.name || row.other_nick, other: row.type === 'private' ? row.other_nick : null, owner: row.type === 'group' ? row.owner_nick : null });
+    chats.push({
+      id: row.id,
+      type: row.type,
+      name: row.other_nick,
+      other: row.other_nick,
+      owner: null
+    });
   });
+  groupChats.rows.forEach(row => {
+    chats.push({
+      id: row.id,
+      type: row.type,
+      name: row.name,
+      other: null,
+      owner: row.owner_nick
+    });
+  });
+  
   for (let chat of chats) {
-    const lastMsg = await pool.query(`SELECT id, text, nick, type, file_name, created_at FROM messages WHERE chat_id = $1 ORDER BY created_at DESC LIMIT 1`, [chat.id]);
+    const lastMsg = await pool.query(`
+      SELECT id, text, nick, type, file_name, created_at FROM messages
+      WHERE chat_id = $1
+      ORDER BY created_at DESC LIMIT 1
+    `, [chat.id]);
     chat.last_message = lastMsg.rows[0] || null;
   }
+  
   chats.sort((a, b) => {
-    if (a.type === 'public') return -1; if (b.type === 'public') return 1;
-    if (a.type === 'notebook') return -1; if (b.type === 'notebook') return 1;
+    if (a.type === 'public') return -1;
+    if (b.type === 'public') return 1;
+    if (a.type === 'notebook') return -1;
+    if (b.type === 'notebook') return 1;
     const aTime = a.last_message ? new Date(a.last_message.created_at).getTime() : 0;
     const bTime = b.last_message ? new Date(b.last_message.created_at).getTime() : 0;
     return bTime - aTime;
   });
+  
   res.json(chats);
 });
 
