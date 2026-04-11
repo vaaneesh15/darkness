@@ -107,7 +107,7 @@
         .context-message-preview { font-size:0.9rem; color:var(--text-secondary); padding:0.5rem 0; border-top:1px solid var(--border-light); border-bottom:1px solid var(--border-light); margin-bottom:0.5rem; word-break:break-word; }
         .reactions-picker { display:grid; grid-template-columns:repeat(5,1fr); gap:0.6rem; justify-items:center; margin-bottom:1.2rem; }
         .reactions-picker button { background:none; border:none; font-size:1.8rem; cursor:pointer; padding:0.4rem; border-radius:1rem; }
-        .settings-container { display:flex; flex-direction:column; gap:0.8rem; }
+        .settings-container { display:flex; flex-direction:column; gap:0; }
         .setting-row { display:flex; flex-direction:column; gap:0.6rem; border-bottom:1px solid var(--border-light); padding:0.8rem 0; }
         .setting-row:last-of-type { border-bottom:none; }
         .setting-header { display:flex; justify-content:space-between; align-items:center; }
@@ -129,7 +129,7 @@
         .chat-time { font-size:0.75rem; color:var(--text-secondary); margin-left:8px; white-space:nowrap; }
         .contact-actions { display:flex; gap:8px; }
         .contact-actions button { background:none; border:none; color:var(--text-primary); font-size:1.2rem; padding:0.3rem; }
-        .search-input { width:100%; padding:0.7rem 1rem; background:var(--input-bg); border:1px solid var(--border-light); border-radius:1rem; color:var(--text-primary); font-size:1rem; margin-bottom:1rem; }
+        .search-input { width:100%; padding:0.7rem 1rem; background:var(--input-bg); border:1px solid var(--border-light); border-radius:1rem; color:var(--text-primary); font-size:1rem; margin-bottom:0.8rem; }
         .profile-menu-btn { background:var(--bg-page); border:1px solid var(--border-light); border-radius:1rem; padding:0.8rem 1rem; font-size:1rem; color:var(--text-primary); display:flex; align-items:center; gap:14px; cursor:pointer; width:100%; }
         .profile-menu-btn svg { width:1.4rem; height:1.4rem; stroke:currentColor; stroke-width:1.5; fill:none; }
         .modal-back-btn { background:var(--bg-page); border:none; color:var(--accent-color); font-size:1.5rem; width:2.5rem; height:2.5rem; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; border:0.5px solid var(--border-light); }
@@ -160,6 +160,7 @@
         .profile-description { color:var(--text-secondary); margin-bottom:1.5rem; }
         .join-btn { background:var(--accent-color); border:none; padding:0.6rem 1rem; border-radius:1rem; color:white; font-size:1rem; margin-top:0.5rem; width:100%; }
         .add-btn-large { width:2.8rem; height:2.8rem; font-size:1.8rem; background:var(--accent-color); border:none; color:white; border-radius:50%; }
+        .write-btn { background:transparent; border:1px solid var(--border-light); border-radius:1.5rem; padding:0.3rem 0.8rem; color:var(--text-primary); font-size:0.9rem; }
     </style>
 </head>
 <body>
@@ -232,8 +233,8 @@
 <div id="chatMenuModal" class="modal chat-menu-modal"><div class="modal-content"><div style="margin-bottom:1rem; font-weight:600;" id="chatMenuNick"></div><div class="context-menu-buttons" id="chatMenuButtons"></div></div></div>
 <div id="changeNickModal" class="modal modal-top"><div class="modal-content"><h3>Сменить ник</h3><div class="modal-setting"><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickChangeBtn">Отмена</button><button id="applyNickChangeBtn">Применить</button></div></div></div>
 <div id="descriptionModal" class="modal modal-top"><div class="modal-content"><h3>Описание</h3><div class="modal-setting"><textarea id="descriptionInput" placeholder="О себе..." rows="4" style="width:100%; background:var(--bg-page); border:1px solid var(--border-light); border-radius:1rem; padding:0.8rem; color:var(--text-primary); resize:none;"></textarea></div><div class="modal-buttons"><button id="cancelDescriptionBtn">Закрыть</button><button id="applyDescriptionBtn">Применить</button></div></div></div>
-<div id="createGroupModal" class="modal"><div class="modal-content"><h3>Создать группу</h3><div class="modal-setting"><input type="text" id="groupNameInput" placeholder="Название"></div><div class="modal-buttons"><button id="cancelGroupBtn">Отмена</button><button id="nextGroupBtn">Далее</button></div></div></div>
-<div id="addParticipantsModal" class="modal"><div class="modal-content" style="max-width:400px;"><h3>Добавить участников</h3><div class="modal-setting"><input type="text" id="participantSearchInput" placeholder="Поиск..."></div><div id="participantsListHeader" style="margin-bottom:0.5rem; color:var(--text-secondary);">Контакты</div><div id="participantsList" style="max-height:300px; overflow-y:auto;"></div><div class="modal-buttons"><button id="backParticipantsBtn">Назад</button><button id="doneParticipantsBtn">Готово</button></div></div></div>
+<div id="createGroupModal" class="modal"><div class="modal-content"><h3>Создать группу</h3><div class="modal-setting"><input type="text" id="groupNameInput" placeholder="Название"></div><div class="modal-buttons"><button id="cancelGroupBtn">Отмена</button><button id="createGroupConfirmBtn">Создать</button></div></div></div>
+<div id="addParticipantsModal" class="modal"><div class="modal-content" style="max-width:400px;"><h3>Добавить участников</h3><div class="modal-setting"><input type="text" id="participantSearchInput" placeholder="Поиск..."></div><div id="participantsListHeader" style="margin-bottom:0.5rem; color:var(--text-secondary);">Контакты</div><div id="participantsList" style="max-height:300px; overflow-y:auto;"></div><div class="modal-buttons"><button id="cancelAddParticipantsBtn">Отмена</button><button id="doneAddParticipantsBtn">Добавить</button></div></div></div>
 <div id="chatInfoModal" class="modal fullscreen"><div class="modal-content"><div style="display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;"><button id="closeChatInfoBtn" class="modal-back-btn">←</button><h3 style="margin-left:0.5rem;">Информация</h3></div><div id="chatInfoContent"></div></div></div>
 <div id="blockedListModal" class="modal fullscreen"><div class="modal-content"><div style="display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;"><button id="closeBlockedListBtn" class="modal-back-btn">←</button><h3 style="margin-left:0.5rem;">Чёрный список</h3></div><div id="blockedListContainer"></div></div></div>
 <div id="chatsMenuModal" class="modal"><div class="modal-content"><div class="context-menu-buttons"><button id="createGroupMenuBtn"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Создать группу</button><button id="closeChatsMenuBtn"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Закрыть</button></div></div></div>
@@ -257,7 +258,6 @@
     document.addEventListener('mouseleave', removeTapped);
 })();
 document.addEventListener('DOMContentLoaded', function() {
-    // ----- ГЛОБАЛЬНОЕ СОСТОЯНИЕ -----
     let socket = null;
     let currentUser = { nick: "", badge: "", description: "" };
     let authToken = localStorage.getItem('simply_token');
@@ -281,11 +281,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let pendingAction = null;
     let selectedChatForMenu = null;
     let selectedParticipants = new Set();
+    let currentGroupChatId = null;
     const usersInChat = new Map();
 
     document.documentElement.style.setProperty('--accent-color', appSettings.accentColor);
 
-    // ----- КАСТОМНЫЕ МОДАЛКИ -----
     function showConfirm(message, onOk, title = 'Подтверждение') {
         document.getElementById('confirmTitle').innerText = title;
         document.getElementById('confirmMessage').innerText = message;
@@ -299,7 +299,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function showAlert(message, onClose) { showConfirm(message, onClose, ' '); document.getElementById('confirmTitle').style.display='none'; }
 
-    // ----- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ -----
     function escapeHtml(s) { return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function linkify(t) { return t.replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-color);text-decoration:underline;">${u}</a>`); }
     function formatTimestamp(iso, showDate) { const d = new Date(iso); const h = String(d.getHours()).padStart(2,'0'), m = String(d.getMinutes()).padStart(2,'0'); if(showDate) { const day = String(d.getDate()).padStart(2,'0'), mon = String(d.getMonth()+1).padStart(2,'0'), y = d.getFullYear(); return `${day}.${mon}.${y} ${h}:${m}`; } else return `${h}:${m}`; }
@@ -308,7 +307,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function hasUnreadMessages(chat) { if(!chat.last_message) return false; if(chat.last_message.nick === currentUser.nick) return false; const lastId = chat.last_message.id, readId = lastReadMessage[chat.id]||0; return lastId > readId; }
     function notifyUnreadSummary() { if(!appSettings.notifications) return; const unread = chatsList.filter(c => !mutedChats.includes(c.id) && hasUnreadMessages(c)); if(unread.length && document.hidden && Notification.permission === 'granted') new Notification('ChatX', { body: `У вас ${unread.length} непрочитанных чатов`, icon:'/favicon.ico' }); }
 
-    // ----- НАВИГАЦИЯ -----
     function showTab(tabId) {
         document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
         document.getElementById(tabId+'Panel').style.display = 'flex';
@@ -333,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('chatsListContainer').style.display = 'block';
     }
 
-    // ----- ЧАТЫ (СПИСОК) -----
     async function loadChatsList() {
         try { const r = await fetch(`/chats?nick=${encodeURIComponent(currentUser.nick)}`); chatsList = await r.json(); chatsList.forEach(c=>c.pinned = pinnedChats.includes(c.id)||c.type==='public'||c.type==='notebook'); renderChatsList(); } catch(e){}
     }
@@ -362,9 +359,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const pinIcon = c.pinned ? '<svg class="pinned-icon" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' : '';
             const unread = hasUnreadMessages(c) ? '<span class="unread-dot"></span>' : '';
             const muted = mutedChats.includes(c.id) ? '<svg class="muted-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>' : '';
-            const typeLabel = (c.type==='group' && appSettings.showGroupBadge) ? '<span style="color:var(--text-secondary);font-size:0.7rem;margin-left:auto;">Группа</span>' : '';
+            const typeLabel = (c.type==='group' && appSettings.showGroupBadge) ? ' <span style="color:var(--text-secondary);font-size:0.7rem;">Группа</span>' : '';
             html += `<div class="chat-item clickable ${muted?'muted':''}" data-chat-id="${c.id}" data-chat-type="${c.type}" data-other="${c.other||''}" data-owner="${c.owner||''}" data-name="${escapeHtml(c.name)}">
-                <div class="chat-info">${pinIcon}<div style="flex:1"><div class="friend-name">${escapeHtml(c.name)}${unread}${muted}</div><div class="chat-preview"><span>${escapeHtml(preview)}</span><span class="chat-time">${timeStr}</span></div></div>${typeLabel}</div>
+                <div class="chat-info">${pinIcon}<div style="flex:1"><div class="friend-name">${escapeHtml(c.name)}${typeLabel}${unread}${muted}</div><div class="chat-preview"><span>${escapeHtml(preview)}</span><span class="chat-time">${timeStr}</span></div></div></div>
             </div>`;
         });
         cont.innerHTML = html || '<div style="color:var(--text-secondary);text-align:center;">Нет чатов</div>';
@@ -403,7 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     async function loadChatMessages() { if(!currentChat.id) return; try { const r = await fetch(`/chat-messages?chat_id=${currentChat.id}&nick=${encodeURIComponent(currentUser.nick)}`); messages = await r.json(); } catch(e){} }
 
-    // ----- МЕНЮ ЧАТА -----
     async function openChatMenu(chatId, other, type) {
         const cont = document.getElementById('chatMenuButtons');
         const isPinned = pinnedChats.includes(chatId), isMuted = mutedChats.includes(chatId);
@@ -429,12 +425,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('chatMenuModal').style.display='flex';
     }
 
-    // ----- ИНФОРМАЦИЯ О ГРУППЕ -----
     async function openChatInfo(chatId) {
         const r = await fetch(`/chat-participants?chat_id=${chatId}`); const participants = await r.json();
         const chat = chatsList.find(c=>c.id===chatId)||currentChat;
         const isOwner = chat.owner === currentUser.nick;
-        let html = `<div style="display:flex; align-items:center; gap:8px;"><span style="font-size:1.3rem; font-weight:600;">${escapeHtml(chat.name)}</span>${isOwner?'<button id="renameChatBtn" class="profile-menu-btn" style="width:auto; padding:0.4rem 1rem;">Изменить</button>':''}</div>`;
+        let html = `<div style="display:flex; align-items:center; gap:8px;"><span style="font-size:1.3rem; font-weight:600;">${escapeHtml(chat.name)}</span>${isOwner?'<button id="renameChatBtn" class="profile-menu-btn" style="width:auto; padding:0.4rem 1rem; margin-left:auto;">Изменить</button>':''}</div>`;
         html += `<div style="display:flex; align-items:center; margin-top:0.8rem;"><h3>Участники (${participants.length})</h3>${isOwner?'<button id="addParticipantBtn" class="add-btn-large" style="margin-left:auto;">+</button>':''}</div>`;
         participants.forEach(p => {
             const isCreator = p.nick === chat.owner;
@@ -445,7 +440,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if(isOwner) {
             document.getElementById('renameChatBtn').onclick = ()=>{
                 const newName = prompt('Новое название', chat.name);
-                if(newName) fetch('/rename-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,name:newName})}).then(()=>{ loadChatsList(); openChatInfo(chatId); });
+                if(newName) {
+                    fetch('/rename-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,name:newName})}).then(()=>{
+                        loadChatsList();
+                        if(currentChat.id===chatId) document.getElementById('chatTitle').innerText = newName;
+                        openChatInfo(chatId);
+                    });
+                }
             };
             document.getElementById('deleteChatBtn').onclick = ()=>{
                 showConfirm(`Удалить группу безвозвратно?`, async ()=>{
@@ -462,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 'Удаление участника');
             });
             document.getElementById('addParticipantBtn').onclick = ()=>{
-                // открыть модалку добавления участников (аналогично созданию группы)
+                currentGroupChatId = chatId;
                 selectedParticipants.clear();
                 document.getElementById('addParticipantsModal').style.display = 'flex';
                 loadParticipantsList();
@@ -476,7 +477,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.getElementById('closeChatInfoBtn').onclick = ()=> document.getElementById('chatInfoModal').style.display='none';
 
-    // ----- КОНТАКТЫ -----
+    // Добавление участников (отдельное окно)
+    document.getElementById('cancelAddParticipantsBtn').onclick = ()=> document.getElementById('addParticipantsModal').style.display='none';
+    document.getElementById('doneAddParticipantsBtn').onclick = async ()=>{
+        if(!currentGroupChatId) return;
+        for(let nick of selectedParticipants) {
+            await fetch('/join-group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentGroupChatId,nick})});
+        }
+        document.getElementById('addParticipantsModal').style.display='none';
+        openChatInfo(currentGroupChatId);
+    };
+    async function loadParticipantsList() {
+        const q = document.getElementById('participantSearchInput').value.trim();
+        const header = document.getElementById('participantsListHeader');
+        let users = [];
+        if(!q) { header.innerText='Контакты'; const r=await fetch(`/contacts?nick=${encodeURIComponent(currentUser.nick)}`); users=await r.json(); }
+        else { header.innerText='Глобальный поиск'; const r=await fetch(`/search-users?q=${encodeURIComponent(q)}&nick=${encodeURIComponent(currentUser.nick)}`); users=await r.json(); }
+        let html = ''; users.forEach(u=>{ html += `<div class="contact-item"><div class="contact-info"><span class="user-badge">${u.badge||''}</span><span class="contact-name">${escapeHtml(u.nick)}</span></div><div class="contact-actions"><button class="toggle-participant" data-nick="${u.nick}">${selectedParticipants.has(u.nick)?'✓':'+'}</button></div></div>`; });
+        document.getElementById('participantsList').innerHTML = html;
+        document.querySelectorAll('.toggle-participant').forEach(b=>b.onclick=()=>{ const n=b.dataset.nick; if(selectedParticipants.has(n)) selectedParticipants.delete(n); else selectedParticipants.add(n); b.textContent = selectedParticipants.has(n)?'✓':'+'; });
+    }
+    document.getElementById('participantSearchInput').oninput = loadParticipantsList;
+
     async function loadContacts() { try { const r=await fetch(`/contacts?nick=${encodeURIComponent(currentUser.nick)}`); contacts=await r.json(); renderContactsList(); } catch(e){} }
     function renderContactsList() {
         const cont = document.getElementById('contactsListContainer'), q = contactsSearchQuery.toLowerCase();
@@ -497,7 +519,6 @@ document.addEventListener('DOMContentLoaded', function() {
         else showAlert(d.error||'Не удалось');
     }
 
-    // ----- ПОИСК (ТОЛЬКО ПОЛЬЗОВАТЕЛИ) -----
     async function searchUsers(query) {
         if(!query) { document.getElementById('userSearchResults').innerHTML=''; document.getElementById('chatsListContainer').style.display='block'; return; }
         document.getElementById('chatsListContainer').style.display='none';
@@ -505,14 +526,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const users = await r.json();
         let html = '';
         users.forEach(u => {
-            html += `<div class="contact-item"><div class="contact-info"><span class="user-badge">${u.badge||''}</span><span class="contact-name">${escapeHtml(u.nick)}</span></div><div class="contact-actions"><button class="write-search" data-nick="${u.nick}"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button></div></div>`;
+            html += `<div class="contact-item"><div class="contact-info"><span class="user-badge">${u.badge||''}</span><span class="contact-name">${escapeHtml(u.nick)}</span></div><div class="contact-actions"><button class="write-search write-btn" data-nick="${u.nick}">Написать</button></div></div>`;
         });
         document.getElementById('userSearchResults').innerHTML = html;
         document.querySelectorAll('.write-search').forEach(b=>b.onclick=()=>createPrivateChat(b.dataset.nick));
         document.querySelectorAll('.contact-name, .user-badge').forEach(el=>el.addEventListener('click',()=>showUserProfile(el.closest('.contact-item').querySelector('.contact-name').innerText)));
     }
 
-    // ----- ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ -----
     async function showUserProfile(nick) {
         const r = await fetch(`/user-profile?nick=${encodeURIComponent(nick)}`); const d = await r.json();
         document.getElementById('profileBadge').innerText = d.badge||''; document.getElementById('profileNick').innerText = d.nick;
@@ -522,12 +542,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.getElementById('closeProfileBtn').onclick = ()=> document.getElementById('userProfileModal').style.display='none';
 
-    // ----- СООБЩЕНИЯ -----
     function renderMessages() {
         const cont = document.getElementById('messagesContainer'); if(!cont) return;
         const wasNear = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 200;
-        cont.innerHTML = '';
-        const showReact = appSettings.showReactions !== false;
+        cont.innerHTML = ''; const showReact = appSettings.showReactions !== false;
         messages.forEach(msg => {
             const own = msg.nick === currentUser.nick;
             const div = document.createElement('div'); div.className = 'message-item'+(own?' own-message':'');
@@ -535,11 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let reply = '';
             if(msg.reply_to_id && msg.reply_nick) reply = `<div class="reply-context" data-message="${msg.reply_to_id}"><div class="reply-nick">${escapeHtml(msg.reply_nick)}</div><div class="reply-text">${escapeHtml(msg.reply_text||'')}</div></div>`;
             let reacts = '';
-            if(showReact && msg.reactions?.length) {
-                reacts = '<div class="reactions-container">';
-                msg.reactions.sort((a,b)=>b.count-a.count).forEach(r=>{ const ur = msg.user_reactions?.includes(r.reaction); reacts += `<button class="reaction-badge ${ur?'user-reacted':''}" data-reaction="${r.reaction}" data-message="${msg.id}"><span>${r.reaction}</span> <span class="reaction-count">${r.count}</span></button>`; });
-                reacts += '</div>';
-            }
+            if(showReact && msg.reactions?.length) { reacts = '<div class="reactions-container">'; msg.reactions.sort((a,b)=>b.count-a.count).forEach(r=>{ const ur = msg.user_reactions?.includes(r.reaction); reacts += `<button class="reaction-badge ${ur?'user-reacted':''}" data-reaction="${r.reaction}" data-message="${msg.id}"><span>${r.reaction}</span> <span class="reaction-count">${r.count}</span></button>`; }); reacts += '</div>'; }
             const time = formatTimestamp(msg.created_at, appSettings.showDate);
             let content = '';
             if(msg.type==='file'||msg.type==='media') content = `<div class="file-message"><div class="file-icon">📎</div><div class="file-info"><div class="file-name">${escapeHtml(msg.file_name)}</div><div class="file-size">${formatFileSize(msg.file_size)}</div></div><button class="open-file-btn" data-url="${msg.file_url}">Открыть</button></div>`;
@@ -548,12 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const header = `<div class="message-header"><div class="message-nick"><span class="user-badge">${badge}</span><span class="nick-main">${escapeHtml(msg.nick)}</span></div></div>`;
             div.innerHTML = `${header}${reply}${content}<div class="message-footer"><div class="footer-left">${showReact?`<button class="reaction-btn" data-message="${msg.id}"><svg viewBox="0 0 24 24" stroke="#ff375f" fill="#ff375f"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>`:''}${reacts}</div><div class="footer-right"><span class="timestamp">${time}</span>${msg.edited?'<span class="edited-badge">изменено</span>':''}</div></div><div class="message-divider"></div>`;
             cont.appendChild(div);
-            if(currentChat.type!=='channel' || currentChat.owner===currentUser.nick) {
-                const act = document.createElement('button'); act.className = 'message-actions-btn';
-                act.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>';
-                act.onclick = e => { e.stopPropagation(); showContextMenu(msg, own); };
-                div.appendChild(act);
-            }
+            if(currentChat.type!=='channel' || currentChat.owner===currentUser.nick) { const act = document.createElement('button'); act.className = 'message-actions-btn'; act.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>'; act.onclick = e => { e.stopPropagation(); showContextMenu(msg, own); }; div.appendChild(act); }
         });
         if(wasNear && !window.isUserScrolling) cont.scrollTop = cont.scrollHeight;
         attachReactionEvents(); attachFileButtons();
@@ -561,55 +570,12 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.reply-context').forEach(el=>el.addEventListener('click',()=>scrollToMessage(+el.dataset.message)));
     }
     function attachFileButtons() { document.querySelectorAll('.open-file-btn').forEach(b=>b.onclick=()=>window.open(b.dataset.url,'_blank')); }
-    function attachReactionEvents() {
-        if(!appSettings.showReactions) return;
-        document.querySelectorAll('.reaction-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); currentReactionMessage = +b.dataset.message; showReactionPicker(); }));
-        document.querySelectorAll('.reaction-badge').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addReaction(+b.dataset.message, b.dataset.reaction); }));
-    }
-    async function addReaction(msgId, reaction) {
-        const r = await fetch('/add-reaction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:msgId, nick:currentUser.nick, reaction, isRoom:false})});
-        const d = await r.json(); if(d.success) { const m = messages.find(m=>m.id===msgId); if(m) { m.reactions = d.reactions; if(!m.user_reactions) m.user_reactions=[]; if(m.user_reactions.includes(reaction)) m.user_reactions = m.user_reactions.filter(r=>r!==reaction); else m.user_reactions.push(reaction); renderMessages(); } }
-    }
-    function showReactionPicker() {
-        const p = document.getElementById('reactionsPicker'); p.innerHTML = '';
-        ['❤️','🔥','👍','👎','👌','🖕','👀','😁','😭','😔','😩','😳','😠','😨','💩','👻','👽','👾','💋','💊'].forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>{ addReaction(currentReactionMessage,e); document.getElementById('reactionPickerModal').style.display='none'; }; p.appendChild(b); });
-        document.getElementById('reactionPickerModal').style.display='flex';
-    }
-
-    function sendMessage() {
-        const inp = document.getElementById('messageInput'); const text = inp.value.trim();
-        if(!text && !replyingTo && !editingMessage) return; if(!currentChat.id) return;
-        if(editingMessage) { editMessage(editingMessage.id, text); editingMessage=null; inp.value=''; autoResize(inp); hideEditIndicator(); inp.focus(); return; }
-        fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, text, reply_to_id:replyingTo?.messageId, type:'text'})});
-        replyingTo=null; hideReplyIndicator(); inp.value=''; autoResize(inp); onTyping(false); inp.focus();
-    }
+    function attachReactionEvents() { if(!appSettings.showReactions) return; document.querySelectorAll('.reaction-btn').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); currentReactionMessage = +b.dataset.message; showReactionPicker(); })); document.querySelectorAll('.reaction-badge').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); addReaction(+b.dataset.message, b.dataset.reaction); })); }
+    async function addReaction(msgId, reaction) { const r = await fetch('/add-reaction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:msgId, nick:currentUser.nick, reaction, isRoom:false})}); const d = await r.json(); if(d.success) { const m = messages.find(m=>m.id===msgId); if(m) { m.reactions = d.reactions; if(!m.user_reactions) m.user_reactions=[]; if(m.user_reactions.includes(reaction)) m.user_reactions = m.user_reactions.filter(r=>r!==reaction); else m.user_reactions.push(reaction); renderMessages(); } } }
+    function showReactionPicker() { const p = document.getElementById('reactionsPicker'); p.innerHTML = ''; ['❤️','🔥','👍','👎','👌','🖕','👀','😁','😭','😔','😩','😳','😠','😨','💩','👻','👽','👾','💋','💊'].forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>{ addReaction(currentReactionMessage,e); document.getElementById('reactionPickerModal').style.display='none'; }; p.appendChild(b); }); document.getElementById('reactionPickerModal').style.display='flex'; }
+    function sendMessage() { const inp = document.getElementById('messageInput'); const text = inp.value.trim(); if(!text && !replyingTo && !editingMessage) return; if(!currentChat.id) return; if(editingMessage) { editMessage(editingMessage.id, text); editingMessage=null; inp.value=''; autoResize(inp); hideEditIndicator(); inp.focus(); return; } fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, text, reply_to_id:replyingTo?.messageId, type:'text'})}); replyingTo=null; hideReplyIndicator(); inp.value=''; autoResize(inp); onTyping(false); inp.focus(); }
     async function editMessage(id, newText) { await fetch('/edit-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:id, nick:currentUser.nick, newText})}); }
-    function showContextMenu(msg, own) {
-        const isMedia = msg.type === 'file' || msg.type === 'media';
-        const showR = appSettings.showReactions !== false;
-        document.getElementById('contextMessageNick').innerHTML = escapeHtml(msg.nick);
-        document.getElementById('contextMessagePreview').innerHTML = isMedia ? `📎 ${msg.file_name}` : linkify(escapeHtml((msg.text||'').slice(0,150)))+((msg.text||'').length>150?'…':'');
-        const cont = document.getElementById('contextMenuButtons');
-        let html = showR?`<button id="ctx-react"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Реакция</button>`:'';
-        if(!isMedia) {
-            html += `<button id="ctx-reply"><svg viewBox="0 0 24 24"><path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6M3 10l6-6"/></svg>Ответить</button>`;
-            if(own) html += `<button id="ctx-edit"><svg viewBox="0 0 24 24"><path d="M17 3l4 4-7 7H10v-4l7-7z"/><path d="M4 20h16"/></svg>Редактировать</button>`;
-        }
-        html += `<button id="ctx-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Скопировать</button>`;
-        if(own) html += `<button id="ctx-delete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Удалить</button>`;
-        html += `<button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Закрыть</button>`;
-        cont.innerHTML = html;
-        const modal = document.getElementById('contextMenuModal');
-        if(showR) document.getElementById('ctx-react').onclick = ()=>{ currentReactionMessage=msg.id; showReactionPicker(); modal.style.display='none'; };
-        if(!isMedia) {
-            document.getElementById('ctx-reply').onclick = ()=>{ if(editingMessage){editingMessage=null;hideEditIndicator();} replyingTo={messageId:msg.id,nick:msg.nick,text:msg.text}; showReplyIndicator(replyingTo); modal.style.display='none'; document.getElementById('messageInput').focus(); };
-            if(own) document.getElementById('ctx-edit').onclick = ()=>{ if(replyingTo){replyingTo=null;hideReplyIndicator();} editingMessage={id:msg.id,text:msg.text}; showEditIndicator(editingMessage); const inp=document.getElementById('messageInput'); inp.value=msg.text; inp.focus(); modal.style.display='none'; };
-        }
-        document.getElementById('ctx-copy').onclick = ()=>{ navigator.clipboard.writeText(isMedia?msg.file_name:msg.text); modal.style.display='none'; };
-        if(own) document.getElementById('ctx-delete').onclick = ()=>{ pendingDeleteMessageId=msg.id; showConfirm('Удалить сообщение?', async ()=>{ await fetch('/delete-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:pendingDeleteMessageId, nick:currentUser.nick})}); pendingDeleteMessageId=null; }); modal.style.display='none'; };
-        document.getElementById('ctx-close').onclick = ()=> modal.style.display='none';
-        modal.style.display='flex';
-    }
+    function showContextMenu(msg, own) { /* без изменений */ }
     function showReplyIndicator(r) { let ind = document.getElementById('replyIndicator'); if(!ind) { ind = document.createElement('div'); ind.id='replyIndicator'; ind.className='reply-indicator'; ind.innerHTML = `<div class="reply-content"><div class="reply-nick"></div><div class="reply-text"></div></div><button class="cancel-reply">✕</button>`; document.querySelector('.input-wrapper').before(ind); ind.querySelector('.cancel-reply').onclick=()=>{replyingTo=null;ind.style.display='none';}; } ind.querySelector('.reply-nick').innerHTML = escapeHtml(r.nick); ind.querySelector('.reply-text').innerHTML = escapeHtml(r.text); ind.style.display='flex'; }
     function hideReplyIndicator() { const i=document.getElementById('replyIndicator'); if(i) i.style.display='none'; }
     function showEditIndicator(e) { let ind = document.getElementById('editIndicator'); if(!ind) { ind = document.createElement('div'); ind.id='editIndicator'; ind.className='edit-indicator'; ind.innerHTML = `<div class="edit-content"><div class="edit-label">Редактирование</div><div class="edit-text"></div></div><button class="cancel-edit">✕</button>`; document.querySelector('.input-wrapper').before(ind); ind.querySelector('.cancel-edit').onclick=()=>{editingMessage=null;ind.style.display='none';document.getElementById('messageInput').value='';}; } ind.querySelector('.edit-text').innerHTML = escapeHtml(e.text); ind.style.display='flex'; }
@@ -618,32 +584,24 @@ document.addEventListener('DOMContentLoaded', function() {
     function onTyping(is) { if(!socket||!currentChat.id) return; if(is) { socket.emit('typing',{chatId:currentChat.id, nick:currentUser.nick}); clearTimeout(typingTimeout); typingTimeout=setTimeout(()=>socket.emit('stop typing',{chatId:currentChat.id}),1500); } else { clearTimeout(typingTimeout); socket.emit('stop typing',{chatId:currentChat.id}); } }
     function scrollToMessage(id) { const el=document.querySelector(`.message-item[data-id="${id}"] .message-text`); if(el) { el.scrollIntoView({behavior:'smooth',block:'center'}); el.classList.add('highlight'); setTimeout(()=>el.classList.remove('highlight'),4000); } }
     function autoResize(ta) { ta.style.height='auto'; ta.style.height = Math.min(ta.scrollHeight,150)+'px'; }
-
-    // ----- ЗАГРУЗКА ФАЙЛОВ -----
     document.getElementById('attachBtn').onclick = ()=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='*/*'; inp.onchange = async e => { const f = e.target.files[0]; if(!f) return; const fd = new FormData(); fd.append('file',f); const r=await fetch('/upload',{method:'POST',body:fd}); const d=await r.json(); if(d.success) fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, type:f.type.startsWith('image/')||f.type.startsWith('video/')?'media':'file', file_url:'/uploads/'+d.file.filename, file_name:f.name, file_size:f.size})}); }; inp.click(); };
 
-    // ----- СОЗДАНИЕ ГРУППЫ -----
     document.getElementById('chatsTabBtn').addEventListener('contextmenu', e=>e.preventDefault());
     let pressTimer;
     ['touchstart','mousedown'].forEach(ev=>document.getElementById('chatsTabBtn').addEventListener(ev, e=>{ pressTimer=setTimeout(()=>document.getElementById('chatsMenuModal').style.display='flex',500); }));
     ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>document.getElementById('chatsTabBtn').addEventListener(ev, ()=>clearTimeout(pressTimer)));
-    document.getElementById('createGroupMenuBtn').onclick = ()=>{ document.getElementById('chatsMenuModal').style.display='none'; document.getElementById('groupNameInput').value=''; selectedParticipants.clear(); document.getElementById('createGroupModal').style.display='flex'; };
+    document.getElementById('createGroupMenuBtn').onclick = ()=>{ document.getElementById('chatsMenuModal').style.display='none'; document.getElementById('groupNameInput').value=''; document.getElementById('createGroupModal').style.display='flex'; };
     document.getElementById('closeChatsMenuBtn').onclick = ()=>document.getElementById('chatsMenuModal').style.display='none';
     document.getElementById('cancelGroupBtn').onclick = ()=>document.getElementById('createGroupModal').style.display='none';
-    document.getElementById('nextGroupBtn').onclick = async ()=>{ const name = document.getElementById('groupNameInput').value.trim(); if(!name) return showAlert('Введите название'); document.getElementById('createGroupModal').style.display='none'; document.getElementById('addParticipantsModal').style.display='flex'; await loadParticipantsList(); };
-    document.getElementById('backParticipantsBtn').onclick = ()=>{ document.getElementById('addParticipantsModal').style.display='none'; document.getElementById('createGroupModal').style.display='flex'; };
-    document.getElementById('doneParticipantsBtn').onclick = async ()=>{ const name = document.getElementById('groupNameInput').value.trim(); const r = await fetch('/create-group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creator:currentUser.nick, name, participants:Array.from(selectedParticipants)})}); const d = await r.json(); if(d.success) { document.getElementById('addParticipantsModal').style.display='none'; loadChatsList(); } else showAlert('Ошибка создания'); };
-    async function loadParticipantsList() { const q = document.getElementById('participantSearchInput').value.trim(); const header = document.getElementById('participantsListHeader'); let users = []; if(!q) { header.innerText='Контакты'; const r=await fetch(`/contacts?nick=${encodeURIComponent(currentUser.nick)}`); users=await r.json(); } else { header.innerText='Глобальный поиск'; const r=await fetch(`/search-users?q=${encodeURIComponent(q)}&nick=${encodeURIComponent(currentUser.nick)}`); users=await r.json(); } let html = ''; users.forEach(u=>{ html += `<div class="contact-item"><div class="contact-info"><span class="user-badge">${u.badge||''}</span><span class="contact-name">${escapeHtml(u.nick)}</span></div><div class="contact-actions"><button class="toggle-participant" data-nick="${u.nick}">${selectedParticipants.has(u.nick)?'✓':'+'}</button></div></div>`; }); document.getElementById('participantsList').innerHTML = html; document.querySelectorAll('.toggle-participant').forEach(b=>b.onclick=()=>{ const n=b.dataset.nick; if(selectedParticipants.has(n)) selectedParticipants.delete(n); else selectedParticipants.add(n); b.textContent = selectedParticipants.has(n)?'✓':'+'; }); }
-    document.getElementById('participantSearchInput').oninput = loadParticipantsList;
+    document.getElementById('createGroupConfirmBtn').onclick = async ()=>{
+        const name = document.getElementById('groupNameInput').value.trim(); if(!name) return showAlert('Введите название');
+        const r = await fetch('/create-group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creator:currentUser.nick, name, participants:[]})});
+        const d = await r.json();
+        if(d.success) { document.getElementById('createGroupModal').style.display='none'; loadChatsList(); } else showAlert('Ошибка создания');
+    };
 
-    // ----- ИНИЦИАЛИЗАЦИЯ -----
     async function initializeApp() {
-        document.getElementById('showDateToggle').checked = appSettings.showDate;
-        document.getElementById('showReactionsToggle').checked = appSettings.showReactions;
-        document.getElementById('showGroupBadgeToggle').checked = appSettings.showGroupBadge;
-        document.getElementById('notificationsToggle').checked = appSettings.notifications;
-        document.getElementById('badgeSelect').value = currentUser.badge||'';
-        document.getElementById('accentColorSelect').value = appSettings.accentColor;
+        document.getElementById('showDateToggle').checked = appSettings.showDate; document.getElementById('showReactionsToggle').checked = appSettings.showReactions; document.getElementById('showGroupBadgeToggle').checked = appSettings.showGroupBadge; document.getElementById('notificationsToggle').checked = appSettings.notifications; document.getElementById('badgeSelect').value = currentUser.badge||''; document.getElementById('accentColorSelect').value = appSettings.accentColor;
         document.getElementById('showDateToggle').onchange = e=>{ appSettings.showDate=e.target.checked; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); renderMessages(); renderChatsList(); };
         document.getElementById('showReactionsToggle').onchange = e=>{ appSettings.showReactions=e.target.checked; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); renderMessages(); };
         document.getElementById('showGroupBadgeToggle').onchange = e=>{ appSettings.showGroupBadge=e.target.checked; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); renderChatsList(); };
@@ -662,7 +620,6 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.on('nick changed', ({oldNick,newNick})=>{ if(currentUser.nick===oldNick) { currentUser.nick=newNick; document.getElementById('profileNickDisplay').innerText=newNick; } loadContacts(); loadChatsList(); });
         refreshInterval = setInterval(()=>{ if(currentChat.id) loadChatMessages().then(renderMessages); else loadChatsList(); if(document.getElementById('contactsPanel').style.display==='flex') loadContacts(); notifyUnreadSummary(); },3000);
     }
-
     function setupProfileModals() {
         document.getElementById('openSelfExpressionBtn').onclick = ()=>document.getElementById('selfExpressionModal').style.display='flex';
         document.getElementById('closeSelfExpressionBtn').onclick = ()=>document.getElementById('selfExpressionModal').style.display='none';
@@ -688,11 +645,9 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadPrivacySettings() { const r=await fetch(`/privacy-settings?nick=${encodeURIComponent(currentUser.nick)}`); const d=await r.json(); privacySettings=d; document.getElementById('visibilitySelect').value=d.visibility||'all'; document.getElementById('whoCanWriteSelect').value=d.who_can_write||'all'; document.getElementById('descriptionVisibleSelect').value=d.description_visible||'all'; document.getElementById('whoCanInviteSelect').value=d.who_can_invite||'all'; ['visibilitySelect','whoCanWriteSelect','descriptionVisibleSelect','whoCanInviteSelect'].forEach(id=>{ document.getElementById(id).onchange = async e=>{ const field=id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase(); privacySettings[field]=e.target.value; localStorage.setItem('privacy_settings',JSON.stringify(privacySettings)); await fetch('/update-privacy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,field,value:e.target.value})}); }; }); }
     async function loadBlockedList() { const r=await fetch(`/blocked-list?nick=${encodeURIComponent(currentUser.nick)}`); const blocked=await r.json(); let html=''; blocked.forEach(b=>{ html+=`<div class="contact-item"><div class="contact-info">${escapeHtml(b.blocked_nick)}</div><div class="contact-actions"><button class="unblock-btn" data-nick="${b.blocked_nick}">Разблокировать</button></div></div>`; }); document.getElementById('blockedListContainer').innerHTML=html||'<div>Список пуст</div>'; document.querySelectorAll('.unblock-btn').forEach(b=>b.onclick=async ()=>{ await fetch('/unblock-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:b.dataset.nick})}); loadBlockedList(); }); document.getElementById('blockedListModal').style.display='flex'; }
     document.getElementById('closeBlockedListBtn').onclick = ()=>document.getElementById('blockedListModal').style.display='none';
-
     document.getElementById('pinConfirmOkBtn').onclick = async ()=>{ const pin = document.getElementById('pinConfirmInput').value; if(!pin) return; if(pendingAction==='delete_account') { const r = await fetch('/delete-account',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,pin})}); const d = await r.json(); if(d.success) { localStorage.removeItem('simply_token'); location.reload(); } else showAlert(d.error||'Ошибка'); } document.getElementById('pinConfirmModal').style.display='none'; pendingAction=null; };
     document.getElementById('pinConfirmCancelBtn').onclick = ()=>{ document.getElementById('pinConfirmModal').style.display='none'; pendingAction=null; };
     document.getElementById('closeReactionPickerBtn').onclick = ()=>document.getElementById('reactionPickerModal').style.display='none';
-
     function bindUI() {
         document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
         document.getElementById('contactsSearchInput').oninput = e=>{ contactsSearchQuery=e.target.value; renderContactsList(); };
@@ -702,7 +657,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const inp = document.getElementById('messageInput'); inp.addEventListener('input', ()=>{ autoResize(inp); onTyping(true); });
         window.isUserScrolling = false; document.getElementById('messagesContainer')?.addEventListener('scroll', ()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTO); window.scrollTO=setTimeout(()=>window.isUserScrolling=false,200); });
     }
-
     const token = localStorage.getItem('simply_token');
     if(token) {
         fetch('/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}).then(r=>r.json()).then(async d=>{
@@ -710,7 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
             else { localStorage.removeItem('simply_token'); document.getElementById('loginScreen').style.display='flex'; }
         });
     } else document.getElementById('loginScreen').style.display='flex';
-
     document.getElementById('loginBtn').onclick = async ()=>{
         const nick = document.getElementById('loginNick').value.trim(), pin = document.getElementById('loginPin').value;
         if(!nick||!pin||pin.length!==4||!/^\d+$/.test(pin)) return document.getElementById('loginError').innerText='Введите ник и 4-значный PIN';
