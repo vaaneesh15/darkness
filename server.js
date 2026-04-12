@@ -31,7 +31,6 @@ async function initDB() {
     );
   `);
 
-  // Удаляем ненужные колонки
   const columnsToDrop = ['description', 'visibility', 'who_can_write', 'online_visible', 'who_can_voice', 'description_visible', 'who_can_invite'];
   for (const col of columnsToDrop) {
     try { await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS ${col}`); } catch (e) {}
@@ -40,17 +39,9 @@ async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
-      type VARCHAR(20) NOT NULL CHECK (type IN ('public', 'notebook')),
+      type VARCHAR(20) NOT NULL CHECK (type = 'public'),
       name VARCHAR(100),
       created_at TIMESTAMP DEFAULT NOW()
-    );
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS chat_participants (
-      chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
-      nick VARCHAR(50) REFERENCES users(nick) ON DELETE CASCADE,
-      PRIMARY KEY (chat_id, nick)
     );
   `);
 
@@ -77,21 +68,11 @@ async function initDB() {
     );
   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS deleted_chats (
-      chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
-      nick VARCHAR(50) REFERENCES users(nick) ON DELETE CASCADE,
-      PRIMARY KEY (chat_id, nick)
-    );
-  `);
-
-  // Удаляем таблицы, которые больше не нужны
-  const tablesToDrop = ['contacts', 'blocked_users'];
+  const tablesToDrop = ['contacts', 'blocked_users', 'deleted_chats', 'chat_participants'];
   for (const table of tablesToDrop) {
     try { await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`); } catch (e) {}
   }
 
-  // Публичный чат
   const publicChat = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
   if (publicChat.rows.length === 0) {
     await pool.query(`INSERT INTO chats (type, name) VALUES ('public', 'Общий чат')`);
@@ -102,22 +83,6 @@ async function initDB() {
   console.log('✅ База данных готова (ChatX Lite)');
 }
 initDB();
-
-async function getOrCreateNotebook(nick) {
-  let notebook = await pool.query(
-    `SELECT c.id FROM chats c
-     JOIN chat_participants cp ON cp.chat_id = c.id
-     WHERE c.type = 'notebook' AND cp.nick = $1`,
-    [nick]
-  );
-  if (notebook.rows.length === 0) {
-    const newChat = await pool.query(`INSERT INTO chats (type, name) VALUES ('notebook', 'Блокнот') RETURNING id`);
-    const chatId = newChat.rows[0].id;
-    await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2)`, [chatId, nick]);
-    return chatId;
-  }
-  return notebook.rows[0].id;
-}
 
 app.post('/auth', async (req, res) => {
   const { nick, pin } = req.body;
@@ -194,38 +159,10 @@ app.delete('/delete-account', async (req, res) => {
   res.json({ success: true });
 });
 
-app.get('/chats', async (req, res) => {
-  const { nick } = req.query;
-  if (!nick) return res.json([]);
-  
-  const publicChat = await pool.query(`SELECT id, name FROM chats WHERE type = 'public'`);
-  const publicChatId = publicChat.rows[0]?.id;
-  const notebookId = await getOrCreateNotebook(nick);
-  
-  const chats = [
-    { id: publicChatId, type: 'public', name: publicChat.rows[0]?.name || 'Общий чат' }
-  ];
-  if (notebookId) {
-    chats.push({ id: notebookId, type: 'notebook', name: 'Блокнот' });
-  }
-  
-  for (let chat of chats) {
-    const lastMsg = await pool.query(`
-      SELECT id, text, nick, created_at FROM messages
-      WHERE chat_id = $1
-      ORDER BY created_at DESC LIMIT 1
-    `, [chat.id]);
-    chat.last_message = lastMsg.rows[0] || null;
-  }
-  
-  res.json(chats);
-});
-
-app.post('/delete-chat', async (req, res) => {
-  const { chat_id, nick } = req.body;
-  if (!chat_id || !nick) return res.status(400).json({ success: false });
-  await pool.query(`INSERT INTO deleted_chats (chat_id, nick) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [chat_id, nick]);
-  res.json({ success: true });
+app.get('/public-chat-id', async (req, res) => {
+  const result = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
+  if (result.rows.length) res.json({ chatId: result.rows[0].id });
+  else res.status(500).json({ error: 'Нет публичного чата' });
 });
 
 app.get('/chat-messages', async (req, res) => {
@@ -308,37 +245,19 @@ app.post('/edit-message', async (req, res) => {
   else res.json({ success: false });
 });
 
-const usersInChat = new Map();
-
 io.on('connection', (socket) => {
   let currentNick = null;
 
   socket.on('user online', async (nick) => {
     currentNick = nick;
-    const chats = await pool.query(`SELECT c.id FROM chats c JOIN chat_participants cp ON cp.chat_id = c.id WHERE cp.nick = $1 UNION SELECT id FROM chats WHERE type = 'public'`, [nick]);
-    chats.rows.forEach(row => socket.join(`chat:${row.id}`));
+    const result = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
+    if (result.rows.length) socket.join(`chat:${result.rows[0].id}`);
   });
 
-  socket.on('join chat', (chatId) => {
-    socket.join(`chat:${chatId}`);
-    if (currentNick) { if (!usersInChat.has(chatId)) usersInChat.set(chatId, new Set()); usersInChat.get(chatId).add(currentNick); io.to(`chat:${chatId}`).emit('user joined chat', { chatId, nick: currentNick }); }
-  });
-
-  socket.on('leave chat', (chatId) => {
-    socket.leave(`chat:${chatId}`);
-    if (currentNick && usersInChat.has(chatId)) { usersInChat.get(chatId).delete(currentNick); io.to(`chat:${chatId}`).emit('user left chat', { chatId, nick: currentNick }); }
-  });
+  socket.on('join chat', (chatId) => { socket.join(`chat:${chatId}`); });
 
   socket.on('typing', ({ chatId, nick }) => { socket.to(`chat:${chatId}`).emit('user typing', { chatId, nick }); });
   socket.on('stop typing', ({ chatId }) => { socket.to(`chat:${chatId}`).emit('user stop typing', { chatId }); });
-
-  socket.on('disconnect', () => {
-    if (currentNick) {
-      for (const [chatId, users] of usersInChat.entries()) {
-        if (users.has(currentNick)) { users.delete(currentNick); io.to(`chat:${chatId}`).emit('user left chat', { chatId, nick: currentNick }); }
-      }
-    }
-  });
 });
 
 const PORT = process.env.PORT || 3000;
