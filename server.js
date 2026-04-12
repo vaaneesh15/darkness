@@ -37,6 +37,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
+  // ================== СОЗДАНИЕ ТАБЛИЦ ==================
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -47,6 +48,16 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+
+  // Удаляем ненужные колонки из users, если они остались от старой версии
+  const columnsToDrop = ['description', 'visibility', 'who_can_write', 'online_visible', 'who_can_voice', 'description_visible', 'who_can_invite'];
+  for (const col of columnsToDrop) {
+    try {
+      await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS ${col}`);
+    } catch (e) {
+      // игнорируем ошибки, если колонки нет
+    }
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
@@ -100,6 +111,16 @@ async function initDB() {
     );
   `);
 
+  // Удаляем таблицы, которые больше не нужны (контакты, блокировки и т.п.)
+  const tablesToDrop = ['contacts', 'blocked_users'];
+  for (const table of tablesToDrop) {
+    try {
+      await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+    } catch (e) {
+      // таблицы может не быть
+    }
+  }
+
   // Создаём публичный чат, если его нет
   const publicChat = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
   if (publicChat.rows.length === 0) {
@@ -108,7 +129,7 @@ async function initDB() {
     await pool.query(`UPDATE chats SET name = 'Общий чат' WHERE type = 'public' AND name IS NULL`);
   }
 
-  console.log('✅ База данных готова');
+  console.log('✅ База данных готова (ChatX Lite)');
 }
 initDB();
 
@@ -283,17 +304,26 @@ app.post('/create-private-chat', async (req, res) => {
   const { user1, user2 } = req.body;
   if (!user1 || !user2 || user1 === user2) return res.status(400).json({ success: false });
   
+  // Проверка существования пользователей
+  const userExists = await pool.query('SELECT 1 FROM users WHERE nick = $1 OR nick = $2', [user1, user2]);
+  if (userExists.rowCount < 2) return res.status(404).json({ success: false, error: 'Пользователь не найден' });
+
   const existing = await pool.query(`
     SELECT c.id FROM chats c
     JOIN chat_participants cp1 ON cp1.chat_id = c.id AND cp1.nick = $1
     JOIN chat_participants cp2 ON cp2.chat_id = c.id AND cp2.nick = $2
     WHERE c.type = 'private'
   `, [user1, user2]);
+  
   if (existing.rows.length > 0) {
+    // Если чат был удалён одним из участников, восстанавливаем его для текущего пользователя
     const deleted = await pool.query(`SELECT 1 FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
-    if (deleted.rows.length > 0) await pool.query(`DELETE FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
+    if (deleted.rows.length > 0) {
+      await pool.query(`DELETE FROM deleted_chats WHERE chat_id = $1 AND nick = $2`, [existing.rows[0].id, user1]);
+    }
     return res.json({ success: true, chatId: existing.rows[0].id });
   }
+  
   const newChat = await pool.query(`INSERT INTO chats (type) VALUES ('private') RETURNING id`);
   const chatId = newChat.rows[0].id;
   await pool.query(`INSERT INTO chat_participants (chat_id, nick) VALUES ($1, $2), ($1, $3)`, [chatId, user1, user2]);
