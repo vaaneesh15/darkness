@@ -137,6 +137,7 @@
         <div class="chat-messages" id="messagesContainer"></div>
         <div class="typing-indicator hidden" id="typingIndicator"></div>
         <div class="input-wrapper">
+            <!-- ✅ Шестерёнка SVG слева от поля ввода (textarea) -->
             <div class="input-row">
                 <button class="settings-btn" id="openSettingsBtn">
                     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -155,14 +156,16 @@
 <div id="contextMenuModal" class="modal"><div class="modal-content"><div id="contextMessageNick"></div><div id="contextMessagePreview"></div><div class="context-menu-buttons" id="contextMenuButtons"></div></div></div>
 <div id="changeNickModal" class="modal modal-top"><div class="modal-content"><h3>Сменить ник</h3><div class="modal-setting"><input type="text" id="newNickInput" placeholder="Новый ник"></div><div class="modal-buttons"><button id="cancelNickChangeBtn">Отмена</button><button id="applyNickChangeBtn">Применить</button></div></div></div>
 
-<!-- Главное модальное окно настроек -->
+<!-- ✅ Главное окно настроек с центрированными заголовками и свайпом -->
 <div id="settingsModal" class="modal fullscreen">
     <div class="modal-content" id="settingsModalContent">
         <div style="display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;">
             <button id="closeSettingsModalBtn" class="modal-back-btn">←</button>
+            <!-- ✅ Заголовок центрирован -->
             <h3 style="flex:1; text-align:center; margin:0;">Настройки</h3>
             <div style="width:2.5rem;"></div>
         </div>
+        <!-- ✅ Вкладки с центрированным текстом -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="profileTab">Профиль</button>
             <button class="tab-btn" data-tab="appearanceTab">Оформление</button>
@@ -378,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
         openSettingsBtn.onclick = () => settingsModal.style.display = 'flex';
         closeSettingsBtn.onclick = () => settingsModal.style.display = 'none';
 
-        // Свайп для закрытия (влево -> вправо)
+        // ✅ СВАЙП ДЛЯ ЗАКРЫТИЯ (слева направо)
         const modalContent = document.getElementById('settingsModalContent');
         let touchStartX = 0;
         modalContent.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
@@ -399,8 +402,8 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         document.getElementById('changePinBtn').onclick = ()=>{ settingsModal.style.display='none'; document.getElementById('changePinModal').style.display='flex'; };
         document.getElementById('logoutBtn').onclick = ()=>{ showConfirm('Выйти из аккаунта?', ()=>{ localStorage.removeItem('chatxlite_token'); location.reload(); }); };
+        // ✅ При нажатии "Удалить аккаунт" окно настроек НЕ закрывается
         document.getElementById('deleteAccountBtn').onclick = ()=>{
-            // НЕ закрываем окно настроек
             document.getElementById('pinConfirmModal').style.display='flex';
             document.getElementById('pinConfirmInput').value='';
             pendingAction='delete_account';
