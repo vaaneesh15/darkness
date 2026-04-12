@@ -113,11 +113,11 @@
         select, .badge-select { background:var(--bg-page); border:1px solid var(--border-light); border-radius:1rem; padding:0.5rem 0.8rem; color:var(--text-primary); font-size:0.9rem; width:125px; outline:none; -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 0.8rem center; background-size:1rem; }
         #badgeSelect { width:162px; }
         .fullscreen .modal-content > div:first-child { display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem; }
-        .fullscreen .modal-content > div:first-child h3 { margin-left:0; flex:1; text-align:center; }
+        .fullscreen .modal-content > div:first-child h3 { margin-left:0.5rem; margin-bottom:0; line-height:2.5rem; }
         .fullscreen .modal-back-btn { margin-right:0.5rem; }
         .user-badge { margin-right:4px; font-size:1.1rem; }
         .tabs { display:flex; border-bottom:1px solid var(--border-light); margin-bottom:1rem; }
-        .tab-btn { flex:1; background:none; border:none; padding:0.8rem; color:var(--text-secondary); font-size:1rem; cursor:pointer; border-bottom:2px solid transparent; }
+        .tab-btn { flex:1; background:none; border:none; padding:0.8rem; color:var(--text-secondary); font-size:1rem; cursor:pointer; border-bottom:2px solid transparent; text-align:center; }
         .tab-btn.active { color:var(--accent-color); border-bottom-color:var(--accent-color); }
         .tab-pane { display:none; }
         .tab-pane.active { display:block; }
@@ -140,10 +140,7 @@
         <div class="input-wrapper">
             <div class="input-row">
                 <button class="settings-btn" id="openSettingsBtn">
-                    <svg viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 </button>
                 <textarea id="messageInput" placeholder="Сообщение..." rows="1"></textarea>
                 <button class="send-btn" id="sendBtn">↑</button>
@@ -161,10 +158,11 @@
 
 <!-- Главное модальное окно настроек -->
 <div id="settingsModal" class="modal fullscreen">
-    <div class="modal-content">
+    <div class="modal-content" id="settingsModalContent">
         <div style="display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;">
             <button id="closeSettingsModalBtn" class="modal-back-btn">←</button>
-            <h3>Настройки</h3>
+            <h3 style="margin-left:0.5rem; flex:1; text-align:center;">Настройки</h3>
+            <div style="width:2.5rem;"></div>
         </div>
         <div class="tabs">
             <button class="tab-btn active" data-tab="profileTab">Профиль</button>
@@ -375,20 +373,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const settingsModal = document.getElementById('settingsModal');
-        document.getElementById('openSettingsBtn').onclick = () => settingsModal.style.display = 'flex';
-        document.getElementById('closeSettingsModalBtn').onclick = () => settingsModal.style.display = 'none';
+        const openSettingsBtn = document.getElementById('openSettingsBtn');
+        const closeSettingsBtn = document.getElementById('closeSettingsModalBtn');
 
-        // Свайп с левого края для закрытия
+        openSettingsBtn.onclick = () => settingsModal.style.display = 'flex';
+        closeSettingsBtn.onclick = () => settingsModal.style.display = 'none';
+
+        // Свайп для закрытия (влево -> вправо)
+        const modalContent = document.getElementById('settingsModalContent');
         let touchStartX = 0;
-        settingsModal.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-        });
-        settingsModal.addEventListener('touchmove', (e) => {
-            const touchCurrentX = e.touches[0].clientX;
-            const diff = touchCurrentX - touchStartX;
-            if (diff > 70) { // свайп вправо
-                settingsModal.style.display = 'none';
-            }
+        modalContent.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+        modalContent.addEventListener('touchend', e => {
+            const diff = e.changedTouches[0].screenX - touchStartX;
+            if (diff > 70) settingsModal.style.display = 'none';
         });
 
         document.getElementById('openChangeNickModalBtn').onclick = ()=>{ document.getElementById('changeNickModal').style.display='flex'; document.getElementById('newNickInput').value=''; };
@@ -404,10 +401,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('changePinBtn').onclick = ()=>{ settingsModal.style.display='none'; document.getElementById('changePinModal').style.display='flex'; };
         document.getElementById('logoutBtn').onclick = ()=>{ showConfirm('Выйти из аккаунта?', ()=>{ localStorage.removeItem('chatxlite_token'); location.reload(); }); };
         document.getElementById('deleteAccountBtn').onclick = ()=>{
-            // Не закрываем модалку, показываем запрос PIN
-            document.getElementById('pinConfirmModal').style.display = 'flex';
-            document.getElementById('pinConfirmInput').value = '';
-            pendingAction = 'delete_account';
+            // НЕ закрываем окно настроек
+            document.getElementById('pinConfirmModal').style.display='flex';
+            document.getElementById('pinConfirmInput').value='';
+            pendingAction='delete_account';
         };
         document.getElementById('applyPinBtn').onclick = async ()=>{
             const o=document.getElementById('oldPinInput').value, n=document.getElementById('newPinInput').value;
@@ -427,13 +424,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(d.success){ localStorage.removeItem('chatxlite_token'); location.reload(); }
                 else showAlert(d.error||'Ошибка');
             }
-            document.getElementById('pinConfirmModal').style.display='none';
-            pendingAction = null;
+            document.getElementById('pinConfirmModal').style.display='none'; pendingAction=null;
         };
-        document.getElementById('pinConfirmCancelBtn').onclick = ()=>{
-            document.getElementById('pinConfirmModal').style.display='none';
-            pendingAction = null;
-        };
+        document.getElementById('pinConfirmCancelBtn').onclick = ()=>{ document.getElementById('pinConfirmModal').style.display='none'; pendingAction=null; };
         document.getElementById('closeReactionPickerBtn').onclick = ()=> document.getElementById('reactionPickerModal').style.display='none';
         document.getElementById('sendBtn').onclick = sendMessage;
         const inp = document.getElementById('messageInput'); inp.addEventListener('input', ()=>{ autoResize(inp); onTyping(true); });
