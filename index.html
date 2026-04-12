@@ -66,7 +66,6 @@
         .input-wrapper { background:var(--input-bg); border-top:1px solid var(--border-light); padding-bottom:env(safe-area-inset-bottom,0); }
         .input-row { display:flex; gap:10px; align-items:center; padding:0.8rem 1rem; }
         .input-row textarea { flex:1; background:transparent; border:none; padding:0.6rem 0; font-size:1rem; color:var(--text-primary); outline:none; resize:none; font-family:inherit; line-height:1.4; max-height:150px; overflow-y:auto; }
-        .input-actions { display:flex; gap:8px; }
         .send-btn { background:var(--accent-color); border:none; width:2.8rem; height:2.8rem; border-radius:2rem; color:white; font-size:1.4rem; cursor:pointer; display:flex; align-items:center; justify-content:center; }
         .settings-btn { background:var(--bg-page); border:1px solid var(--border-light); width:2.8rem; height:2.8rem; border-radius:2rem; color:var(--text-primary); cursor:pointer; display:flex; align-items:center; justify-content:center; }
         .settings-btn svg { width:1.5rem; height:1.5rem; stroke:currentColor; stroke-width:1.8; fill:none; }
@@ -161,7 +160,7 @@
     <div class="modal-content" id="settingsModalContent">
         <div style="display:flex; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;">
             <button id="closeSettingsModalBtn" class="modal-back-btn">←</button>
-            <h3 style="margin-left:0.5rem; flex:1; text-align:center;">Настройки</h3>
+            <h3 style="flex:1; text-align:center; margin:0;">Настройки</h3>
             <div style="width:2.5rem;"></div>
         </div>
         <div class="tabs">
