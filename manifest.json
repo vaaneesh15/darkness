@@ -1,7 +1,7 @@
 {
-  "name": "ChatX",
-  "short_name": "ChatX",
-  "description": "Мессенджер с тремя общими чатами",
+  "name": "ChatX Lite",
+  "short_name": "ChatX Lite",
+  "description": "Лёгкий мессенджер без лишнего",
   "theme_color": "#1c1c1e",
   "background_color": "#121212",
   "display": "standalone",
