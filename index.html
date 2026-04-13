@@ -248,11 +248,11 @@
 <script>
 (function() {
     function addTapped(e) {
-        const t = e.target.closest('button, .clickable');
+        const t = e.target.closest?.('button, .clickable');
         if (t) t.classList.add('tapped');
     }
     function removeTapped(e) {
-        const t = e.target.closest('button, .clickable');
+        const t = e.target.closest?.('button, .clickable');
         if (t) t.classList.remove('tapped');
     }
     document.addEventListener('touchstart', addTapped, {passive: true});
@@ -264,6 +264,13 @@
 })();
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Безопасное получение элемента
+    function $(id) {
+        const el = document.getElementById(id);
+        if (!el) console.warn(`Element #${id} not found`);
+        return el;
+    }
+
     let socket = null;
     let currentUser = { nick: "", badge: "", description: "" };
     let authToken = localStorage.getItem('simply_token');
@@ -286,9 +293,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let pendingAction = null;
     let selectedChatForMenu = null;
     const usersInChat = new Map();
-
-    // Получение элемента безопасно
-    function $(id) { return document.getElementById(id); }
 
     document.documentElement.style.setProperty('--accent-color', appSettings.accentColor);
 
@@ -329,8 +333,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function hasUnreadMessages(chat) { if(!chat.last_message) return false; if(chat.last_message.nick === currentUser.nick) return false; const lastId = chat.last_message.id, readId = lastReadMessage[chat.id]||0; return lastId > readId; }
 
-    // ========== СВАЙПЫ ДЛЯ ЧАТА И МОДАЛОК ==========
+    // ========== СВАЙПЫ ==========
     function initSwipeToClose(element, onClose) {
+        if (!element) return;
         let startX = 0, currentX = 0, isDragging = false;
         const threshold = 100;
         element.addEventListener('touchstart', e => {
@@ -362,7 +367,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== НАВИГАЦИЯ ==========
     function showTab(tabId) {
         document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
-        $(tabId+'Panel').style.display = 'flex';
+        const panel = $(tabId+'Panel');
+        if (panel) panel.style.display = 'flex';
         document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
         if(tabId === 'contacts') { $('contactsSearchInput').value=''; contactsSearchQuery=''; loadContacts(); }
         else if(tabId === 'chats') { $('chatSearchInput').value=''; chatSearchQuery=''; loadChatsList(); $('userSearchResults').innerHTML=''; $('chatsListContainer').style.display='block'; }
@@ -371,6 +377,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function closeChatView() {
         const chatView = $('chatView');
+        if (!chatView) return;
         chatView.style.display = 'none';
         $('mainNavBar').classList.remove('hidden');
         if(currentChat.id) {
@@ -396,7 +403,8 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.emit('join chat', chat.id);
         messages = []; renderMessages(); await loadChatMessages(); renderMessages();
         if(messages.length) { const lm = messages[messages.length-1]; lastReadMessage[chat.id] = lm.id; localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage)); }
-        $('inputWrapper').style.display = 'block';
+        const inputWrapper = $('inputWrapper');
+        if (inputWrapper) inputWrapper.style.display = 'block';
         $('chatTitle').onclick = null;
     }
     async function loadChatMessages() { if(!currentChat.id) return; try { const r = await fetch(`/chat-messages?chat_id=${currentChat.id}&nick=${encodeURIComponent(currentUser.nick)}`); messages = await r.json(); } catch(e){} }
@@ -465,14 +473,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if(type !== 'public' && type !== 'notebook') html += `<button id="chatMenuDelete"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Удалить</button>`;
         html += `<button id="chatMenuClose"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Закрыть</button>`;
         cont.innerHTML = html;
-        $('chatMenuPin').onclick = ()=>{ const i = pinnedChats.indexOf(chatId); if(i===-1) pinnedChats.push(chatId); else pinnedChats.splice(i,1); localStorage.setItem('pinned_chats',JSON.stringify(pinnedChats)); loadChatsList(); $('chatMenuModal').style.display='none'; };
-        if(type !== 'notebook') $('chatMenuMute').onclick = ()=>{ const i = mutedChats.indexOf(chatId); if(i===-1) mutedChats.push(chatId); else mutedChats.splice(i,1); localStorage.setItem('muted_chats',JSON.stringify(mutedChats)); loadChatsList(); $('chatMenuModal').style.display='none'; };
+        const pinBtn = $('chatMenuPin'); if(pinBtn) pinBtn.onclick = ()=>{ const i = pinnedChats.indexOf(chatId); if(i===-1) pinnedChats.push(chatId); else pinnedChats.splice(i,1); localStorage.setItem('pinned_chats',JSON.stringify(pinnedChats)); loadChatsList(); $('chatMenuModal').style.display='none'; };
+        if(type !== 'notebook') { const muteBtn = $('chatMenuMute'); if(muteBtn) muteBtn.onclick = ()=>{ const i = mutedChats.indexOf(chatId); if(i===-1) mutedChats.push(chatId); else mutedChats.splice(i,1); localStorage.setItem('muted_chats',JSON.stringify(mutedChats)); loadChatsList(); $('chatMenuModal').style.display='none'; }; }
         if(type==='private' && other) {
-            $('chatMenuContact').onclick = async ()=>{ const r=await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(other)}`); const d=await r.json(); if(d.inContacts) await fetch('/contact-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); else await fetch('/contact-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); $('chatMenuModal').style.display='none'; loadContacts(); };
-            $('chatMenuBlock').onclick = async ()=>{ await fetch('/block-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:other})}); $('chatMenuModal').style.display='none'; loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
+            const contactBtn = $('chatMenuContact'); if(contactBtn) contactBtn.onclick = async ()=>{ const r=await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(other)}`); const d=await r.json(); if(d.inContacts) await fetch('/contact-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); else await fetch('/contact-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); $('chatMenuModal').style.display='none'; loadContacts(); };
+            const blockBtn = $('chatMenuBlock'); if(blockBtn) blockBtn.onclick = async ()=>{ await fetch('/block-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:other})}); $('chatMenuModal').style.display='none'; loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
         }
-        if(type !== 'public' && type !== 'notebook') $('chatMenuDelete').onclick = async ()=>{ await fetch('/delete-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,nick:currentUser.nick})}); $('chatMenuModal').style.display='none'; loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
-        $('chatMenuClose').onclick = ()=> $('chatMenuModal').style.display='none';
+        if(type !== 'public' && type !== 'notebook') { const delBtn = $('chatMenuDelete'); if(delBtn) delBtn.onclick = async ()=>{ await fetch('/delete-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,nick:currentUser.nick})}); $('chatMenuModal').style.display='none'; loadChatsList(); if(currentChat.id===chatId) closeChatView(); }; }
+        const closeBtn = $('chatMenuClose'); if(closeBtn) closeBtn.onclick = ()=> $('chatMenuModal').style.display='none';
         $('chatMenuModal').style.display='flex';
     }
 
@@ -517,29 +525,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const r = await fetch(`/user-profile?nick=${encodeURIComponent(nick)}`); const d = await r.json();
         $('profileBadge').innerText = d.badge||''; $('profileNick').innerText = d.nick;
         $('profileDesc').innerText = d.description||'';
-        const writeBtn = $('profileWriteBtn');
-        const contactBtn = $('profileContactBtn');
-        const contactText = $('profileContactText');
-        const blockBtn = $('profileBlockBtn');
-        writeBtn.onclick = ()=>{ $('userProfileModal').style.display='none'; createPrivateChat(nick); };
+        const writeBtn = $('profileWriteBtn'), contactBtn = $('profileContactBtn'), contactText = $('profileContactText'), blockBtn = $('profileBlockBtn'), closeBtn = $('profileCloseBtn');
+        if(writeBtn) writeBtn.onclick = ()=>{ $('userProfileModal').style.display='none'; createPrivateChat(nick); };
         const cr = await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(nick)}`); const cd = await cr.json();
-        contactText.innerText = cd.inContacts ? 'В контактах' : 'Добавить в контакты';
-        contactBtn.onclick = async ()=>{
+        if(contactText) contactText.innerText = cd.inContacts ? 'В контактах' : 'Добавить в контакты';
+        if(contactBtn) contactBtn.onclick = async ()=>{
             if(cd.inContacts) await fetch('/contact-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:nick})});
             else await fetch('/contact-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:nick})});
             $('userProfileModal').style.display='none'; loadContacts();
         };
-        blockBtn.onclick = async ()=>{
+        if(blockBtn) blockBtn.onclick = async ()=>{
             await fetch('/block-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:nick})});
             $('userProfileModal').style.display='none'; loadChatsList();
         };
-        $('profileCloseBtn').onclick = ()=> $('userProfileModal').style.display='none';
+        if(closeBtn) closeBtn.onclick = ()=> $('userProfileModal').style.display='none';
         $('userProfileModal').style.display='flex';
     }
 
     // ========== ЧЁРНЫЙ СПИСОК ==========
-    async function loadBlockedList() { const r=await fetch(`/blocked-list?nick=${encodeURIComponent(currentUser.nick)}`); const blocked=await r.json(); let html=''; blocked.forEach(b=>{ html+=`<div class="contact-item"><div class="contact-info">${escapeHtml(b.blocked_nick)}</div><div class="contact-actions"><button class="unblock-btn" data-nick="${b.blocked_nick}">Разблокировать</button></div></div>`; }); $('blockedListContainer').innerHTML=html||'<div class="empty-state">Список пуст</div>'; document.querySelectorAll('.unblock-btn').forEach(b=>b.onclick=async ()=>{ await fetch('/unblock-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:b.dataset.nick})}); loadBlockedList(); }); $('blockedListModal').style.display='flex'; }
-    $('closeBlockedListBtn').onclick = ()=> $('blockedListModal').style.display='none';
+    async function loadBlockedList() {
+        const r=await fetch(`/blocked-list?nick=${encodeURIComponent(currentUser.nick)}`); const blocked=await r.json();
+        let html=''; blocked.forEach(b=>{ html+=`<div class="contact-item"><div class="contact-info">${escapeHtml(b.blocked_nick)}</div><div class="contact-actions"><button class="unblock-btn" data-nick="${b.blocked_nick}">Разблокировать</button></div></div>`; });
+        $('blockedListContainer').innerHTML=html||'<div class="empty-state">Список пуст</div>';
+        document.querySelectorAll('.unblock-btn').forEach(b=>b.onclick=async ()=>{ await fetch('/unblock-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:b.dataset.nick})}); loadBlockedList(); });
+        $('blockedListModal').style.display='flex';
+    }
+    const closeBlockedBtn = $('closeBlockedListBtn'); if(closeBlockedBtn) closeBlockedBtn.onclick = ()=> $('blockedListModal').style.display='none';
 
     // ========== ОТПРАВКА СООБЩЕНИЙ ==========
     function sendMessage() { const inp = $('messageInput'); const text = inp.value.trim(); if(!text && !replyingTo && !editingMessage) return; if(!currentChat.id) return; if(editingMessage) { editMessage(editingMessage.id, text); editingMessage=null; inp.value=''; autoResize(inp); hideEditIndicator(); inp.focus(); return; } fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, text, reply_to_id:replyingTo?.messageId, type:'text'})}); replyingTo=null; hideReplyIndicator(); inp.value=''; autoResize(inp); onTyping(false); inp.focus(); }
@@ -589,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const r = await fetch('/add-reaction',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:msgId, nick:currentUser.nick, reaction, isRoom:false})});
         const d = await r.json(); if(d.success) { const m = messages.find(m=>m.id===msgId); if(m) { m.reactions = d.reactions; if(!m.user_reactions) m.user_reactions=[]; if(m.user_reactions.includes(reaction)) m.user_reactions = m.user_reactions.filter(r=>r!==reaction); else m.user_reactions.push(reaction); renderMessages(); } }
     }
-    function showReactionPicker() { const p = $('reactionsPicker'); p.innerHTML = ''; ['❤️','🔥','👍','👎','👌','🖕','👀','😁','😭','😔','😩','😳','😠','😨','💩','👻','👽','👾','💋','💊'].forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>{ addReaction(currentReactionMessage,e); $('reactionPickerModal').style.display='none'; }; p.appendChild(b); }); $('reactionPickerModal').style.display='flex'; }
+    function showReactionPicker() { const p = $('reactionsPicker'); p.innerHTML = ''; ['❤️','🔥','👍','👎','👌','🖕','👀','😁','😭','😔','😩','😳','😠','�82','💩','👻','👽','👾','💋','💊'].forEach(e=>{ const b=document.createElement('button'); b.textContent=e; b.onclick=()=>{ addReaction(currentReactionMessage,e); $('reactionPickerModal').style.display='none'; }; p.appendChild(b); }); $('reactionPickerModal').style.display='flex'; }
 
     // ========== КОНТЕКСТНОЕ МЕНЮ СООБЩЕНИЯ ==========
     function showContextMenu(msg, own) {
@@ -608,19 +619,42 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `<button id="ctx-close"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Закрыть</button>`;
         cont.innerHTML = html;
         const modal = $('contextMenuModal');
-        if(showR) $('ctx-react').onclick = ()=>{ currentReactionMessage=msg.id; showReactionPicker(); modal.style.display='none'; };
+        const reactBtn = $('ctx-react'); if(reactBtn) reactBtn.onclick = ()=>{ currentReactionMessage=msg.id; showReactionPicker(); modal.style.display='none'; };
         if(!isMedia) {
-            $('ctx-reply').onclick = ()=>{ if(editingMessage){editingMessage=null;hideEditIndicator();} replyingTo={messageId:msg.id,nick:msg.nick,text:msg.text}; showReplyIndicator(replyingTo); modal.style.display='none'; $('messageInput').focus(); };
-            if(own) $('ctx-edit').onclick = ()=>{ if(replyingTo){replyingTo=null;hideReplyIndicator();} editingMessage={id:msg.id,text:msg.text}; showEditIndicator(editingMessage); const inp=$('messageInput'); inp.value=msg.text; inp.focus(); modal.style.display='none'; };
+            const replyBtn = $('ctx-reply'); if(replyBtn) replyBtn.onclick = ()=>{ if(editingMessage){editingMessage=null;hideEditIndicator();} replyingTo={messageId:msg.id,nick:msg.nick,text:msg.text}; showReplyIndicator(replyingTo); modal.style.display='none'; $('messageInput').focus(); };
+            if(own) { const editBtn = $('ctx-edit'); if(editBtn) editBtn.onclick = ()=>{ if(replyingTo){replyingTo=null;hideReplyIndicator();} editingMessage={id:msg.id,text:msg.text}; showEditIndicator(editingMessage); const inp=$('messageInput'); inp.value=msg.text; inp.focus(); modal.style.display='none'; }; }
         }
-        $('ctx-copy').onclick = ()=>{ navigator.clipboard.writeText(isMedia?msg.file_name:msg.text); modal.style.display='none'; };
-        if(own) $('ctx-delete').onclick = ()=>{ pendingDeleteMessageId=msg.id; showConfirm('Удалить сообщение?', async ()=>{ await fetch('/delete-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:pendingDeleteMessageId, nick:currentUser.nick})}); pendingDeleteMessageId=null; }); modal.style.display='none'; };
-        $('ctx-close').onclick = ()=> modal.style.display='none';
+        const copyBtn = $('ctx-copy'); if(copyBtn) copyBtn.onclick = ()=>{ navigator.clipboard.writeText(isMedia?msg.file_name:msg.text); modal.style.display='none'; };
+        if(own) { const delBtn = $('ctx-delete'); if(delBtn) delBtn.onclick = ()=>{ pendingDeleteMessageId=msg.id; showConfirm('Удалить сообщение?', async ()=>{ await fetch('/delete-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messageId:pendingDeleteMessageId, nick:currentUser.nick})}); pendingDeleteMessageId=null; }); modal.style.display='none'; }; }
+        const closeBtn = $('ctx-close'); if(closeBtn) closeBtn.onclick = ()=> modal.style.display='none';
         modal.style.display='flex';
     }
-    function showReplyIndicator(r) { let ind = $('replyIndicator'); if(!ind) { ind = document.createElement('div'); ind.id='replyIndicator'; ind.className='reply-indicator'; ind.innerHTML = `<div class="reply-content"><div class="reply-nick"></div><div class="reply-text"></div></div><button class="cancel-reply">✕</button>`; $('inputWrapper').before(ind); ind.querySelector('.cancel-reply').onclick=()=>{replyingTo=null;ind.style.display='none';}; } ind.querySelector('.reply-nick').innerHTML = escapeHtml(r.nick); ind.querySelector('.reply-text').innerHTML = escapeHtml(r.text); ind.style.display='flex'; }
+    function showReplyIndicator(r) {
+        let ind = $('replyIndicator');
+        if(!ind) {
+            ind = document.createElement('div'); ind.id='replyIndicator'; ind.className='reply-indicator';
+            ind.innerHTML = `<div class="reply-content"><div class="reply-nick"></div><div class="reply-text"></div></div><button class="cancel-reply">✕</button>`;
+            const inputWrapper = document.querySelector('.input-wrapper');
+            if(inputWrapper) inputWrapper.before(ind);
+            ind.querySelector('.cancel-reply').onclick=()=>{replyingTo=null;ind.style.display='none';};
+        }
+        ind.querySelector('.reply-nick').innerHTML = escapeHtml(r.nick);
+        ind.querySelector('.reply-text').innerHTML = escapeHtml(r.text);
+        ind.style.display='flex';
+    }
     function hideReplyIndicator() { const i=$('replyIndicator'); if(i) i.style.display='none'; }
-    function showEditIndicator(e) { let ind = $('editIndicator'); if(!ind) { ind = document.createElement('div'); ind.id='editIndicator'; ind.className='edit-indicator'; ind.innerHTML = `<div class="edit-content"><div class="edit-label">Редактирование</div><div class="edit-text"></div></div><button class="cancel-edit">✕</button>`; $('inputWrapper').before(ind); ind.querySelector('.cancel-edit').onclick=()=>{editingMessage=null;ind.style.display='none';$('messageInput').value='';}; } ind.querySelector('.edit-text').innerHTML = escapeHtml(e.text); ind.style.display='flex'; }
+    function showEditIndicator(e) {
+        let ind = $('editIndicator');
+        if(!ind) {
+            ind = document.createElement('div'); ind.id='editIndicator'; ind.className='edit-indicator';
+            ind.innerHTML = `<div class="edit-content"><div class="edit-label">Редактирование</div><div class="edit-text"></div></div><button class="cancel-edit">✕</button>`;
+            const inputWrapper = document.querySelector('.input-wrapper');
+            if(inputWrapper) inputWrapper.before(ind);
+            ind.querySelector('.cancel-edit').onclick=()=>{editingMessage=null;ind.style.display='none';$('messageInput').value='';};
+        }
+        ind.querySelector('.edit-text').innerHTML = escapeHtml(e.text);
+        ind.style.display='flex';
+    }
     function hideEditIndicator() { const i=$('editIndicator'); if(i) i.style.display='none'; }
     function updateTypingIndicator(data) { const i=$('typingIndicator'); if(!i) return; if(!data||data.nick===currentUser.nick) i.classList.add('hidden'); else { i.innerHTML = `${escapeHtml(data.nick)} печатает...`; i.classList.remove('hidden'); clearTimeout(window.typeHide); window.typeHide = setTimeout(()=>i.classList.add('hidden'),2000); } }
     function onTyping(is) { if(!socket||!currentChat.id) return; if(is) { socket.emit('typing',{chatId:currentChat.id, nick:currentUser.nick}); clearTimeout(typingTimeout); typingTimeout=setTimeout(()=>socket.emit('stop typing',{chatId:currentChat.id}),1500); } else { clearTimeout(typingTimeout); socket.emit('stop typing',{chatId:currentChat.id}); } }
@@ -628,44 +662,45 @@ document.addEventListener('DOMContentLoaded', function() {
     function autoResize(ta) { ta.style.height='auto'; ta.style.height = Math.min(ta.scrollHeight,150)+'px'; }
 
     // ========== ЗАГРУЗКА ФАЙЛОВ ==========
-    $('attachBtn').onclick = ()=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='*/*'; inp.onchange = async e => { const f = e.target.files[0]; if(!f) return; const fd = new FormData(); fd.append('file',f); const r=await fetch('/upload',{method:'POST',body:fd}); const d=await r.json(); if(d.success) fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, type:f.type.startsWith('image/')||f.type.startsWith('video/')?'media':'file', file_url:'/uploads/'+d.file.filename, file_name:f.name, file_size:f.size})}); }; inp.click(); };
+    const attachBtn = $('attachBtn'); if(attachBtn) attachBtn.onclick = ()=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='*/*'; inp.onchange = async e => { const f = e.target.files[0]; if(!f) return; const fd = new FormData(); fd.append('file',f); const r=await fetch('/upload',{method:'POST',body:fd}); const d=await r.json(); if(d.success) fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, type:f.type.startsWith('image/')||f.type.startsWith('video/')?'media':'file', file_url:'/uploads/'+d.file.filename, file_name:f.name, file_size:f.size})}); }; inp.click(); };
 
     // ========== МЕНЮ ЧАТОВ (КНОПКА "ЧАТЫ") ==========
-    $('chatsTabBtn').addEventListener('contextmenu', e=>e.preventDefault());
-    let pressTimer;
-    ['touchstart','mousedown'].forEach(ev=>$('chatsTabBtn').addEventListener(ev, e=>{ pressTimer=setTimeout(()=>$('chatsMenuModal').style.display='flex',500); }));
-    ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>$('chatsTabBtn').addEventListener(ev, ()=>clearTimeout(pressTimer)));
-    // Групп нет, скрываем кнопку "Создать группу"
-    if ($('createGroupMenuBtn')) $('createGroupMenuBtn').style.display = 'none';
-    $('closeChatsMenuBtn').onclick = ()=>$('chatsMenuModal').style.display='none';
-
-    // ========== НАСТРОЙКИ ПРОФИЛЯ И ПРИВАТНОСТИ ==========
-    async function loadPrivacySettings() { const r=await fetch(`/privacy-settings?nick=${encodeURIComponent(currentUser.nick)}`); const d=await r.json(); privacySettings=d; $('visibilitySelect').value=d.visibility||'all'; $('whoCanWriteSelect').value=d.who_can_write||'all'; $('descriptionVisibleSelect').value=d.description_visible||'all'; ['visibilitySelect','whoCanWriteSelect','descriptionVisibleSelect'].forEach(id=>{ $(id).onchange = async e=>{ const field=id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase(); privacySettings[field]=e.target.value; localStorage.setItem('privacy_settings',JSON.stringify(privacySettings)); await fetch('/update-privacy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,field,value:e.target.value})}); }; }); }
-    function setupProfileModals() {
-        $('openSelfExpressionBtn').onclick = ()=>$('selfExpressionModal').style.display='flex';
-        $('closeSelfExpressionBtn').onclick = ()=>$('selfExpressionModal').style.display='none';
-        $('openChangeNickModalBtn').onclick = ()=>{ $('changeNickModal').style.display='flex'; $('newNickInput').value=''; };
-        $('cancelNickChangeBtn').onclick = ()=>$('changeNickModal').style.display='none';
-        $('applyNickChangeBtn').onclick = async ()=>{ const nn=$('newNickInput').value.trim(); if(!nn) return; const r=await fetch('/change-nick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,newNick:nn})}); const d=await r.json(); if(d.success){ currentUser.nick=d.newNick; $('profileNickDisplay').innerText=d.newNick; $('changeNickModal').style.display='none'; showAlert('Ник изменён'); } else showAlert(d.error); };
-        $('openDescriptionModalBtn').onclick = ()=>{ $('descriptionInput').value = currentUser.description||''; $('descriptionModal').style.display='flex'; };
-        $('cancelDescriptionBtn').onclick = ()=>$('descriptionModal').style.display='none';
-        $('applyDescriptionBtn').onclick = async ()=>{ const d=$('descriptionInput').value.trim(); await fetch('/update-description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,description:d})}); currentUser.description=d; $('profileDescriptionDisplay').innerText=d; $('descriptionModal').style.display='none'; };
-        $('openPrivacySettingsBtn').onclick = ()=>$('privacySettingsModal').style.display='flex';
-        $('closePrivacySettingsBtn').onclick = ()=>$('privacySettingsModal').style.display='none';
-        $('changePinFromPrivacyBtn').onclick = ()=>$('changePinModal').style.display='flex';
-        $('logoutBtn').onclick = ()=>{ showConfirm('Выйти из аккаунта?', ()=>{ localStorage.removeItem('simply_token'); location.reload(); }); };
-        $('deleteAccountBtn').onclick = ()=>{ $('pinConfirmModal').style.display='flex'; $('pinConfirmInput').value=''; pendingAction='delete_account'; };
-        $('openBlockedListBtn').onclick = ()=>loadBlockedList();
-        $('openStyleSettingsBtn').onclick = ()=>$('styleSettingsModal').style.display='flex';
-        $('closeStyleSettingsBtn').onclick = ()=>$('styleSettingsModal').style.display='none';
-        $('applyPinBtn').onclick = async ()=>{ const o=$('oldPinInput').value, n=$('newPinInput').value; if(!o||!n||n.length!==4||!/^\d+$/.test(n)) return showAlert('PIN должен быть 4 цифры'); const r=await fetch('/change-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,oldPin:o,newPin:n})}); const d=await r.json(); if(d.success){ showAlert('PIN изменён'); $('changePinModal').style.display='none'; } else showAlert(d.error); };
-        $('cancelPinBtn').onclick = ()=>$('changePinModal').style.display='none';
+    const chatsTab = $('chatsTabBtn'); if(chatsTab) {
+        chatsTab.addEventListener('contextmenu', e=>e.preventDefault());
+        let pressTimer;
+        ['touchstart','mousedown'].forEach(ev=>chatsTab.addEventListener(ev, e=>{ pressTimer=setTimeout(()=>$('chatsMenuModal').style.display='flex',500); }));
+        ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>chatsTab.addEventListener(ev, ()=>clearTimeout(pressTimer)));
     }
-    $('pinConfirmOkBtn').onclick = async ()=>{ const pin = $('pinConfirmInput').value; if(!pin) return; if(pendingAction==='delete_account') { const r = await fetch('/delete-account',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,pin})}); const d = await r.json(); if(d.success) { localStorage.removeItem('simply_token'); location.reload(); } else showAlert(d.error||'Ошибка'); } $('pinConfirmModal').style.display='none'; pendingAction=null; };
-    $('pinConfirmCancelBtn').onclick = ()=>{ $('pinConfirmModal').style.display='none'; pendingAction=null; };
-    $('closeReactionPickerBtn').onclick = ()=>$('reactionPickerModal').style.display='none';
+    const createGroupBtn = $('createGroupMenuBtn'); if(createGroupBtn) createGroupBtn.style.display = 'none';
+    const closeChatsMenu = $('closeChatsMenuBtn'); if(closeChatsMenu) closeChatsMenu.onclick = ()=>$('chatsMenuModal').style.display='none';
 
-    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    // ========== НАСТРОЙКИ ==========
+    async function loadPrivacySettings() { const r=await fetch(`/privacy-settings?nick=${encodeURIComponent(currentUser.nick)}`); const d=await r.json(); privacySettings=d; ['visibilitySelect','whoCanWriteSelect','descriptionVisibleSelect'].forEach(id=>{ const sel=$(id); if(sel) { sel.value=d[id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase()]||'all'; sel.onchange = async e=>{ const field=id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase(); privacySettings[field]=e.target.value; localStorage.setItem('privacy_settings',JSON.stringify(privacySettings)); await fetch('/update-privacy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,field,value:e.target.value})}); }; } }); }
+    function setupProfileModals() {
+        const openSelf = $('openSelfExpressionBtn'); if(openSelf) openSelf.onclick = ()=>$('selfExpressionModal').style.display='flex';
+        const closeSelf = $('closeSelfExpressionBtn'); if(closeSelf) closeSelf.onclick = ()=>$('selfExpressionModal').style.display='none';
+        const openChangeNick = $('openChangeNickModalBtn'); if(openChangeNick) openChangeNick.onclick = ()=>{ $('changeNickModal').style.display='flex'; $('newNickInput').value=''; };
+        const cancelNick = $('cancelNickChangeBtn'); if(cancelNick) cancelNick.onclick = ()=>$('changeNickModal').style.display='none';
+        const applyNick = $('applyNickChangeBtn'); if(applyNick) applyNick.onclick = async ()=>{ const nn=$('newNickInput').value.trim(); if(!nn) return; const r=await fetch('/change-nick',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,newNick:nn})}); const d=await r.json(); if(d.success){ currentUser.nick=d.newNick; $('profileNickDisplay').innerText=d.newNick; $('changeNickModal').style.display='none'; showAlert('Ник изменён'); } else showAlert(d.error); };
+        const openDesc = $('openDescriptionModalBtn'); if(openDesc) openDesc.onclick = ()=>{ $('descriptionInput').value = currentUser.description||''; $('descriptionModal').style.display='flex'; };
+        const cancelDesc = $('cancelDescriptionBtn'); if(cancelDesc) cancelDesc.onclick = ()=>$('descriptionModal').style.display='none';
+        const applyDesc = $('applyDescriptionBtn'); if(applyDesc) applyDesc.onclick = async ()=>{ const d=$('descriptionInput').value.trim(); await fetch('/update-description',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,description:d})}); currentUser.description=d; $('profileDescriptionDisplay').innerText=d; $('descriptionModal').style.display='none'; };
+        const openPrivacy = $('openPrivacySettingsBtn'); if(openPrivacy) openPrivacy.onclick = ()=>$('privacySettingsModal').style.display='flex';
+        const closePrivacy = $('closePrivacySettingsBtn'); if(closePrivacy) closePrivacy.onclick = ()=>$('privacySettingsModal').style.display='none';
+        const changePinBtn = $('changePinFromPrivacyBtn'); if(changePinBtn) changePinBtn.onclick = ()=>$('changePinModal').style.display='flex';
+        const logoutBtn = $('logoutBtn'); if(logoutBtn) logoutBtn.onclick = ()=>{ showConfirm('Выйти из аккаунта?', ()=>{ localStorage.removeItem('simply_token'); location.reload(); }); };
+        const deleteAccBtn = $('deleteAccountBtn'); if(deleteAccBtn) deleteAccBtn.onclick = ()=>{ $('pinConfirmModal').style.display='flex'; $('pinConfirmInput').value=''; pendingAction='delete_account'; };
+        const openBlocked = $('openBlockedListBtn'); if(openBlocked) openBlocked.onclick = ()=>loadBlockedList();
+        const openStyle = $('openStyleSettingsBtn'); if(openStyle) openStyle.onclick = ()=>$('styleSettingsModal').style.display='flex';
+        const closeStyle = $('closeStyleSettingsBtn'); if(closeStyle) closeStyle.onclick = ()=>$('styleSettingsModal').style.display='none';
+        const applyPin = $('applyPinBtn'); if(applyPin) applyPin.onclick = async ()=>{ const o=$('oldPinInput').value, n=$('newPinInput').value; if(!o||!n||n.length!==4||!/^\d+$/.test(n)) return showAlert('PIN должен быть 4 цифры'); const r=await fetch('/change-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,oldPin:o,newPin:n})}); const d=await r.json(); if(d.success){ showAlert('PIN изменён'); $('changePinModal').style.display='none'; } else showAlert(d.error); };
+        const cancelPin = $('cancelPinBtn'); if(cancelPin) cancelPin.onclick = ()=>$('changePinModal').style.display='none';
+    }
+    const pinOk = $('pinConfirmOkBtn'); if(pinOk) pinOk.onclick = async ()=>{ const pin = $('pinConfirmInput').value; if(!pin) return; if(pendingAction==='delete_account') { const r = await fetch('/delete-account',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,pin})}); const d = await r.json(); if(d.success) { localStorage.removeItem('simply_token'); location.reload(); } else showAlert(d.error||'Ошибка'); } $('pinConfirmModal').style.display='none'; pendingAction=null; };
+    const pinCancel = $('pinConfirmCancelBtn'); if(pinCancel) pinCancel.onclick = ()=>{ $('pinConfirmModal').style.display='none'; pendingAction=null; };
+    const closeReact = $('closeReactionPickerBtn'); if(closeReact) closeReact.onclick = ()=>$('reactionPickerModal').style.display='none';
+
+    // ========== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ==========
     async function initializeApp() {
         $('showDateToggle').checked = appSettings.showDate; $('showReactionsToggle').checked = appSettings.showReactions; $('showTimeToggle').checked = appSettings.showTime; $('showBadgesToggle').checked = appSettings.showBadges; $('badgeSelect').value = currentUser.badge||''; $('quickReactionSelect').value = appSettings.quickReaction||''; $('accentColorSelect').value = appSettings.accentColor;
         $('showDateToggle').onchange = e=>{ appSettings.showDate=e.target.checked; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); renderMessages(); renderChatsList(); };
@@ -696,12 +731,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const inp = $('messageInput'); inp.addEventListener('input', ()=>{ autoResize(inp); onTyping(true); });
         window.isUserScrolling = false; $('messagesContainer')?.addEventListener('scroll', ()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTO); window.scrollTO=setTimeout(()=>window.isUserScrolling=false,200); });
 
-        // Свайп для выхода из чата
         initSwipeToClose($('chatView'), closeChatView);
-        // Свайпы для полноэкранных модалок
         document.querySelectorAll('.modal.fullscreen .modal-container').forEach(el => {
             const modal = el.closest('.modal');
-            initSwipeToClose(el, () => modal.style.display = 'none');
+            if(modal) initSwipeToClose(el, () => modal.style.display = 'none');
         });
     }
 
@@ -712,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
             else { localStorage.removeItem('simply_token'); $('loginScreen').style.display='flex'; }
         });
     } else $('loginScreen').style.display='flex';
-    $('loginBtn').onclick = async ()=>{
+    const loginBtn = $('loginBtn'); if(loginBtn) loginBtn.onclick = async ()=>{
         const nick = $('loginNick').value.trim(), pin = $('loginPin').value;
         if(!nick||!pin||pin.length!==4||!/^\d+$/.test(pin)) return $('loginError').innerText='Введите ник и 4-значный PIN';
         const r = await fetch('/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nick,pin})});
