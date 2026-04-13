@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#1c1c1e" id="themeColorMeta">
-    <title>ChatX Lite</title>
+    <title>ChatX</title>
     <link rel="manifest" href="/manifest.json">
+    
+    <!-- Иконки -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon_192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    
     <style>
         * { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     </style>
@@ -125,7 +130,7 @@
 <body>
 <div id="loginScreen" class="login-screen">
     <div class="login-card">
-        <h2>ChatX Lite</h2>
+        <h2>ChatX</h2>
         <input type="text" id="loginNick" placeholder="Ник" autocomplete="off">
         <input type="text" id="loginPin" placeholder="PIN (4 цифры)" maxlength="4" inputmode="numeric" pattern="\d*" autocomplete="off">
         <button id="loginBtn">Войти</button>
@@ -357,12 +362,10 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.on('reaction updated', ({messageId,reactions})=>{ const m=messages.find(m=>m.id===messageId); if(m){m.reactions=reactions; renderMessages();} });
         socket.on('user typing', d=>{ if(d.chatId===currentChatId) updateTypingIndicator(d); });
         socket.on('user stop typing', d=>{ if(d.chatId===currentChatId) updateTypingIndicator(null); });
-        // 👇 ИСПРАВЛЕНИЕ: при смене своего ника перезагружаем сообщения
         socket.on('nick changed', ({oldNick,newNick})=>{
             if(currentUser.nick === oldNick) {
                 currentUser.nick = newNick;
             }
-            // Если сменили свой ник, перезагружаем сообщения
             if(currentUser.nick === newNick) {
                 loadMessages().then(renderMessages);
             }
