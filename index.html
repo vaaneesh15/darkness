@@ -246,7 +246,6 @@
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
-// == ФИНАЛЬНЫЙ СКРИПТ CHATX ==
 (function() {
     function addTapped(e) {
         const t = e.target.closest?.('button, .clickable');
@@ -299,20 +298,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     function showConfirm(message, onOk, title = 'Подтверждение') {
-        const confirmTitle = $('confirmTitle');
-        const confirmMessage = $('confirmMessage');
+        $('confirmTitle').innerText = title;
+        $('confirmMessage').innerText = message;
         const modal = $('confirmModal');
         const okBtn = $('confirmOkBtn');
         const cancelBtn = $('confirmCancelBtn');
-        if (!modal || !okBtn || !cancelBtn) return;
-        confirmTitle.innerText = title;
-        confirmMessage.innerText = message;
         const close = () => { modal.style.display = 'none'; okBtn.onclick = null; cancelBtn.onclick = null; };
         okBtn.onclick = () => { close(); if(onOk) onOk(); };
         cancelBtn.onclick = () => { close(); };
         modal.style.display = 'flex';
     }
-    function showAlert(message, onClose) { showConfirm(message, onClose, ' '); const ct = $('confirmTitle'); if(ct) ct.style.display='none'; }
+    function showAlert(message, onClose) { showConfirm(message, onClose, ' '); $('confirmTitle').style.display='none'; }
 
     function escapeHtml(s) { return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
     function linkify(t) { return t.replace(/(https?:\/\/[^\s]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-color);text-decoration:underline;">${u}</a>`); }
@@ -351,7 +347,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isDragging) return;
             currentX = e.touches[0].clientX;
             const diff = currentX - startX;
-            if (diff > 0) element.style.transform = `translateX(${diff}px)`;
+            if (diff > 0) {
+                element.style.transform = `translateX(${diff}px)`;
+            }
         }, {passive: true});
         element.addEventListener('touchend', e => {
             if (!isDragging) return;
@@ -359,7 +357,9 @@ document.addEventListener('DOMContentLoaded', function() {
             element.classList.remove('dragging');
             const diff = currentX - startX;
             element.style.transform = '';
-            if (diff > threshold) onClose();
+            if (diff > threshold) {
+                onClose();
+            }
             startX = 0; currentX = 0;
         });
     }
@@ -370,8 +370,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const panel = $(tabId+'Panel');
         if (panel) panel.style.display = 'flex';
         document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
-        if(tabId === 'contacts') { const inp = $('contactsSearchInput'); if(inp) inp.value=''; contactsSearchQuery=''; loadContacts(); }
-        else if(tabId === 'chats') { const inp = $('chatSearchInput'); if(inp) inp.value=''; chatSearchQuery=''; loadChatsList(); $('userSearchResults').innerHTML=''; $('chatsListContainer').style.display='block'; }
+        if(tabId === 'contacts') { $('contactsSearchInput').value=''; contactsSearchQuery=''; loadContacts(); }
+        else if(tabId === 'chats') { $('chatSearchInput').value=''; chatSearchQuery=''; loadChatsList(); $('userSearchResults').innerHTML=''; $('chatsListContainer').style.display='block'; }
         else if(tabId === 'profile') { $('profileNickDisplay').innerText = currentUser.nick; $('profileDescriptionDisplay').innerText = currentUser.description || ''; loadPrivacySettings(); }
         if(currentChat.id) closeChatView();
     }
@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         socket.emit('join chat', chat.id);
         messages = []; renderMessages(); await loadChatMessages(); renderMessages();
         if(messages.length) { const lm = messages[messages.length-1]; lastReadMessage[chat.id] = lm.id; localStorage.setItem('last_read_message', JSON.stringify(lastReadMessage)); }
-        const inputWrapper = $('inputWrapper');
+        const inputWrapper = document.querySelector('.input-wrapper');
         if (inputWrapper) inputWrapper.style.display = 'block';
         $('chatTitle').onclick = null;
     }
@@ -664,15 +664,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== ЗАГРУЗКА ФАЙЛОВ ==========
     const attachBtn = $('attachBtn'); if(attachBtn) attachBtn.onclick = ()=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='*/*'; inp.onchange = async e => { const f = e.target.files[0]; if(!f) return; const fd = new FormData(); fd.append('file',f); const r=await fetch('/upload',{method:'POST',body:fd}); const d=await r.json(); if(d.success) fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, type:f.type.startsWith('image/')||f.type.startsWith('video/')?'media':'file', file_url:'/uploads/'+d.file.filename, file_name:f.name, file_size:f.size})}); }; inp.click(); };
 
-    // ========== МЕНЮ ЧАТОВ (КНОПКА "ЧАТЫ") ==========
-    const chatsTab = $('chatsTabBtn'); if(chatsTab) {
-        chatsTab.addEventListener('contextmenu', e=>e.preventDefault());
-        let pressTimer;
-        ['touchstart','mousedown'].forEach(ev=>chatsTab.addEventListener(ev, e=>{ pressTimer=setTimeout(()=>$('chatsMenuModal').style.display='flex',500); }));
-        ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>chatsTab.addEventListener(ev, ()=>clearTimeout(pressTimer)));
-    }
-    const closeChatsMenu = $('closeChatsMenuBtn'); if(closeChatsMenu) closeChatsMenu.onclick = ()=>$('chatsMenuModal').style.display='none';
-
     // ========== НАСТРОЙКИ ==========
     async function loadPrivacySettings() { const r=await fetch(`/privacy-settings?nick=${encodeURIComponent(currentUser.nick)}`); const d=await r.json(); privacySettings=d; ['visibilitySelect','whoCanWriteSelect','descriptionVisibleSelect'].forEach(id=>{ const sel=$(id); if(sel) { sel.value=d[id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase()]||'all'; sel.onchange = async e=>{ const field=id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase(); privacySettings[field]=e.target.value; localStorage.setItem('privacy_settings',JSON.stringify(privacySettings)); await fetch('/update-privacy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,field,value:e.target.value})}); }; } }); }
     function setupProfileModals() {
@@ -723,11 +714,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function bindUI() {
         document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-        const contactsSearch = $('contactsSearchInput'); if(contactsSearch) contactsSearch.oninput = e=>{ contactsSearchQuery=e.target.value; renderContactsList(); };
-        const chatSearch = $('chatSearchInput'); if(chatSearch) chatSearch.oninput = e=>{ chatSearchQuery=e.target.value; renderChatsList(); searchUsers(e.target.value); };
-        const backBtn = $('backFromChatBtn'); if(backBtn) backBtn.onclick = closeChatView;
-        const sendBtn = $('sendBtn'); if(sendBtn) sendBtn.onclick = sendMessage;
-        const inp = $('messageInput'); if(inp) inp.addEventListener('input', ()=>{ autoResize(inp); onTyping(true); });
+        $('contactsSearchInput').oninput = e=>{ contactsSearchQuery=e.target.value; renderContactsList(); };
+        $('chatSearchInput').oninput = e=>{ chatSearchQuery=e.target.value; renderChatsList(); searchUsers(e.target.value); };
+        $('backFromChatBtn').onclick = closeChatView;
+        $('sendBtn').onclick = sendMessage;
+        const inp = $('messageInput'); inp.addEventListener('input', ()=>{ autoResize(inp); onTyping(true); });
         window.isUserScrolling = false; $('messagesContainer')?.addEventListener('scroll', ()=>{ window.isUserScrolling=true; clearTimeout(window.scrollTO); window.scrollTO=setTimeout(()=>window.isUserScrolling=false,200); });
 
         initSwipeToClose($('chatView'), closeChatView);
