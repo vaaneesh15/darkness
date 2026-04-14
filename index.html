@@ -254,6 +254,8 @@
 
 <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
 <script>
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
 (function() {
     function addTapped(e) { const t = e.target.closest?.('button, .clickable'); if (t) t.classList.add('tapped'); }
     function removeTapped(e) { const t = e.target.closest?.('button, .clickable'); if (t) t.classList.remove('tapped'); }
@@ -299,12 +301,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let modalZ = 10000;
     function showModal(modalId) {
         const modal = $(modalId);
+        if (!modal) return;
         modal.style.zIndex = ++modalZ;
         modal.style.display = 'flex';
         setTimeout(() => modal.classList.add('show'), 10);
     }
     function hideModal(modalId) {
         const modal = $(modalId);
+        if (!modal) return;
         modal.classList.remove('show');
         setTimeout(() => modal.style.display = 'none', 200);
     }
@@ -372,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Анимация вылета справа
     function openFullscreenModal(modalId) {
         const modal = $(modalId);
+        if (!modal) return;
         modal.style.display = 'flex';
         modal.style.zIndex = ++modalZ;
         setTimeout(() => modal.classList.add('show'), 10);
@@ -496,15 +501,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if(type !== 'notebook') { const muteBtn = $('chatMenuMute'); if(muteBtn) muteBtn.onclick = ()=>{ const i = mutedChats.indexOf(chatId); if(i===-1) mutedChats.push(chatId); else mutedChats.splice(i,1); localStorage.setItem('muted_chats',JSON.stringify(mutedChats)); loadChatsList(); hideModal('chatMenuModal'); }; }
         if(type==='private' && other) {
-            $('chatMenuContact').onclick = async ()=>{ const r=await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(other)}`); const d=await r.json(); if(d.inContacts) await fetch('/contact-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); else await fetch('/contact-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); hideModal('chatMenuModal'); loadContacts(); };
-            $('chatMenuBlock').onclick = async ()=>{ await fetch('/block-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:other})}); pinnedChats = pinnedChats.filter(id => id !== chatId); localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats)); hideModal('chatMenuModal'); loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
+            const contactBtn = $('chatMenuContact'); if(contactBtn) contactBtn.onclick = async ()=>{ const r=await fetch(`/contact-status?user=${encodeURIComponent(currentUser.nick)}&contact=${encodeURIComponent(other)}`); const d=await r.json(); if(d.inContacts) await fetch('/contact-remove',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); else await fetch('/contact-add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,contact:other})}); hideModal('chatMenuModal'); loadContacts(); };
+            const blockBtn = $('chatMenuBlock'); if(blockBtn) blockBtn.onclick = async ()=>{ await fetch('/block-user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:currentUser.nick,blocked:other})}); pinnedChats = pinnedChats.filter(id => id !== chatId); localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats)); hideModal('chatMenuModal'); loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
         }
-        if(type !== 'public' && type !== 'notebook') $('chatMenuDelete').onclick = async ()=>{ await fetch('/delete-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,nick:currentUser.nick})}); pinnedChats = pinnedChats.filter(id => id !== chatId); localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats)); hideModal('chatMenuModal'); loadChatsList(); if(currentChat.id===chatId) closeChatView(); };
-        $('chatMenuClose').onclick = ()=> hideModal('chatMenuModal');
+        if(type !== 'public' && type !== 'notebook') { const delBtn = $('chatMenuDelete'); if(delBtn) delBtn.onclick = async ()=>{ await fetch('/delete-chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,nick:currentUser.nick})}); pinnedChats = pinnedChats.filter(id => id !== chatId); localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats)); hideModal('chatMenuModal'); loadChatsList(); if(currentChat.id===chatId) closeChatView(); }; }
+        const closeBtn = $('chatMenuClose'); if(closeBtn) closeBtn.onclick = ()=> hideModal('chatMenuModal');
         showModal('chatMenuModal');
     }
 
-    // Контакты и поиск (без изменений)
+    // Контакты и поиск
     async function loadContacts() { try { const r=await fetch(`/contacts?nick=${encodeURIComponent(currentUser.nick)}`); contacts=await r.json(); renderContactsList(); } catch(e){} }
     function renderContactsList() {
         const cont = $('contactsListContainer'), q = contactsSearchQuery.toLowerCase();
@@ -539,7 +544,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.contact-name, .user-badge').forEach(el=>el.addEventListener('click',()=>showUserProfile(el.closest('.contact-item').querySelector('.contact-name').innerText)));
     }
 
-    // Профиль пользователя (исправлен)
+    // Профиль пользователя
     async function showUserProfile(nick) {
         const r = await fetch(`/user-profile?nick=${encodeURIComponent(nick)}`); const d = await r.json();
         $('profileNick').innerText = d.nick;
@@ -695,9 +700,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     $('attachBtn').onclick = ()=>{ const inp = document.createElement('input'); inp.type='file'; inp.accept='*/*'; inp.onchange = async e => { const f = e.target.files[0]; if(!f) return; const fd = new FormData(); fd.append('file',f); const r=await fetch('/upload',{method:'POST',body:fd}); const d=await r.json(); if(d.success) { const type = f.type.startsWith('audio/') ? 'audio' : (f.type.startsWith('image/')||f.type.startsWith('video/')?'media':'file'); fetch('/chat-message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:currentChat.id, nick:currentUser.nick, type, file_url:'/uploads/'+d.file.filename, file_name:f.name, file_size:f.size})}); } }; inp.click(); };
 
-    // Меню чатов
+    // Меню чатов (контекстное меню кнопки "Чаты")
     const chatsTab = $('chatsTabBtn'); if(chatsTab) { chatsTab.addEventListener('contextmenu', e=>e.preventDefault()); let pressTimer; ['touchstart','mousedown'].forEach(ev=>chatsTab.addEventListener(ev, e=>{ pressTimer=setTimeout(()=>showModal('chatsMenuModal'),500); })); ['touchend','touchcancel','mouseup','mouseleave'].forEach(ev=>chatsTab.addEventListener(ev, ()=>clearTimeout(pressTimer))); }
-    $('closeChatsMenuBtn').onclick = ()=> hideModal('chatsMenuModal');
+    // Кнопка закрытия меню чатов (если есть)
+    const closeChatsMenuBtn = $('closeChatsMenuBtn');
+    if (closeChatsMenuBtn) closeChatsMenuBtn.onclick = ()=> hideModal('chatsMenuModal');
 
     // Настройки
     async function loadPrivacySettings() { const r=await fetch(`/privacy-settings?nick=${encodeURIComponent(currentUser.nick)}`); const d=await r.json(); privacySettings=d; ['visibilitySelect','whoCanWriteSelect','descriptionVisibleSelect'].forEach(id=>{ const sel=$(id); if(sel) { sel.value=d[id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase()]||'all'; sel.onchange = async e=>{ const field=id.replace('Select','').replace(/([A-Z])/g,'_$1').toLowerCase(); privacySettings[field]=e.target.value; localStorage.setItem('privacy_settings',JSON.stringify(privacySettings)); await fetch('/update-privacy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken,field,value:e.target.value})}); }; } }); }
@@ -774,6 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
         else $('loginError').innerText = d.error||'Ошибка входа';
     };
 });
+</script>
 </script>
 </body>
 </html>
