@@ -37,6 +37,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
+  // Таблица users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -54,8 +55,10 @@ async function initDB() {
     );
   `);
 
+  // Удаляем колонку who_can_invite, если осталась
   try { await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS who_can_invite`); } catch (e) {}
 
+  // Таблица chats (без owner_nick и типа 'group')
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
@@ -64,11 +67,11 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-
   try { await pool.query(`ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_type_check`); } catch (e) {}
   try { await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook'))`); } catch (e) {}
   try { await pool.query(`ALTER TABLE chats DROP COLUMN IF EXISTS owner_nick`); } catch (e) {}
 
+  // Таблица chat_participants
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chat_participants (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -77,6 +80,7 @@ async function initDB() {
     );
   `);
 
+  // Таблица messages
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -94,6 +98,7 @@ async function initDB() {
     );
   `);
 
+  // Таблица message_reactions
   await pool.query(`
     CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
@@ -105,6 +110,7 @@ async function initDB() {
     );
   `);
 
+  // Таблица contacts
   await pool.query(`
     CREATE TABLE IF NOT EXISTS contacts (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -114,6 +120,7 @@ async function initDB() {
     );
   `);
 
+  // Таблица blocked_users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS blocked_users (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -123,6 +130,7 @@ async function initDB() {
     );
   `);
 
+  // Таблица deleted_chats
   await pool.query(`
     CREATE TABLE IF NOT EXISTS deleted_chats (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -131,8 +139,10 @@ async function initDB() {
     );
   `);
 
+  // Удаляем таблицу group_participants, если осталась
   try { await pool.query(`DROP TABLE IF EXISTS group_participants CASCADE`); } catch (e) {}
 
+  // Публичный чат
   const publicChat = await pool.query(`SELECT id FROM chats WHERE type = 'public'`);
   if (publicChat.rows.length === 0) {
     await pool.query(`INSERT INTO chats (type, name) VALUES ('public', 'Общий чат')`);
@@ -160,6 +170,7 @@ async function getOrCreateNotebook(nick) {
   return notebook.rows[0].id;
 }
 
+// Эндпоинты
 app.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false });
   res.json({ success: true, file: req.file });
@@ -181,8 +192,15 @@ app.post('/auth', async (req, res) => {
   } else {
     const pinHash = await bcrypt.hash(pin, 10);
     const token = uuidv4();
-    await pool.query('INSERT INTO users (nick, pin_hash, token, badge, description) VALUES ($1, $2, $3, $4, $5)', [cleanNick, pinHash, token, '', '']);
-    return res.json({ success: true, nick: cleanNick, badge: '', description: '', token });
+    try {
+      await pool.query('INSERT INTO users (nick, pin_hash, token, badge, description) VALUES ($1, $2, $3, $4, $5)', [cleanNick, pinHash, token, '', '']);
+      return res.json({ success: true, nick: cleanNick, badge: '', description: '', token });
+    } catch (err) {
+      if (err.code === '23505') {
+        return res.status(400).json({ success: false, error: 'Ник уже занят' });
+      }
+      throw err;
+    }
   }
 });
 
@@ -201,28 +219,17 @@ app.post('/change-nick', async (req, res) => {
   if (user.rows.length === 0) return res.json({ success: false, error: 'Сессия недействительна' });
   const oldNick = user.rows[0].nick;
   if (newNick === oldNick) return res.json({ success: true, newNick: oldNick });
-
-  try {
-    // Проверяем, существует ли уже такой ник
-    const existing = await pool.query('SELECT nick FROM users WHERE nick = $1', [newNick]);
-    if (existing.rows.length > 0) return res.json({ success: false, error: 'Ник уже существует' });
-
-    await pool.query('UPDATE users SET nick = $1 WHERE token = $2', [newNick, token]);
-    await pool.query('UPDATE messages SET nick = $1 WHERE nick = $2', [newNick, oldNick]);
-    await pool.query('UPDATE message_reactions SET nick = $1 WHERE nick = $2', [newNick, oldNick]);
-    await pool.query('UPDATE contacts SET user_nick = $1 WHERE user_nick = $2', [newNick, oldNick]);
-    await pool.query('UPDATE contacts SET contact_nick = $1 WHERE contact_nick = $2', [newNick, oldNick]);
-    await pool.query('UPDATE blocked_users SET user_nick = $1 WHERE user_nick = $2', [newNick, oldNick]);
-    await pool.query('UPDATE blocked_users SET blocked_nick = $1 WHERE blocked_nick = $2', [newNick, oldNick]);
-    io.emit('nick changed', { oldNick, newNick });
-    res.json({ success: true, newNick });
-  } catch (err) {
-    if (err.code === '23505') {
-      res.json({ success: false, error: 'Ник уже существует' });
-    } else {
-      res.status(500).json({ success: false });
-    }
-  }
+  const existing = await pool.query('SELECT nick FROM users WHERE nick = $1', [newNick]);
+  if (existing.rows.length > 0) return res.json({ success: false, error: 'Ник уже существует' });
+  await pool.query('UPDATE users SET nick = $1 WHERE token = $2', [newNick, token]);
+  await pool.query('UPDATE messages SET nick = $1 WHERE nick = $2', [newNick, oldNick]);
+  await pool.query('UPDATE message_reactions SET nick = $1 WHERE nick = $2', [newNick, oldNick]);
+  await pool.query('UPDATE contacts SET user_nick = $1 WHERE user_nick = $2', [newNick, oldNick]);
+  await pool.query('UPDATE contacts SET contact_nick = $1 WHERE contact_nick = $2', [newNick, oldNick]);
+  await pool.query('UPDATE blocked_users SET user_nick = $1 WHERE user_nick = $2', [newNick, oldNick]);
+  await pool.query('UPDATE blocked_users SET blocked_nick = $1 WHERE blocked_nick = $2', [newNick, oldNick]);
+  io.emit('nick changed', { oldNick, newNick });
+  res.json({ success: true, newNick });
 });
 
 app.post('/change-pin', async (req, res) => {
@@ -400,6 +407,10 @@ app.get('/chats', async (req, res) => {
   }
   
   chats.sort((a, b) => {
+    if (a.type === 'public') return -1;
+    if (b.type === 'public') return 1;
+    if (a.type === 'notebook') return -1;
+    if (b.type === 'notebook') return 1;
     const aTime = a.last_message ? new Date(a.last_message.created_at).getTime() : 0;
     const bTime = b.last_message ? new Date(b.last_message.created_at).getTime() : 0;
     return bTime - aTime;
