@@ -37,7 +37,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Таблица пользователей
+  // users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -54,10 +54,9 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-
   try { await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS who_can_invite`); } catch (e) {}
 
-  // Таблица чатов
+  // chats
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
@@ -70,6 +69,7 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook'))`); } catch (e) {}
   try { await pool.query(`ALTER TABLE chats DROP COLUMN IF EXISTS owner_nick`); } catch (e) {}
 
+  // chat_participants
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chat_participants (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -78,7 +78,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица сообщений
+  // messages
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -96,7 +96,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица реакций
+  // message_reactions
   await pool.query(`
     CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
@@ -108,7 +108,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица контактов
+  // contacts
   await pool.query(`
     CREATE TABLE IF NOT EXISTS contacts (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -118,7 +118,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица заблокированных
+  // blocked_users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS blocked_users (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
@@ -128,7 +128,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица удалённых чатов
+  // deleted_chats
   await pool.query(`
     CREATE TABLE IF NOT EXISTS deleted_chats (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -137,7 +137,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица постов
+  // posts
   await pool.query(`
     CREATE TABLE IF NOT EXISTS posts (
       id SERIAL PRIMARY KEY,
