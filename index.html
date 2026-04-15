@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let notebookChatId = null;
     let feedPosts = [];
     let postImageFile = null;
-    let notifications = [];
+    let notifications = JSON.parse(localStorage.getItem('chatx_notifications')) || [];
     let unreadCount = 0;
 
     document.documentElement.style.setProperty('--accent-color', appSettings.accentColor);
@@ -400,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function addNotification(notification) {
         notifications.unshift(notification);
+        localStorage.setItem('chatx_notifications', JSON.stringify(notifications));
         renderNotifications();
         updateNotificationBadge();
     }
@@ -434,7 +435,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 const idx = notifications.findIndex(n => n.chatId == chatId && n.messageId == messageId);
-                if (idx !== -1) notifications[idx].read = true;
+                if (idx !== -1) {
+                    notifications[idx].read = true;
+                    localStorage.setItem('chatx_notifications', JSON.stringify(notifications));
+                }
                 updateNotificationBadge();
             });
         });
@@ -533,7 +537,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if(tabId === 'contacts') { $('contactsSearchInput').value=''; contactsSearchQuery=''; loadContacts(); }
         else if(tabId === 'feed') { loadFeed(); }
         else if(tabId === 'chats') { $('chatSearchInput').value=''; chatSearchQuery=''; loadChatsList(); $('userSearchResults').innerHTML=''; $('chatsListContainer').style.display='block'; }
-        else if(tabId === 'notifications') { renderNotifications(); }
+        else if(tabId === 'notifications') {
+            notifications.forEach(n => n.read = true);
+            localStorage.setItem('chatx_notifications', JSON.stringify(notifications));
+            updateNotificationBadge();
+            renderNotifications();
+        }
         else if(tabId === 'profile') { $('profileNickDisplay').innerText = currentUser.nick; $('profileDescriptionDisplay').innerText = currentUser.description || ''; loadPrivacySettings(); }
         if(currentChat.id) closeChatView();
     }
@@ -1015,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $('badgeSelect').onchange = async e=>{ currentUser.badge=e.target.value; await fetch('/update-badge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:authToken, badge:currentUser.badge})}); renderMessages(); renderContactsList(); };
         $('quickReactionSelect').onchange = e=>{ appSettings.quickReaction=e.target.value; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); };
         $('accentColorSelect').onchange = e=>{ appSettings.accentColor=e.target.value; localStorage.setItem('simply_settings',JSON.stringify(appSettings)); document.documentElement.style.setProperty('--accent-color',e.target.value); };
-        await loadChatsList(); await loadContacts(); loadFeed();
+        await loadChatsList(); await loadContacts(); loadFeed(); updateNotificationBadge();
         socket.on('chat message received', newMsg => {
             if(currentChat.id === newMsg.chat_id) {
                 messages.push(newMsg); renderMessages();
