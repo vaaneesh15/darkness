@@ -37,7 +37,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Таблица users
+  // 1. Таблица users
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -55,23 +55,25 @@ async function initDB() {
     );
   `);
 
-  // Удаляем колонку who_can_invite, если осталась
+  // Удаляем колонку who_can_invite, если осталась от старых версий
   try { await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS who_can_invite`); } catch (e) {}
 
-  // Таблица chats (без owner_nick и типа 'group')
+  // 2. Таблица chats (без owner_nick и типа 'group')
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chats (
       id SERIAL PRIMARY KEY,
-      type VARCHAR(20) NOT NULL CHECK (type IN ('public', 'private', 'notebook')),
+      type VARCHAR(20) NOT NULL,
       name VARCHAR(100),
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // Удаляем старое ограничение и ставим новое
   try { await pool.query(`ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_type_check`); } catch (e) {}
   try { await pool.query(`ALTER TABLE chats ADD CONSTRAINT chats_type_check CHECK (type IN ('public', 'private', 'notebook'))`); } catch (e) {}
+  // Удаляем колонку owner_nick, если она ещё есть
   try { await pool.query(`ALTER TABLE chats DROP COLUMN IF EXISTS owner_nick`); } catch (e) {}
 
-  // Таблица chat_participants
+  // 3. Таблица chat_participants
   await pool.query(`
     CREATE TABLE IF NOT EXISTS chat_participants (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -79,13 +81,15 @@ async function initDB() {
       PRIMARY KEY (chat_id, nick)
     );
   `);
-  // Исправляем внешний ключ на каскадное удаление
+  // Пересоздаём внешний ключ с каскадным удалением
   try {
     await pool.query(`ALTER TABLE chat_participants DROP CONSTRAINT IF EXISTS chat_participants_nick_fkey`);
+  } catch (e) {}
+  try {
     await pool.query(`ALTER TABLE chat_participants ADD CONSTRAINT chat_participants_nick_fkey FOREIGN KEY (nick) REFERENCES users(nick) ON DELETE CASCADE`);
   } catch (e) {}
 
-  // Таблица messages
+  // 4. Таблица messages
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
@@ -102,8 +106,15 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // Добавляем внешний ключ на nick с каскадным удалением
+  try {
+    await pool.query(`ALTER TABLE messages DROP CONSTRAINT IF EXISTS messages_nick_fkey`);
+  } catch (e) {}
+  try {
+    await pool.query(`ALTER TABLE messages ADD CONSTRAINT messages_nick_fkey FOREIGN KEY (nick) REFERENCES users(nick) ON DELETE CASCADE`);
+  } catch (e) {}
 
-  // Таблица message_reactions
+  // 5. Таблица message_reactions
   await pool.query(`
     CREATE TABLE IF NOT EXISTS message_reactions (
       id SERIAL PRIMARY KEY,
@@ -114,10 +125,19 @@ async function initDB() {
       UNIQUE(message_id, nick, reaction)
     );
   `);
+  try {
+    await pool.query(`ALTER TABLE message_reactions DROP CONSTRAINT IF EXISTS message_reactions_nick_fkey`);
+  } catch (e) {}
+  try {
+    await pool.query(`ALTER TABLE message_reactions ADD CONSTRAINT message_reactions_nick_fkey FOREIGN KEY (nick) REFERENCES users(nick) ON DELETE CASCADE`);
+  } catch (e) {}
 
-  // Таблица contacts
+  // 6. Таблица contacts — пересоздаём с каскадным удалением
+  try {
+    await pool.query(`DROP TABLE IF EXISTS contacts CASCADE`);
+  } catch (e) {}
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS contacts (
+    CREATE TABLE contacts (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
       contact_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW(),
@@ -125,9 +145,12 @@ async function initDB() {
     );
   `);
 
-  // Таблица blocked_users
+  // 7. Таблица blocked_users — пересоздаём с каскадным удалением
+  try {
+    await pool.query(`DROP TABLE IF EXISTS blocked_users CASCADE`);
+  } catch (e) {}
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS blocked_users (
+    CREATE TABLE blocked_users (
       user_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
       blocked_nick VARCHAR(50) NOT NULL REFERENCES users(nick) ON DELETE CASCADE,
       created_at TIMESTAMP DEFAULT NOW(),
@@ -135,7 +158,7 @@ async function initDB() {
     );
   `);
 
-  // Таблица deleted_chats
+  // 8. Таблица deleted_chats
   await pool.query(`
     CREATE TABLE IF NOT EXISTS deleted_chats (
       chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
@@ -233,7 +256,6 @@ app.post('/change-nick', async (req, res) => {
   await pool.query('UPDATE contacts SET contact_nick = $1 WHERE contact_nick = $2', [newNick, oldNick]);
   await pool.query('UPDATE blocked_users SET user_nick = $1 WHERE user_nick = $2', [newNick, oldNick]);
   await pool.query('UPDATE blocked_users SET blocked_nick = $1 WHERE blocked_nick = $2', [newNick, oldNick]);
-  // Обновляем ник в chat_participants
   await pool.query('UPDATE chat_participants SET nick = $1 WHERE nick = $2', [newNick, oldNick]);
   io.emit('nick changed', { oldNick, newNick });
   res.json({ success: true, newNick });
@@ -289,7 +311,7 @@ app.delete('/delete-account', async (req, res) => {
   if (user.rows.length === 0) return res.json({ success: false, error: 'Сессия недействительна' });
   const valid = await bcrypt.compare(pin, user.rows[0].pin_hash);
   if (!valid) return res.json({ success: false, error: 'Неверный PIN' });
-  // Благодаря ON DELETE CASCADE связанные записи удалятся автоматически
+  // Теперь все связанные записи удалятся каскадно
   await pool.query('DELETE FROM users WHERE nick = $1', [user.rows[0].nick]);
   res.json({ success: true });
 });
