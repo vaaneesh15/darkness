@@ -37,16 +37,7 @@ const pool = new Pool({
 });
 
 async function initDB() {
-  // Удаляем старые таблицы, которые больше не нужны
-  const tablesToDrop = [
-    'contacts', 'blocked_users', 'deleted_chats', 'chat_participants',
-    'message_reactions', 'posts', 'post_likes', 'chats'
-  ];
-  for (const table of tablesToDrop) {
-    try { await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`); } catch (e) {}
-  }
-
-  // Таблица пользователей (только самое необходимое)
+  // Таблица пользователей
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -56,18 +47,16 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
-
-  // Удаляем все лишние колонки из users
-  const userColsToDrop = ['badge', 'description', 'visibility', 'who_can_write', 'online_visible', 'who_can_voice', 'description_visible', 'who_can_invite'];
-  for (const col of userColsToDrop) {
+  // Удаляем все ненужные колонки (badge, description, visibility и т.д.)
+  const userCols = ['badge', 'description', 'visibility', 'who_can_write', 'online_visible', 'who_can_voice', 'description_visible', 'who_can_invite'];
+  for (const col of userCols) {
     try { await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS ${col}`); } catch (e) {}
   }
 
-  // Таблица сообщений (без реакций)
+  // Таблица сообщений (без привязки к чатам, просто общий чат)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
       id SERIAL PRIMARY KEY,
-      chat_id INTEGER NOT NULL,
       nick VARCHAR(50) NOT NULL,
       text TEXT,
       reply_to_id INTEGER DEFAULT NULL,
@@ -79,8 +68,18 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // Удаляем колонку chat_id, если осталась от старой версии
+  try { await pool.query(`ALTER TABLE messages DROP COLUMN IF EXISTS chat_id`); } catch (e) {}
+  // Удаляем duration
+  try { await pool.query(`ALTER TABLE messages DROP COLUMN IF EXISTS duration`); } catch (e) {}
 
-  console.log('✅ База данных готова');
+  // Удаляем все остальные таблицы
+  const tablesToDrop = ['chats', 'chat_participants', 'contacts', 'blocked_users', 'deleted_chats', 'posts', 'post_likes', 'message_reactions', 'group_participants'];
+  for (const table of tablesToDrop) {
+    try { await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`); } catch (e) {}
+  }
+
+  console.log('✅ База данных готова (только общий чат)');
 }
 initDB();
 
@@ -123,37 +122,36 @@ app.post('/verify', async (req, res) => {
   else res.json({ success: false });
 });
 
-app.get('/public-chat-id', async (req, res) => {
-  res.json({ chatId: 1 });
+app.get('/public-chat-id', (req, res) => {
+  res.json({ chatId: 1 }); // фиксированный ID общего чата
 });
 
 app.get('/chat-messages', async (req, res) => {
-  const { chat_id, nick } = req.query;
-  if (!chat_id || !nick) return res.json([]);
+  const { nick } = req.query;
+  if (!nick) return res.json([]);
   const result = await pool.query(`
-    SELECT m.id, m.chat_id, m.nick, m.text, m.reply_to_id, m.edited, m.type, m.file_url, m.file_name, m.file_size, m.created_at,
+    SELECT m.id, m.nick, m.text, m.reply_to_id, m.edited, m.type, m.file_url, m.file_name, m.file_size, m.created_at,
            rep.nick as reply_nick, rep.text as reply_text
     FROM messages m
     LEFT JOIN messages rep ON m.reply_to_id = rep.id
-    WHERE m.chat_id = $1
     ORDER BY m.created_at ASC
-  `, [chat_id]);
+  `);
   res.json(result.rows);
 });
 
 app.post('/chat-message', async (req, res) => {
-  const { chat_id, nick, text, reply_to_id, type, file_url, file_name, file_size } = req.body;
-  if (!chat_id || !nick) return res.status(400).json({ success: false });
+  const { nick, text, reply_to_id, type, file_url, file_name, file_size } = req.body;
+  if (!nick) return res.status(400).json({ success: false });
   const result = await pool.query(
-    `INSERT INTO messages (chat_id, nick, text, reply_to_id, type, file_url, file_name, file_size) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
-    [chat_id, nick, text || null, reply_to_id || null, type || 'text', file_url, file_name, file_size]
+    `INSERT INTO messages (nick, text, reply_to_id, type, file_url, file_name, file_size) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
+    [nick, text || null, reply_to_id || null, type || 'text', file_url, file_name, file_size]
   );
-  const newMsg = { id: result.rows[0].id, chat_id, nick, text, reply_to_id: reply_to_id || null, edited: false, type: type || 'text', file_url, file_name, file_size, created_at: result.rows[0].created_at };
+  const newMsg = { id: result.rows[0].id, nick, text, reply_to_id: reply_to_id || null, edited: false, type: type || 'text', file_url, file_name, file_size, created_at: result.rows[0].created_at };
   if (reply_to_id) {
     const replyMsg = await pool.query('SELECT nick, text FROM messages WHERE id = $1', [reply_to_id]);
     if (replyMsg.rows.length) { newMsg.reply_nick = replyMsg.rows[0].nick; newMsg.reply_text = replyMsg.rows[0].text; }
   }
-  io.to(`chat:${chat_id}`).emit('chat message received', newMsg);
+  io.emit('chat message received', newMsg);
   res.json({ success: true, message: newMsg });
 });
 
@@ -163,25 +161,53 @@ app.post('/delete-message', async (req, res) => {
   const msg = await pool.query('SELECT nick FROM messages WHERE id = $1', [messageId]);
   if (msg.rows.length === 0) return res.json({ success: false });
   if (msg.rows[0].nick !== nick) return res.json({ success: false });
-  const result = await pool.query('DELETE FROM messages WHERE id = $1 RETURNING id, chat_id', [messageId]);
-  if (result.rowCount > 0) { io.to(`chat:${result.rows[0].chat_id}`).emit('message deleted', messageId); res.json({ success: true }); }
-  else res.json({ success: false });
+  await pool.query('DELETE FROM messages WHERE id = $1', [messageId]);
+  io.emit('message deleted', messageId);
+  res.json({ success: true });
 });
 
 app.post('/edit-message', async (req, res) => {
   const { messageId, nick, newText } = req.body;
   if (!messageId || !nick || !newText?.trim()) return res.status(400).json({ success: false });
-  const result = await pool.query('UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 AND nick = $3 RETURNING id, chat_id', [newText.trim(), messageId, nick]);
-  if (result.rowCount > 0) { io.to(`chat:${result.rows[0].chat_id}`).emit('message edited', { messageId, newText: newText.trim() }); res.json({ success: true }); }
-  else res.json({ success: false });
+  const result = await pool.query('UPDATE messages SET text = $1, edited = TRUE WHERE id = $2 AND nick = $3 RETURNING id', [newText.trim(), messageId, nick]);
+  if (result.rowCount > 0) {
+    io.emit('message edited', { messageId, newText: newText.trim() });
+    res.json({ success: true });
+  } else res.json({ success: false });
 });
+
+const typingUsers = new Set();
 
 io.on('connection', (socket) => {
   let currentNick = null;
-  socket.on('user online', (nick) => { currentNick = nick; socket.join('chat:1'); });
-  socket.on('join chat', (chatId) => { socket.join(`chat:${chatId}`); });
-  socket.on('typing', ({ chatId, nick }) => { socket.to(`chat:${chatId}`).emit('user typing', { chatId, nick }); });
-  socket.on('stop typing', ({ chatId }) => { socket.to(`chat:${chatId}`).emit('user stop typing', { chatId }); });
+
+  socket.on('user online', (nick) => {
+    currentNick = nick;
+    socket.join('public_chat');
+  });
+
+  socket.on('join chat', () => {
+    socket.join('public_chat');
+  });
+
+  socket.on('typing', ({ nick }) => {
+    if (!typingUsers.has(nick)) {
+      typingUsers.add(nick);
+      socket.to('public_chat').emit('user typing', { nick });
+    }
+  });
+
+  socket.on('stop typing', ({ nick }) => {
+    typingUsers.delete(nick);
+    socket.to('public_chat').emit('user stop typing', { nick });
+  });
+
+  socket.on('disconnect', () => {
+    if (currentNick) {
+      typingUsers.delete(currentNick);
+      socket.to('public_chat').emit('user stop typing', { nick: currentNick });
+    }
+  });
 });
 
 const PORT = process.env.PORT || 3000;
